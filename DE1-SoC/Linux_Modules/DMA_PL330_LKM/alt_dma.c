@@ -34,13 +34,15 @@
  * $Id: //acds/rel/16.1/embedded/ip/hps/altera_hps/hwlib/src/hwmgr/alt_dma.c#2 $
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
-#include <alt_printf.h>
-#include "alt_cache.h"
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <inttypes.h>
+//#include <alt_printf.h>
+//#include "alt_cache.h"
 #include "alt_dma.h"
-#include "alt_mmu.h"
+//#include "alt_mmu.h"
+
+#include <linux/kernel.h>    // Contains types, macros, functions for the kernel
 
 #include "socal/alt_rstmgr.h"
 #include "socal/alt_sysmgr.h"

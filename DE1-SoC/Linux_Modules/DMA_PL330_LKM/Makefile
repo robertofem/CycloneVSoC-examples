@@ -1,7 +1,7 @@
 #Name of the module
 obj-m := DMA_with_FPGA_module.o
 #Files composing the module
-DMA_with_FPGA_module-objs := DMA_with_FPGA.o PL330-functions.o
+DMA_with_FPGA_module-objs := DMA_with_FPGA.o PL330-functions.o alt_dma.o
 
 #guest architecture
 ARCH := arm

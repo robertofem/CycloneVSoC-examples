@@ -1,9 +1,9 @@
 //PL330-functions.c
 //Support functions to program the driver for PL330 DMA controller
 
-#include <linux/kernel.h>           // Contains types, macros, functions for the kernel
+#include <linux/kernel.h>    // Contains types, macros, functions for the kernel
 #include "alt_dma.h" 
-#include "hw_lib_common.h" 
+#include "hwlib_socal_linux.h" 
 #include "PL330-functions.h"
 
 
@@ -23,7 +23,7 @@ ALT_STATUS_CODE PL330_init(void)
     // Uninit DMA
     if(status == ALT_E_SUCCESS)
     {
-        //status = alt_dma_uninit();
+        status = alt_dma_uninit();
     }
 
     // Configure everything as defaults.

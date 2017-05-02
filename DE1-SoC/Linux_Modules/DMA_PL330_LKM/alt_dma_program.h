@@ -38,7 +38,7 @@
 #define __ALT_DMA_PROGRAM_H__
 
 //#include "hwlib.h" //We delete hwlib.h and only copy the needed elements to hw_lib_common file
-#include "hw_lib_common.h"
+#include "hwlib_socal_linux.h"
 #include "alt_dma_common.h"
 
 #ifdef __cplusplus

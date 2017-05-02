@@ -38,7 +38,7 @@
 #define __ALT_DMA_H__
 
 //#include "hwlib.h"
-#include "hw_lib_common.h"
+#include "hwlib_socal_linux.h"
 #include "alt_dma_common.h"
 #include "alt_dma_program.h"
 
