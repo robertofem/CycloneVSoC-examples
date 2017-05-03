@@ -25,13 +25,6 @@ static char *name = "world";        ///< An example LKM argument -- default valu
 module_param(name, charp, S_IRUGO); ///< Param desc. charp = char ptr, S_IRUGO can be read/not changed
 MODULE_PARM_DESC(name, "The name to display in /var/log/kern.log");  ///< parameter description
 
-//PL330 DMAC Hardware Details
-#define PL330_HADDRESS_SECURE 	0xFFE01000	//hardware secure address
-#define PL330_HSIZE		0x1000		//PL330 size=4kB 	
-
-//DMA parameters
-static void *pl330_vaddress; //virtual address of PLL330 DMAC 
-
 
 /** @brief The LKM initialization function
  *  The static keyword restricts the visibility of the function to within this C file. The __init
@@ -44,34 +37,22 @@ static int __init helloBBB_init(void){
    uint32_t dma_status;
   
    // printk(KERN_INFO "DMA: Hello %s from the BBB LKM!\n", name);
-   printk(KERN_INFO "DMA: Initializing module\n");
-   
-   //Use ioremap to obtain a virtual address for the DMAC
-   pl330_vaddress = ioremap(PL330_HADDRESS_SECURE, PL330_HSIZE);
-   if (pl330_vaddress == NULL) 
-   {
-      printk(KERN_INFO "DMA: error doing DMAC ioremap\n");
-      goto dma_error_doing_ioremap;
-   }
-   else
-   {
-      printk(KERN_INFO "DMA: DMAC ioremap success\n");
-   }
-   
-   //ioread32(virtual address)
-   dma_status = ioread32(pl330_vaddress);
-   printk(KERN_INFO "DMA status: %u\n",dma_status);
-   //void iowrite32(u32 value, void *addr);
+   printk(KERN_INFO "DMA LKM: Initializing module!!\n");
    
    // Initialize DMA Controller
-   status = ALT_E_SUCCESS;
    status = PL330_init();
    if(status == ALT_E_SUCCESS)
-   {}
+   {
+       printk(KERN_INFO "DMA LKM: Module init was successful!!\n");
+   }else{
+       printk(KERN_INFO "DMA LKM: Module init failed!!\n");
+       goto error_PL330_init;
+   }
    
    //To use X to allocate a DMA-able buffer
- 
-dma_error_doing_ioremap:
+   
+   
+error_PL330_init:
    return 0;
 }
 
@@ -80,9 +61,8 @@ dma_error_doing_ioremap:
  *  code is used for a built-in driver (not a LKM) that this function is not required.
  */
 static void __exit helloBBB_exit(void){
-   printk(KERN_INFO "DMA: Exiting module!\n", name);
-   
-   void iounmap(pl330_vaddress); //iounmap the DMAC
+   printk(KERN_INFO "DMA LKM: Exiting module!!\n", name);
+   PL330_uninit();
 }
 
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which

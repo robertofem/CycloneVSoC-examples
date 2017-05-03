@@ -34,19 +34,24 @@
  * $Id: //acds/rel/16.1/embedded/ip/hps/altera_hps/hwlib/src/hwmgr/alt_dma.c#2 $
  */
 
+#include "hwlib_socal_linux.h"
+
 //#include <stdio.h>
 //#include <stdlib.h>
 //#include <inttypes.h>
 //#include <alt_printf.h>
 //#include "alt_cache.h"
+
 #include "alt_dma.h"
 //#include "alt_mmu.h"
 
 #include <linux/kernel.h>    // Contains types, macros, functions for the kernel
+#include <asm/io.h>		    // For ioremap and ioread32 and iowrite32
 
-#include "socal/alt_rstmgr.h"
-#include "socal/alt_sysmgr.h"
 
+//#include "socal/alt_rstmgr.h"
+//#include "socal/alt_sysmgr.h"
+/*
 #if ALT_DMA_PERIPH_PROVISION_I2C_SUPPORT
 #include "socal/alt_i2c.h"
 #endif
@@ -66,7 +71,7 @@
 
 #include "socal/socal.h"
 #include "socal/hps.h"
-
+*/
 #ifndef ARRAY_COUNT
 #define ARRAY_COUNT(array) (sizeof(array) / sizeof(array[0]))
 #endif
@@ -77,6 +82,7 @@
   #define dprintf  null_printf
 #endif
 
+
 /*
  * SoCAL stand in for DMA Controller registers
  *
@@ -86,11 +92,17 @@
  *
  * Macros which have a channel parameter does no validation.
  * */
+//In Linux Module we need virtual addresses for the component
+//We make it visible here with extern keyword. We do iomap in PL330-functions.CAUTION
+//We define ALT_DMASECURE_ADDR and ALT_RSTMGR_ADDR in 
+//hwlib_socal_linux.h
+extern void* pl330_vaddress;
+extern void* rstmgr_vaddress;
 
-#if defined(soc_a10)
-#define ALT_DMASECURE_ADDR    ALT_DMA_SCTL_ADDR
-#define ALT_DMANONSECURE_ADDR ALT_DMA_NSCTL_ADDR
-#endif
+//#if defined(soc_a10)
+//#define ALT_DMASECURE_ADDR    ALT_DMA_SCTL_ADDR
+//#define ALT_DMANONSECURE_ADDR ALT_DMA_NSCTL_ADDR
+//#endif
 
 /* DMA Manager Status Register */
 #define ALT_DMA_DSR_OFST 0x0
@@ -242,14 +254,14 @@ static struct
  * will resolve to translating a flat memory mapping. This is needed to
  * decouple the MMU from the DMA modules.
  * */
-__attribute__((weak)) uintptr_t alt_mmu_va_to_pa(const void * va, uint32_t * seglength, uint32_t * dfsr)
+/*__attribute__((weak)) uintptr_t alt_mmu_va_to_pa(const void * va, uint32_t * seglength, uint32_t * dfsr)
 {
     *seglength = 0xffffffff;
     *dfsr      = 0;
     return (uintptr_t)va;
-}
+}*/
 
-__attribute__((weak)) ALT_STATUS_CODE alt_mmu_va_to_pa_coalesce_begin(ALT_MMU_VA_TO_PA_COALESCE_t * coalesce, const void * va, size_t size)
+/*__attribute__((weak)) ALT_STATUS_CODE alt_mmu_va_to_pa_coalesce_begin(ALT_MMU_VA_TO_PA_COALESCE_t * coalesce, const void * va, size_t size)
 {
     if ((uintptr_t)va + size - 1 < (uintptr_t)va)
     {
@@ -263,9 +275,9 @@ __attribute__((weak)) ALT_STATUS_CODE alt_mmu_va_to_pa_coalesce_begin(ALT_MMU_VA
     coalesce->nextsegsize = size;
 
     return ALT_E_SUCCESS;
-}
+}*/
 
-__attribute__((weak)) ALT_STATUS_CODE alt_mmu_va_to_pa_coalesce_next(ALT_MMU_VA_TO_PA_COALESCE_t * coalesce, uintptr_t * segpa, uint32_t * segsize)
+/*__attribute__((weak)) ALT_STATUS_CODE alt_mmu_va_to_pa_coalesce_next(ALT_MMU_VA_TO_PA_COALESCE_t * coalesce, uintptr_t * segpa, uint32_t * segsize)
 {
     if (coalesce->size == 0)
     {
@@ -281,9 +293,9 @@ __attribute__((weak)) ALT_STATUS_CODE alt_mmu_va_to_pa_coalesce_next(ALT_MMU_VA_
     coalesce->nextsegsize = 0;
 
     return ALT_E_SUCCESS;
-}
+}*/
 
-__attribute__((weak)) ALT_STATUS_CODE alt_mmu_va_to_pa_coalesce_end(ALT_MMU_VA_TO_PA_COALESCE_t * coalesce)
+/*__attribute__((weak)) ALT_STATUS_CODE alt_mmu_va_to_pa_coalesce_end(ALT_MMU_VA_TO_PA_COALESCE_t * coalesce)
 {
     if (coalesce->size)
     {
@@ -293,42 +305,42 @@ __attribute__((weak)) ALT_STATUS_CODE alt_mmu_va_to_pa_coalesce_end(ALT_MMU_VA_T
     {
         return ALT_E_SUCCESS;
     }
-}
+}*/
 
 /*
  * If users are not using the cache (and not including alt_cache.c) this
  * function will resolve to a no-op. This is needed to decouple DMA from cache.
  * */
-__attribute__((weak)) ALT_STATUS_CODE alt_cache_system_clean(void * address, size_t length)
+/*__attribute__((weak)) ALT_STATUS_CODE alt_cache_system_clean(void * address, size_t length)
 {
     return ALT_E_SUCCESS;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
+/*ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
 {
     int i;
 #if defined(soc_cv_av)
 
-    /* Update the System Manager DMA configuration items */
+    // Update the System Manager DMA configuration items//
     uint32_t dmactrl = 0;
 
-    /* Update the System Manager DMA peripheral security items */
+    // Update the System Manager DMA peripheral security items//
     uint32_t dmapersecurity = 0;
 
-    /* Initialize the channel information array */
+    // Initialize the channel information array //
     for (i = 0; i < ARRAY_COUNT(g_dmaState.channel_info); ++i)
     {
         g_dmaState.channel_info[i].flag = 0;
     }
 
-    /* See if CAN is available on the system. */
+    // See if CAN is available on the system. //
     g_dmaState.can_exist = ALT_SYSMGR_HPSINFO_CAN_GET(alt_read_word(ALT_SYSMGR_HPSINFO_ADDR))
                         == ALT_SYSMGR_HPSINFO_CAN_E_CAN_AVAILABLE;
 
-    /* Handle FPGA / CAN muxing */
+    // Handle FPGA / CAN muxing //
     for (i = 0; i < ARRAY_COUNT(dma_cfg->periph_mux); ++i)
     {
-        /* The default is FPGA. */
+        // The default is FPGA. //
         switch (dma_cfg->periph_mux[i])
         {
         case ALT_DMA_PERIPH_MUX_DEFAULT:
@@ -346,8 +358,8 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
         }
     }
 
-    /* Handle Manager security */
-    /* Default is Secure state. */
+    // Handle Manager security //
+    // Default is Secure state. //
     switch (dma_cfg->manager_sec)
     {
     case ALT_DMA_SECURITY_DEFAULT:
@@ -360,10 +372,10 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
         return ALT_E_ERROR;
     }
 
-    /* Handle IRQ security */
+    //Handle IRQ security //
     for (i = 0; i < ALT_SYSMGR_DMA_CTL_IRQNONSECURE_WIDTH; ++i)
     {
-        /* Default is Secure state. */
+        // Default is Secure state. //
         switch (dma_cfg->irq_sec[i])
         {
         case ALT_DMA_SECURITY_DEFAULT:
@@ -381,7 +393,7 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
 
     for (i = 0; i < ARRAY_COUNT(dma_cfg->periph_sec); ++i)
     {
-        /* Default is Secure state. */
+        // Default is Secure state. //
         switch (dma_cfg->periph_sec[i])
         {
         case ALT_DMA_SECURITY_DEFAULT:
@@ -397,25 +409,25 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
 
     alt_write_word(ALT_SYSMGR_DMA_PERSECURITY_ADDR, dmapersecurity);
 
-    /* Take DMA out of reset. */
+    // Take DMA out of reset. //
 
     alt_clrbits_word(ALT_RSTMGR_PERMODRST_ADDR, ALT_RSTMGR_PERMODRST_DMA_SET_MSK);
 
 #elif defined(soc_a10)
 
-    /* Update the System Manager DMA configuration items */
+    // Update the System Manager DMA configuration items //
     uint32_t sysmgrdma = 0;
     uint32_t sysmgrdmaperiph = 0;
 
-    /* Initialize the channel information array */
+    // Initialize the channel information array //
     for (i = 0; i < ARRAY_COUNT(g_dmaState.channel_info); ++i)
     {
         g_dmaState.channel_info[i].flag = 0;
     }
 
-    /* Handle FPGA / {Security Manager / I2C4} muxing */
+    // Handle FPGA / {Security Manager / I2C4} muxing //
 
-    switch (dma_cfg->periph_mux[0]) /* For index 0, default is security manager. */
+    switch (dma_cfg->periph_mux[0]) // For index 0, default is security manager. //
     {
     case ALT_DMA_PERIPH_MUX_DEFAULT:
     case ALT_DMA_PERIPH_MUX_SECMGR:
@@ -428,7 +440,7 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
         return ALT_E_ERROR;
     }
 
-    switch (dma_cfg->periph_mux[1]) /* For index 1, default is FPGA. */
+    switch (dma_cfg->periph_mux[1]) // For index 1, default is FPGA. //
     {
     case ALT_DMA_PERIPH_MUX_DEFAULT:
     case ALT_DMA_PERIPH_MUX_FPGA:
@@ -441,7 +453,7 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
         return ALT_E_ERROR;
     }
 
-    switch (dma_cfg->periph_mux[2]) /* For index 2, default is FPGA. */
+    switch (dma_cfg->periph_mux[2]) // For index 2, default is FPGA. //
     {
     case ALT_DMA_PERIPH_MUX_DEFAULT:
     case ALT_DMA_PERIPH_MUX_FPGA:
@@ -454,7 +466,7 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
         return ALT_E_ERROR;
     }
 
-    /* Handle Manager security */
+    // Handle Manager security //
 
     switch (dma_cfg->manager_sec)
     {
@@ -468,7 +480,7 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
         return ALT_E_ERROR;
     }
 
-    /* Handle IRQ Security */
+    // Handle IRQ Security//
 
     for (i = 0; i < ALT_SYSMGR_DMA_IRQ_NS_WIDTH; ++i)
     {
@@ -485,15 +497,15 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
         }
     }
 
-    /* Write out the sysmgrdma value. */
+    // Write out the sysmgrdma value. //
 
     alt_write_word(ALT_SYSMGR_DMA_ADDR, sysmgrdma);
 
-    /* Update System Manager DMA peripheral security items */
+    // Update System Manager DMA peripheral security items //
 
     for (i = 0; i < ALT_SYSMGR_DMA_PERIPH_NS_WIDTH; ++i)
     {
-        /* Default is Secure state. */
+        // Default is Secure state. //
         switch (dma_cfg->periph_sec[i])
         {
         case ALT_DMA_SECURITY_DEFAULT:
@@ -509,14 +521,14 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
 
     alt_write_word(ALT_SYSMGR_DMA_PERIPH_ADDR, sysmgrdmaperiph);
 
-    /* Take DMA out of reset. */
+    // Take DMA out of reset. //
 
     alt_clrbits_word(ALT_RSTMGR_PER0MODRST_ADDR, ALT_RSTMGR_PER0MODRST_DMA_SET_MSK);
 
 #endif
 
     return ALT_E_SUCCESS;
-}
+}*/
 
 ALT_STATUS_CODE alt_dma_uninit(void)
 {
@@ -546,9 +558,9 @@ ALT_STATUS_CODE alt_dma_uninit(void)
     return ALT_E_SUCCESS;
 }
 
-ALT_STATUS_CODE alt_dma_channel_alloc(ALT_DMA_CHANNEL_t channel)
+/*ALT_STATUS_CODE alt_dma_channel_alloc(ALT_DMA_CHANNEL_t channel)
 {
-    /* Validate channel */
+    // Validate channel 
     switch (channel)
     {
     case ALT_DMA_CHANNEL_0:
@@ -564,29 +576,29 @@ ALT_STATUS_CODE alt_dma_channel_alloc(ALT_DMA_CHANNEL_t channel)
         return ALT_E_BAD_ARG;
     }
 
-    /* Verify channel is unallocated */
+    // Verify channel is unallocated /
 
     if (g_dmaState.channel_info[channel].flag & ALT_DMA_CHANNEL_INFO_FLAG_ALLOCED)
     {
         return ALT_E_ERROR;
     }
 
-    /* Mark channel as allocated */
+    // Mark channel as allocated /
 
     g_dmaState.channel_info[channel].flag |= ALT_DMA_CHANNEL_INFO_FLAG_ALLOCED;
 
     return ALT_E_SUCCESS;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_channel_alloc_any(ALT_DMA_CHANNEL_t * allocated)
+/*ALT_STATUS_CODE alt_dma_channel_alloc_any(ALT_DMA_CHANNEL_t * allocated)
 {
-    /* Sweep channel array for unallocated channel */
+    // Sweep channel array for unallocated channel /
     int i;
     for (i = 0; i < ARRAY_COUNT(g_dmaState.channel_info); ++i)
     {
         if (!(g_dmaState.channel_info[i].flag & ALT_DMA_CHANNEL_INFO_FLAG_ALLOCED))
         {
-            /* Allocate that free channel. */
+            // Allocate that free channel. 
 
             ALT_STATUS_CODE status = alt_dma_channel_alloc((ALT_DMA_CHANNEL_t)i);
             if (status == ALT_E_SUCCESS)
@@ -597,17 +609,17 @@ ALT_STATUS_CODE alt_dma_channel_alloc_any(ALT_DMA_CHANNEL_t * allocated)
         }
     }
 
-    /* No free channels found. */
+    // No free channels found. /
 
     return ALT_E_ERROR;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
+/*ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
 {
     ALT_DMA_CHANNEL_STATE_t state;
     ALT_STATUS_CODE status;
 
-    /* Validate channel */
+    // Validate channel /
     switch (channel)
     {
     case ALT_DMA_CHANNEL_0:
@@ -623,14 +635,14 @@ ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
         return ALT_E_BAD_ARG;
     }
 
-    /* Verify channel is allocated */
+    // Verify channel is allocated /
 
     if (!(g_dmaState.channel_info[channel].flag & ALT_DMA_CHANNEL_INFO_FLAG_ALLOCED))
     {
         return ALT_E_ERROR;
     }
 
-    /* Verify channel is stopped */
+    // Verify channel is stopped //
 
     status = alt_dma_channel_state_get(channel, &state);
     if (status != ALT_E_SUCCESS)
@@ -642,19 +654,19 @@ ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
         return ALT_E_ERROR;
     }
 
-    /* Mark channel as unallocated. */
+    //Mark channel as unallocated. //
 
     g_dmaState.channel_info[channel].flag &= ~ALT_DMA_CHANNEL_INFO_FLAG_ALLOCED;
 
     return ALT_E_SUCCESS;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_t * pgm)
+/*ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_t * pgm)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
     uintptr_t pgmpa = 0;
 
-    /* Validate channel */
+    // Validate channel /
     switch (channel)
     {
     case ALT_DMA_CHANNEL_0:
@@ -670,14 +682,14 @@ ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_
         return ALT_E_BAD_ARG;
     }
 
-    /* Verify channel is allocated */
+    // Verify channel is allocated /
 
     if (!(g_dmaState.channel_info[channel].flag & ALT_DMA_CHANNEL_INFO_FLAG_ALLOCED))
     {
         return ALT_E_ERROR;
     }
 
-    /* Verify channel is stopped */
+    // Verify channel is stopped /
 
     if (status == ALT_E_SUCCESS)
     {
@@ -690,14 +702,14 @@ ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_
         }
     }
 
-    /* Validate the program */
+    // Validate the program /
 
     if (status == ALT_E_SUCCESS)
     {
         status = alt_dma_program_validate(pgm);
     }
 
-    /* Sync the DMA program to RAM. */
+    // Sync the DMA program to RAM. //
 
     if (status == ALT_E_SUCCESS)
     {
@@ -708,9 +720,9 @@ ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_
         status = alt_cache_system_clean(vaddr, length);
     }
 
-    /*
-     * Get the PA of the program buffer.
-     * */
+    
+     // Get the PA of the program buffer.
+     
 
     if (status == ALT_E_SUCCESS)
     {
@@ -724,15 +736,15 @@ ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_
         }
     }
 
-    /*
-     * Execute the program
-     * */
+    
+     // Execute the program
+     
 
-    /* Configure DBGINST0 and DBGINST1 to execute DMAGO targetting the requested channel. */
+    // Configure DBGINST0 and DBGINST1 to execute DMAGO targetting the requested channel. /
 
-    /* For information on APB Interface, see PL330, section 2.5.1.
-     * For information on DBGINSTx, see PL330, section 3.3.20 - 3.3.21.
-     * For information on DMAGO, see PL330, section 4.3.5. */
+    // For information on APB Interface, see PL330, section 2.5.1.
+    // For information on DBGINSTx, see PL330, section 3.3.20 - 3.3.21.
+    // For information on DMAGO, see PL330, section 4.3.5. /
 
     if (status == ALT_E_SUCCESS)
     {
@@ -744,15 +756,15 @@ ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_
 
         alt_write_word(ALT_DMA_DBGINST1_ADDR(ALT_DMASECURE_ADDR), pgmpa);
 
-        /* Execute the instruction held in DBGINST{0,1} */
+        // Execute the instruction held in DBGINST{0,1} /
 
-        /* For information on DBGCMD, see PL330, section 3.3.19. */
+        // For information on DBGCMD, see PL330, section 3.3.19. //
 
         alt_write_word(ALT_DMA_DBGCMD_ADDR(ALT_DMASECURE_ADDR), 0);
     }
 
     return status;
-}
+}*/
 
 ALT_STATUS_CODE alt_dma_channel_kill(ALT_DMA_CHANNEL_t channel)
 {
@@ -831,10 +843,10 @@ ALT_STATUS_CODE alt_dma_channel_kill(ALT_DMA_CHANNEL_t channel)
     return status;
 }
 
-ALT_STATUS_CODE alt_dma_channel_reg_get(ALT_DMA_CHANNEL_t channel,
+/*ALT_STATUS_CODE alt_dma_channel_reg_get(ALT_DMA_CHANNEL_t channel,
                                         ALT_DMA_PROGRAM_REG_t reg, uint32_t * val)
 {
-    /* Validate channel */
+    // Validate channel /
     switch (channel)
     {
     case ALT_DMA_CHANNEL_0:
@@ -850,9 +862,9 @@ ALT_STATUS_CODE alt_dma_channel_reg_get(ALT_DMA_CHANNEL_t channel,
         return ALT_E_BAD_ARG;
     }
 
-    /* For information on SAR, see PL330, section 3.3.13.
-     * For information on DAR, see PL330, section 3.3.14.
-     * For information on CCR, see PL330, section 3.3.15. */
+    // For information on SAR, see PL330, section 3.3.13.
+    // For information on DAR, see PL330, section 3.3.14.
+    // For information on CCR, see PL330, section 3.3.15. /
 
     switch (reg)
     {
@@ -870,11 +882,11 @@ ALT_STATUS_CODE alt_dma_channel_reg_get(ALT_DMA_CHANNEL_t channel,
     }
 
     return ALT_E_SUCCESS;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_send_event(ALT_DMA_EVENT_t evt_num)
+/*ALT_STATUS_CODE alt_dma_send_event(ALT_DMA_EVENT_t evt_num)
 {
-    /* Validate evt_num */
+    // Validate evt_num /
 
     switch (evt_num)
     {
@@ -892,38 +904,38 @@ ALT_STATUS_CODE alt_dma_send_event(ALT_DMA_EVENT_t evt_num)
         return ALT_E_BAD_ARG;
     }
 
-    /* Issue the DMASEV on the DMA manager thread.
-     * DMASEV is short enough not to use DBGINST1 register. */
+    // Issue the DMASEV on the DMA manager thread.
+     // DMASEV is short enough not to use DBGINST1 register. /
 
-    /* For information on APB Interface, see PL330, section 2.5.1.
-     * For information on DBGINSTx, see PL330, section 3.3.20 - 3.3.21.
-     * For information on DMASEV, see PL330, section 4.3.15. */
+    // For information on APB Interface, see PL330, section 2.5.1.
+     // For information on DBGINSTx, see PL330, section 3.3.20 - 3.3.21.
+     // For information on DMASEV, see PL330, section 4.3.15. /
 
     alt_write_word(ALT_DMA_DBGINST0_ADDR(ALT_DMASECURE_ADDR),
-                   ALT_DMA_DBGINST0_INSTRUCTIONBYTE0_SET(0x34) | /* opcode for DMASEV */
+                   ALT_DMA_DBGINST0_INSTRUCTIONBYTE0_SET(0x34) | // opcode for DMASEV /
                    ALT_DMA_DBGINST0_INSTRUCTIONBYTE1_SET(evt_num << 3) |
                    ALT_DMA_DBGINST0_DEBUGTHREAD_SET(ALT_DMA_DBGINST0_DEBUGTHREAD_E_MANAGER)
         );
 
-    /* Execute the instruction held in DBGINST0 */
+    // Execute the instruction held in DBGINST0 /
 
-    /* For information on DBGCMD, see PL330, section 3.3.19. */
+    // For information on DBGCMD, see PL330, section 3.3.19. /
 
     alt_write_word(ALT_DMA_DBGCMD_ADDR(ALT_DMASECURE_ADDR), 0);
 
     return ALT_E_SUCCESS;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_manager_state_get(ALT_DMA_MANAGER_STATE_t * state)
+/*ALT_STATUS_CODE alt_dma_manager_state_get(ALT_DMA_MANAGER_STATE_t * state)
 {
-    /* For information on DSR, see PL330, section 3.3.1. */
+    // For information on DSR, see PL330, section 3.3.1. /
 
     uint32_t raw_state = alt_read_word(ALT_DMA_DSR_ADDR(ALT_DMASECURE_ADDR));
 
     *state = (ALT_DMA_MANAGER_STATE_t)ALT_DMA_DSR_DMASTATUS_GET(raw_state);
 
     return ALT_E_SUCCESS;
-}
+}*/
 
 ALT_STATUS_CODE alt_dma_channel_state_get(ALT_DMA_CHANNEL_t channel,
                                           ALT_DMA_CHANNEL_STATE_t * state)
@@ -954,19 +966,19 @@ ALT_STATUS_CODE alt_dma_channel_state_get(ALT_DMA_CHANNEL_t channel,
     return ALT_E_SUCCESS;
 }
 
-ALT_STATUS_CODE alt_dma_manager_fault_status_get(ALT_DMA_MANAGER_FAULT_t * fault)
+/*ALT_STATUS_CODE alt_dma_manager_fault_status_get(ALT_DMA_MANAGER_FAULT_t * fault)
 {
-    /* For information on FTRD, see PL330, section 3.3.9. */
+    // For information on FTRD, see PL330, section 3.3.9. //
 
     *fault = (ALT_DMA_MANAGER_FAULT_t)alt_read_word(ALT_DMA_FTRD_ADDR(ALT_DMASECURE_ADDR));
 
     return ALT_E_SUCCESS;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_channel_fault_status_get(ALT_DMA_CHANNEL_t channel,
+/*ALT_STATUS_CODE alt_dma_channel_fault_status_get(ALT_DMA_CHANNEL_t channel,
                                                  ALT_DMA_CHANNEL_FAULT_t * fault)
 {
-    /* Validate channel */
+    // Validate channel /
     switch (channel)
     {
     case ALT_DMA_CHANNEL_0:
@@ -982,17 +994,17 @@ ALT_STATUS_CODE alt_dma_channel_fault_status_get(ALT_DMA_CHANNEL_t channel,
         return ALT_E_BAD_ARG;
     }
 
-    /* For information on FTR, see PL330, section 3.3.10. */
+    //For information on FTR, see PL330, section 3.3.10. //
 
     *fault = (ALT_DMA_CHANNEL_FAULT_t)alt_read_word(ALT_DMA_FTRx_ADDR(ALT_DMASECURE_ADDR, channel));
 
     return ALT_E_SUCCESS;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_event_int_select(ALT_DMA_EVENT_t evt_num,
+/*ALT_STATUS_CODE alt_dma_event_int_select(ALT_DMA_EVENT_t evt_num,
                                          ALT_DMA_EVENT_SELECT_t opt)
 {
-    /* Validate evt_num */
+    // Validate evt_num /
     switch (evt_num)
     {
     case ALT_DMA_EVENT_0:
@@ -1009,7 +1021,7 @@ ALT_STATUS_CODE alt_dma_event_int_select(ALT_DMA_EVENT_t evt_num,
         return ALT_E_BAD_ARG;
     }
 
-    /* For information on INTEN, see PL330, section 3.3.3. */
+    // For information on INTEN, see PL330, section 3.3.3. //
 
     switch (opt)
     {
@@ -1024,13 +1036,13 @@ ALT_STATUS_CODE alt_dma_event_int_select(ALT_DMA_EVENT_t evt_num,
     }
 
     return ALT_E_SUCCESS;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_event_int_status_get_raw(ALT_DMA_EVENT_t evt_num)
+/*ALT_STATUS_CODE alt_dma_event_int_status_get_raw(ALT_DMA_EVENT_t evt_num)
 {
     uint32_t status_raw;
 
-    /* Validate evt_num */
+    /// Validate evt_num
     switch (evt_num)
     {
     case ALT_DMA_EVENT_0:
@@ -1047,7 +1059,7 @@ ALT_STATUS_CODE alt_dma_event_int_status_get_raw(ALT_DMA_EVENT_t evt_num)
         return ALT_E_BAD_ARG;
     }
 
-    /* For information on INT_EVENT_RIS, see PL330, section 3.3.4. */
+    // For information on INT_EVENT_RIS, see PL330, section 3.3.4. //
 
     status_raw = alt_read_word(ALT_DMA_INT_EVENT_RIS_ADDR(ALT_DMASECURE_ADDR));
 
@@ -1059,13 +1071,13 @@ ALT_STATUS_CODE alt_dma_event_int_status_get_raw(ALT_DMA_EVENT_t evt_num)
     {
         return ALT_E_FALSE;
     }
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_int_status_get(ALT_DMA_EVENT_t irq_num)
+/*ALT_STATUS_CODE alt_dma_int_status_get(ALT_DMA_EVENT_t irq_num)
 {
     uint32_t int_status;
 
-    /* Validate evt_num */
+    // Validate evt_num //
     switch (irq_num)
     {
     case ALT_DMA_EVENT_0:
@@ -1082,7 +1094,7 @@ ALT_STATUS_CODE alt_dma_int_status_get(ALT_DMA_EVENT_t irq_num)
         return ALT_E_BAD_ARG;
     }
 
-    /* For information on INTMIS, see PL330, section 3.3.5. */
+    // For information on INTMIS, see PL330, section 3.3.5. //
 
     int_status = alt_read_word(ALT_DMA_INTMIS_ADDR(ALT_DMASECURE_ADDR));
 
@@ -1094,11 +1106,11 @@ ALT_STATUS_CODE alt_dma_int_status_get(ALT_DMA_EVENT_t irq_num)
     {
         return ALT_E_FALSE;
     }
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_int_clear(ALT_DMA_EVENT_t irq_num)
+/*ALT_STATUS_CODE alt_dma_int_clear(ALT_DMA_EVENT_t irq_num)
 {
-    /* Validate evt_num */
+    // Validate evt_num //
     switch (irq_num)
     {
     case ALT_DMA_EVENT_0:
@@ -1115,14 +1127,14 @@ ALT_STATUS_CODE alt_dma_int_clear(ALT_DMA_EVENT_t irq_num)
         return ALT_E_BAD_ARG;
     }
 
-    /* For information on INTCLR, see PL330, section 3.3.6. */
+    // For information on INTCLR, see PL330, section 3.3.6. //
 
     alt_write_word(ALT_DMA_INTCLR_ADDR(ALT_DMASECURE_ADDR), 1 << irq_num);
 
     return ALT_E_SUCCESS;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * program,
                                                         uintptr_t segdstpa,
                                                         uintptr_t segsrcpa,
                                                         size_t segsize)
@@ -1141,12 +1153,12 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
         status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_DAR, segdstpa);
     }
 
-    /*
-     * The algorithm uses the strategy described in PL330 B.3.1.
-     * It is extended for 2-byte and 1-byte unaligned cases.
-     * */
+    //
+     // The algorithm uses the strategy described in PL330 B.3.1.
+     // It is extended for 2-byte and 1-byte unaligned cases.
+     ///
 
-    /* First see how many byte(s) we need to transfer to get src to be 8 byte aligned */
+    /// First see how many byte(s) we need to transfer to get src to be 8 byte aligned //
     if (segsrcpa & 0x7)
     {
         uint32_t aligncount = ALT_MIN(8 - (segsrcpa & 0x7), sizeleft);
@@ -1154,24 +1166,24 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
 
         dprintf("DMA[M->M][seg]: Total pre-alignment 1-byte burst size transfer(s): %" PRIu32 ".\n", aligncount);
 
-        /* Program in the following parameters:
-         *  - SS8   : Source      burst size of 1-byte
-         *  - DS8   : Destination burst size of 1-byte
-         *  - SBx   : Source      burst length of [aligncount] transfer(s)
-         *  - DBx   : Destination burst length of [aligncount] transfer(s)
-         *  - SC(7) : Source      cacheable write-back, allocate on reads only
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other options default. */
+        // Program in the following parameters:
+        //  - SS8   : Source      burst size of 1-byte
+        //  - DS8   : Destination burst size of 1-byte
+        //  - SBx   : Source      burst length of [aligncount] transfer(s)
+        //  - DBx   : Destination burst length of [aligncount] transfer(s)
+        //  - SC(7) : Source      cacheable write-back, allocate on reads only
+        //  - DC(7) : Destination cacheable write-back, allocate on writes only
+        //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
             status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_CCR,
-                                            (   ((aligncount - 1) << 4) /* SB */
+                                            (   ((aligncount - 1) << 4) // SB //
                                               | ALT_DMA_CCR_OPT_SS8
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC(7)
-                                              | ((aligncount - 1) << 18) /* DB */
+                                              | ((aligncount - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DS8
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
@@ -1190,19 +1202,19 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
         }
     }
 
-    /* This is the number of 8-byte bursts */
+    // This is the number of 8-byte bursts //
     burstcount = sizeleft >> 3;
 
-    /* If bursting was done and src and dst are not mod-8 congruent, we need to
-     * correct for some data left over in the MFIFO due to unaligment issues. */
+    // If bursting was done and src and dst are not mod-8 congruent, we need to
+    // correct for some data left over in the MFIFO due to unaligment issues. //
     correction = (burstcount != 0) && ((segsrcpa & 0x7) != (segdstpa & 0x7));
 
-    /* Update the size left to transfer */
+    // Update the size left to transfer //
     sizeleft &= 0x7;
 
     dprintf("DMA[M->M][seg]: Total Main 8-byte burst size transfer(s): %" PRIu32 ".\n", burstcount);
 
-    /* Determine how many 16 length bursts can be done */
+    // Determine how many 16 length bursts can be done //
 
     if (burstcount >> 4)
     {
@@ -1212,14 +1224,14 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
         dprintf("DMA[M->M][seg]:   Number of 16 burst length 8-byte transfer(s): %" PRIu32 ".\n", length16burstcount);
         dprintf("DMA[M->M][seg]:   Number of remaining 8-byte transfer(s):       %" PRIu32 ".\n", burstcount);
 
-        /* Program in the following parameters:
-         *  - SS64  : Source      burst size of 8-byte
-         *  - DS64  : Destination burst size of 8-byte
-         *  - SB16  : Source      burst length of 16 transfers
-         *  - DB16  : Destination burst length of 16 transfers
-         *  - SC(7) : Source      cacheable write-back, allocate on reads only
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other options default. */
+        // Program in the following parameters:
+        //  - SS64  : Source      burst size of 8-byte
+        //  - DS64  : Destination burst size of 8-byte
+        //  - SB16  : Source      burst length of 16 transfers
+        //  - DB16  : Destination burst length of 16 transfers
+        //  - SC(7) : Source      cacheable write-back, allocate on reads only
+        //  - DC(7) : Destination cacheable write-back, allocate on writes only
+        //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -1270,31 +1282,31 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
         }
     }
 
-    /* At this point, we should have [burstcount] 8-byte transfer(s)
-     * remaining. [burstcount] should be less than 16. */
+    // At this point, we should have [burstcount] 8-byte transfer(s)
+    // remaining. [burstcount] should be less than 16. //
 
-    /* Do one more burst with a SB / DB of length [burstcount]. */
+    // Do one more burst with a SB / DB of length [burstcount]. //
 
     if (burstcount)
     {
-        /* Program in the following parameters:
-         *  - SS64  : Source      burst size of 8-byte
-         *  - DS64  : Destination burst size of 8-byte
-         *  - SBx   : Source      burst length of [burstlength] transfer(s)
-         *  - DBx   : Destination burst length of [burstlength] transfer(s)
-         *  - SC(7) : Source      cacheable write-back, allocate on reads only
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other options default. */
+        // Program in the following parameters:
+         //  - SS64  : Source      burst size of 8-byte
+         //  - DS64  : Destination burst size of 8-byte
+         //  - SBx   : Source      burst length of [burstlength] transfer(s)
+         //  - DBx   : Destination burst length of [burstlength] transfer(s)
+         //  - SC(7) : Source      cacheable write-back, allocate on reads only
+         // - DC(7) : Destination cacheable write-back, allocate on writes only
+         //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
             status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_CCR,
-                                            (   ((burstcount - 1) << 4) /* SB */
+                                            (   ((burstcount - 1) << 4) // SB //
                                               | ALT_DMA_CCR_OPT_SS64
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC(7)
-                                              | ((burstcount - 1) << 18) /* DB */
+                                              | ((burstcount - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DS64
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
@@ -1313,36 +1325,36 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
         }
     }
 
-    /* Corrections may be needed if usrc and udst are relatively 8-byte unaligned
-     * and bursts were previously used. */
+    // Corrections may be needed if usrc and udst are relatively 8-byte unaligned
+    // and bursts were previously used. //
 
     if (correction)
     {
         if (status == ALT_E_SUCCESS)
         {
-            /* This is the number of 1-byte corrections DMAST needed.
-             * This is determined by how many remaining data is in the MFIFO after
-             * the burst(s) have completed. */
+            // This is the number of 1-byte corrections DMAST needed.
+            // This is determined by how many remaining data is in the MFIFO after
+            // the burst(s) have completed. //
             int correctcount = (segdstpa + (8 - (segsrcpa & 0x7))) & 0x7;
 
             dprintf("DMA[M->M][seg]: Total correction 1-byte burst size transfer(s): %u.\n", correctcount);
 
-            /* Program in the following parameters:
-             *  - SS8   : Source      burst size of 1-byte
-             *  - DS8   : Destination burst size of 1-byte
-             *  - SBx   : Source      burst length of [correctcount] transfer(s)
-             *  - DBx   : Destination burst length of [correctcount] transfer(s)
-             *  - SC(7) : Source      cacheable write-back, allocate on reads only
-             *  - DC(7) : Destination cacheable write-back, allocate on writes only
-             *  - All other options default. */
+            // Program in the following parameters:
+            //  - SS8   : Source      burst size of 1-byte
+            //  - DS8   : Destination burst size of 1-byte
+            //  - SBx   : Source      burst length of [correctcount] transfer(s)
+            //  - DBx   : Destination burst length of [correctcount] transfer(s)
+            //  - SC(7) : Source      cacheable write-back, allocate on reads only
+            //  - DC(7) : Destination cacheable write-back, allocate on writes only
+            //  - All other options default. /
 
             status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_CCR,
-                                            (   ((correctcount - 1) << 4) /* SB */
+                                            (   ((correctcount - 1) << 4) // SB //
                                               | ALT_DMA_CCR_OPT_SS8
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC(7)
-                                              | ((correctcount - 1) << 18) /* DB */
+                                              | ((correctcount - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DS8
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
@@ -1357,30 +1369,30 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
         }
     }
 
-    /* At this point, there should be 0 - 7 1-byte transfers remaining. */
+    // At this point, there should be 0 - 7 1-byte transfers remaining. //
 
     if (sizeleft)
     {
         dprintf("DMA[M->M][seg]: Total post 1-byte burst size transfer(s): %u.\n", sizeleft);
 
-        /* Program in the following parameters:
-         *  - SS8   : Source      burst size of 1-byte)
-         *  - DS8   : Destination burst size of 1-byte)
-         *  - SBx   : Source      burst length of [sizeleft] transfer(s)
-         *  - DBx   : Destination burst length of [sizeleft] transfer(s)
-         *  - SC(7) : Source      cacheable write-back, allocate on reads only
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other options default. */
+        // Program in the following parameters:
+        //  - SS8   : Source      burst size of 1-byte)
+        //  - DS8   : Destination burst size of 1-byte)
+        //  - SBx   : Source      burst length of [sizeleft] transfer(s)
+        //  - DBx   : Destination burst length of [sizeleft] transfer(s)
+        //  - SC(7) : Source      cacheable write-back, allocate on reads only
+        //  - DC(7) : Destination cacheable write-back, allocate on writes only
+        //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
             status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_CCR,
-                                            (   ((sizeleft - 1) << 4) /* SB */
+                                            (   ((sizeleft - 1) << 4) // SB //
                                               | ALT_DMA_CCR_OPT_SS8
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC(7)
-                                              | ((sizeleft - 1) << 18) /* DB */
+                                              | ((sizeleft - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DS8
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
@@ -1400,9 +1412,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
     }
 
     return status;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
+/*ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
                                          ALT_DMA_PROGRAM_t * program,
                                          void * dst,
                                          const void * src,
@@ -1412,7 +1424,7 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /* If the size is zero, and no event is requested, just return success. */
+    // If the size is zero, and no event is requested, just return success.//
     if ((size == 0) && (send_evt == false))
     {
         return ALT_E_SUCCESS;
@@ -1436,10 +1448,10 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
         dprintf("DMA[M->M]: src  = %p.\n",   src);
         dprintf("DMA[M->M]: size = 0x%x.\n", size);
 
-        /* Detect if memory regions overshoots the address space.
-         * This error checking is handled by the coalescing API. */
+        // Detect if memory regions overshoots the address space.
+         // This error checking is handled by the coalescing API. //
 
-        /* Detect if memory regions overlaps. */
+        // Detect if memory regions overlaps. //
 
         if ((uintptr_t)dst > (uintptr_t)src)
         {
@@ -1456,9 +1468,9 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
             }
         }
 
-        /*
-         * Attempt to coalesce and make the transfer.
-         */
+        //
+         // Attempt to coalesce and make the transfer.
+        ///
 
         if (status == ALT_E_SUCCESS)
         {
@@ -1478,10 +1490,10 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
                 break;
             }
 
-            /*
-             * If any of dst or src segments has been completed (or not started), determine its
-             * next segment.
-             */
+            ///
+             // If any of dst or src segments has been completed (or not started), determine its
+             // next segment.
+             //
 
             if ((status == ALT_E_SUCCESS) && (segsize_dst == 0))
             {
@@ -1497,17 +1509,17 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
                 dprintf("DMA[M->M]: Next src segment: PA = 0x%x, size = 0x%" PRIx32 ".\n", segpa_src, segsize_src);
             }
 
-            /*
-             * Determine the largest segment to safely transfer next.
-             * */
+            //
+             //Determine the largest segment to safely transfer next.
+             ///
 
-            /* This is the largest segment that can safely be transfered considering both dst and
-             * src segmentation. Typically dst or src or both segment(s) will complete. */
+            // This is the largest segment that can safely be transfered considering both dst and
+             // src segmentation. Typically dst or src or both segment(s) will complete.//
             segsize = ALT_MIN(segsize_dst, segsize_src);
 
-            /*
-             * Transfer the largest safe segment.
-             * */
+            
+             // Transfer the largest safe segment.
+             
 
             if (status == ALT_E_SUCCESS)
             {
@@ -1516,9 +1528,9 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
                 status = alt_dma_memory_to_memory_segment(program, segpa_dst, segpa_src, segsize);
             }
 
-            /*
-             * Update some bookkeeping.
-             * */
+            //
+             // Update some bookkeeping.
+             ///
 
             segsize_dst -= segsize;
             segsize_src -= segsize;
@@ -1537,8 +1549,8 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
                 dprintf("DMA[M->M]: Updated src segment: PA = 0x%x, size = 0x%" PRIx32 ".\n", segpa_src, segsize_src);
             }
 
-            /* Use ALT_MIN() to assuredly prevent infinite loop. If either the dst or src has not yet
-             * completed, coalesce_end() will catch that logical error. */
+            // Use ALT_MIN() to assuredly prevent infinite loop. If either the dst or src has not yet
+             // completed, coalesce_end() will catch that logical error. /
             size -= ALT_MIN(segsize, size);
         }
 
@@ -1552,9 +1564,9 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
             status = alt_mmu_va_to_pa_coalesce_end(&coalesce_src);
         }
 
-    } /* if (size != 0) */
+    } // if (size != 0) //
 
-    /* Send event if requested. */
+    // Send event if requested. /
     if (send_evt)
     {
         if (status == ALT_E_SUCCESS)
@@ -1569,26 +1581,26 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
         }
     }
 
-    /* Now that everything is done, end the program. */
+    // Now that everything is done, end the program. //
     if (status == ALT_E_SUCCESS)
     {
         status = alt_dma_program_DMAEND(program);
     }
 
-    /* If there was a problem assembling the program, clean up the buffer and exit. */
+    // If there was a problem assembling the program, clean up the buffer and exit. //
     if (status != ALT_E_SUCCESS)
     {
-        /* Do not report the status for the clear operation. A failure should be
-         * reported regardless of if the clear is successful. */
+        // Do not report the status for the clear operation. A failure should be
+        // reported regardless of if the clear is successful. //
         alt_dma_program_clear(program);
         return status;
     }
 
-    /* Execute the program on the given channel. */
+    // Execute the program on the given channel. //
     return alt_dma_channel_exec(channel, program);
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * program,
                                                       uintptr_t segbufpa,
                                                       size_t segsize)
 {
@@ -1606,7 +1618,7 @@ static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * progra
         status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_DAR, segbufpa);
     }
 
-    /* First see how many byte(s) we need to transfer to get dst to be 8 byte aligned. */
+    // First see how many byte(s) we need to transfer to get dst to be 8 byte aligned. //
     if (segbufpa & 0x7)
     {
         uint32_t aligncount = ALT_MIN(8 - (segbufpa & 0x7), sizeleft);
@@ -1614,11 +1626,11 @@ static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * progra
 
         dprintf("DMA[Z->M][seg]: Total pre-alignment 1-byte burst size transfer(s): %" PRIu32 ".\n", aligncount);
 
-        /* Program in the following parameters:
-         *  - DS8   : Destination burst size of 1-byte
-         *  - DBx   : Destination burst length of [aligncount] transfer(s)
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other options default. */
+        // Program in the following parameters:
+         //  - DS8   : Destination burst size of 1-byte
+         //  - DBx   : Destination burst length of [aligncount] transfer(s)
+         //  - DC(7) : Destination cacheable write-back, allocate on writes only
+         //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -1628,7 +1640,7 @@ static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * progra
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC_DEFAULT
-                                              | ((aligncount - 1) << 18) /* DB */
+                                              | ((aligncount - 1) << 18) /// DB //
                                               | ALT_DMA_CCR_OPT_DS8
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
@@ -1643,15 +1655,15 @@ static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * progra
         }
     }
 
-    /* This is the number of 8-byte bursts left */
+    // This is the number of 8-byte bursts left //
     burstcount = sizeleft >> 3;
 
-    /* Update the size left to transfer */
+    // Update the size left to transfer //
     sizeleft &= 0x7;
 
     dprintf("DMA[Z->M][seg]: Total Main 8-byte burst size transfer(s): %" PRIu32 ".\n", burstcount);
 
-    /* Determine how many 16 length bursts can be done */
+    // Determine how many 16 length bursts can be done //
     if (burstcount >> 4)
     {
         uint32_t length16burstcount = burstcount >> 4;
@@ -1660,11 +1672,11 @@ static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * progra
         dprintf("DMA[Z->M][seg]:   Number of 16 burst length 8-byte transfer(s): %" PRIu32 ".\n", length16burstcount);
         dprintf("DMA[Z->M][seg]:   Number of remaining 8-byte transfer(s):       %" PRIu32 ".\n", burstcount);
 
-        /* Program in the following parameters:
-         *  - DS64  : Destination burst size of 8-byte
-         *  - DB16  : Destination burst length of 16 transfers
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other options default. */
+        // Program in the following parameters:
+        //  - DS64  : Destination burst size of 8-byte
+         //  - DB16  : Destination burst length of 16 transfers
+         //  - DC(7) : Destination cacheable write-back, allocate on writes only
+         //  - All other options default. /////
 
         if (status == ALT_E_SUCCESS)
         {
@@ -1728,18 +1740,18 @@ static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * progra
         }
     }
 
-    /* At this point, we should have [burstcount] 8-byte transfer(s)
-     * remaining. [burstcount] should be less than 16. */
+    /// At this point, we should have [burstcount] 8-byte transfer(s)
+     // remaining. [burstcount] should be less than 16. //
 
-    /* Do one more burst with a SB / DB of length [burstcount]. */
+    // Do one more burst with a SB / DB of length [burstcount]. //
 
     if (burstcount)
     {
-        /* Program in the following parameters:
-         *  - DS64  : Destination burst size of 8-byte
-         *  - DBx   : Destination burst length of [burstlength] transfer(s)
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other options default. */
+        // Program in the following parameters:
+         //  - DS64  : Destination burst size of 8-byte
+         //  - DBx   : Destination burst length of [burstlength] transfer(s)
+         //  - DC(7) : Destination cacheable write-back, allocate on writes only
+         //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -1749,7 +1761,7 @@ static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * progra
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC_DEFAULT
-                                              | ((burstcount - 1) << 18) /* DB */
+                                              | ((burstcount - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DS64
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
@@ -1764,17 +1776,17 @@ static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * progra
         }
     }
 
-    /* At this point, there should be 0 - 7 1-byte transfers remaining. */
+    // At this point, there should be 0 - 7 1-byte transfers remaining. //
 
     if (sizeleft)
     {
         dprintf("DMA[Z->M][seg]: Total post 1-byte burst size transfer(s): %u.\n", sizeleft);
 
-        /* Program in the following parameters:
-         *  - DS8   : Destination burst size of 1-byte
-         *  - DBx   : Destination burst length of [sizeleft] transfer(s)
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other options default. */
+        // Program in the following parameters:
+         //  - DS8   : Destination burst size of 1-byte
+         //  - DBx   : Destination burst length of [sizeleft] transfer(s)
+         //  - DC(7) : Destination cacheable write-back, allocate on writes only
+         //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -1784,7 +1796,7 @@ static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * progra
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC_DEFAULT
-                                              | ((sizeleft - 1) << 18) /* DB */
+                                              | ((sizeleft - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DS8
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
@@ -1811,7 +1823,7 @@ ALT_STATUS_CODE alt_dma_zero_to_memory(ALT_DMA_CHANNEL_t channel,
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /* If the size is zero, and no event is requested, just return success. */
+    //If the size is zero, and no event is requested, just return success.//
     if ((size == 0) && (send_evt == false))
     {
         return ALT_E_SUCCESS;
@@ -1824,12 +1836,12 @@ ALT_STATUS_CODE alt_dma_zero_to_memory(ALT_DMA_CHANNEL_t channel,
 
     if (size != 0)
     {
-        /* Detect if memory region overshoots the address space.
-         * This error checking is handled by the coalescing API. */
+        // Detect if memory region overshoots the address space.
+         // This error checking is handled by the coalescing API. //
 
-        /*
-         * Attempt to coalesce and make the transfer.
-         * */
+        //
+         // Attempt to coalesce and make the transfer.
+        ///
 
         ALT_MMU_VA_TO_PA_COALESCE_t coalesce;
 
@@ -1843,9 +1855,9 @@ ALT_STATUS_CODE alt_dma_zero_to_memory(ALT_DMA_CHANNEL_t channel,
 
         while (size)
         {
-            /*
-             * Extract the next segment.
-             * */
+            //
+             // Extract the next segment.
+             ////
 
             uintptr_t segpa   = 0;
             uint32_t  segsize = 0;
@@ -1860,9 +1872,9 @@ ALT_STATUS_CODE alt_dma_zero_to_memory(ALT_DMA_CHANNEL_t channel,
             size -= segsize;
             dprintf("DMA[Z->M]: Next segment PA = 0x%x, size = 0x%" PRIx32 "; remaining = 0x%x.\n", segpa, segsize, size);
 
-            /*
-             * Zero out the current segment.
-             * */
+            //
+             // Zero out the current segment.
+             // //
 
             if (status == ALT_E_SUCCESS)
             {
@@ -1876,9 +1888,9 @@ ALT_STATUS_CODE alt_dma_zero_to_memory(ALT_DMA_CHANNEL_t channel,
         {
             status = alt_mmu_va_to_pa_coalesce_end(&coalesce);
         }
-    } /* if (size != 0) */
+    } // if (size != 0) //
 
-    /* Send event if requested. */
+    /// Send event if requested. //
     if (send_evt)
     {
         if (status == ALT_E_SUCCESS)
@@ -1888,33 +1900,33 @@ ALT_STATUS_CODE alt_dma_zero_to_memory(ALT_DMA_CHANNEL_t channel,
         }
     }
 
-    /* Now that everything is done, end the program. */
+    // Now that everything is done, end the program. //
     if (status == ALT_E_SUCCESS)
     {
         status = alt_dma_program_DMAEND(program);
     }
 
-    /* If there was a problem assembling the program, clean up the buffer and exit. */
+    // If there was a problem assembling the program, clean up the buffer and exit. //
     if (status != ALT_E_SUCCESS)
     {
-        /* Do not report the status for the clear operation. A failure should be
-         * reported regardless of if the clear is successful. */
+        //Do not report the status for the clear operation. A failure should be
+        // reported regardless of if the clear is successful. //
         alt_dma_program_clear(program);
         return status;
     }
 
-    /* Execute the program on the given channel. */
+    // Execute the program on the given channel.//
     return alt_dma_channel_exec(channel, program);
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_register_segment(ALT_DMA_CHANNEL_t channel,
+/*static ALT_STATUS_CODE alt_dma_memory_to_register_segment(ALT_DMA_CHANNEL_t channel,
                                                           ALT_DMA_PROGRAM_t * program,
                                                           uint32_t ccr_ss_ds_mask,
                                                           uintptr_t segsrcpa,
                                                           size_t count)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
-    /* This is the remaining count left to process. */
+    // This is the remaining count left to process. //
     uint32_t countleft = count;
 
     if (status == ALT_E_SUCCESS)
@@ -1922,19 +1934,19 @@ static ALT_STATUS_CODE alt_dma_memory_to_register_segment(ALT_DMA_CHANNEL_t chan
         status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_SAR, segsrcpa);
     }
 
-    /* See how many 16-length bursts we can use */
+    // See how many 16-length bursts we can use //
     if (countleft >> 4)
     {
         uint32_t length16burst;
 
-        /* Program in the following parameters:
-         *  - SSx   : Source      burst size of [ccr_ss_ds_mask]
-         *  - DSx   : Destination burst size of [ccr_ss_ds_mask]
-         *  - DAF   : Destination address fixed
-         *  - SB16  : Source      burst length of 16 transfers
-         *  - DB16  : Destination burst length of 16 transfers
-         *  - SC(7) : Source      cacheable write-back, allocate on reads only
-         *  - All other options default. */
+        // Program in the following parameters:
+         //  - SSx   : Source      burst size of [ccr_ss_ds_mask]
+         //  - DSx   : Destination burst size of [ccr_ss_ds_mask]
+         //  - DAF   : Destination address fixed
+         //  - SB16  : Source      burst length of 16 transfers
+         //  - DB16  : Destination burst length of 16 transfers
+         //  - SC(7) : Source      cacheable write-back, allocate on reads only
+         //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -1959,7 +1971,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_register_segment(ALT_DMA_CHANNEL_t chan
         dprintf("DMA[M->R][seg]:   Number of 16 burst length transfer(s): %" PRIu32 ".\n", length16burst);
         dprintf("DMA[M->R][seg]:   Number of remaining transfer(s):       %" PRIu32 ".\n", countleft);
 
-        /* See how many 256x 16-length bursts we can use */
+        // See how many 256x 16-length bursts we can use //
         if (length16burst >> 8)
         {
             uint32_t loop256length16burst = length16burst >> 8;
@@ -2009,7 +2021,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_register_segment(ALT_DMA_CHANNEL_t chan
             }
         }
 
-        /* The super loop above ensures that the length16burst is below 256. */
+        // The super loop above ensures that the length16burst is below 256. //
         if (length16burst > 0)
         {
             uint32_t loopcount = length16burst;
@@ -2036,19 +2048,19 @@ static ALT_STATUS_CODE alt_dma_memory_to_register_segment(ALT_DMA_CHANNEL_t chan
         }
     }
 
-    /* At this point, we should have [countleft] transfer(s) remaining.
-     * [countleft] should be less than 16. */
+    // At this point, we should have [countleft] transfer(s) remaining.
+     // [countleft] should be less than 16. //
 
     if (countleft)
     {
-        /* Program in the following parameters:
-         *  - SSx   : Source      burst size of [ccr_ss_ds_mask]
-         *  - DSx   : Destination burst size of [ccr_ss_ds_mask]
-         *  - DAF   : Destination address fixed
-         *  - SBx   : Source      burst length of [countleft] transfer(s)
-         *  - DBx   : Destination burst length of [countleft] transfer(s)
-         *  - SC(7) : Source      cacheable write-back, allocate on reads only
-         *  - All other options default. */
+        // Program in the following parameters:
+         //  - SSx   : Source      burst size of [ccr_ss_ds_mask]
+         //  - DSx   : Destination burst size of [ccr_ss_ds_mask]
+         //  - DAF   : Destination address fixed
+         //  - SBx   : Source      burst length of [countleft] transfer(s)
+         //  - DBx   : Destination burst length of [countleft] transfer(s)
+         //  - SC(7) : Source      cacheable write-back, allocate on reads only
+         //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -2056,11 +2068,11 @@ static ALT_STATUS_CODE alt_dma_memory_to_register_segment(ALT_DMA_CHANNEL_t chan
 
             status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_CCR,
                                             (   ccr_ss_ds_mask
-                                              | ((countleft - 1) << 4) /* SB */
+                                              | ((countleft - 1) << 4) // SB //
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC(7)
-                                              | ((countleft - 1) << 18) /* DB */
+                                              | ((countleft - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DAF
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
                                               | ALT_DMA_CCR_OPT_DC_DEFAULT
@@ -2079,9 +2091,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_register_segment(ALT_DMA_CHANNEL_t chan
     }
 
     return status;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_memory_to_register(ALT_DMA_CHANNEL_t channel,
+/*ALT_STATUS_CODE alt_dma_memory_to_register(ALT_DMA_CHANNEL_t channel,
                                            ALT_DMA_PROGRAM_t * program,
                                            void * dst_reg,
                                            const void * src_buf,
@@ -2092,7 +2104,7 @@ ALT_STATUS_CODE alt_dma_memory_to_register(ALT_DMA_CHANNEL_t channel,
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /* If the count is zero, and no event is requested, just return success. */
+    // If the count is zero, and no event is requested, just return success. //
     if ((count == 0) && (send_evt == false))
     {
         return ALT_E_SUCCESS;
@@ -2105,7 +2117,7 @@ ALT_STATUS_CODE alt_dma_memory_to_register(ALT_DMA_CHANNEL_t channel,
 
     if (count != 0)
     {
-        /* Verify valid register_width_bits and construct the CCR SS and DS parameters. */
+        // Verify valid register_width_bits and construct the CCR SS and DS parameters. //
         uint32_t ccr_ss_ds_mask = 0;
         uint32_t reg_width_bytes_log2 = 0;
         size_t size;
@@ -2116,30 +2128,30 @@ ALT_STATUS_CODE alt_dma_memory_to_register(ALT_DMA_CHANNEL_t channel,
             switch (register_width_bits)
             {
             case 8:
-                /* Program in the following parameters:
-                 *  - SS8 (Source      burst size of 8 bits)
-                 *  - DS8 (Destination burst size of 8 bits) */
+                /// Program in the following parameters:
+                 //  - SS8 (Source      burst size of 8 bits)
+                 //  - DS8 (Destination burst size of 8 bits) //
                 ccr_ss_ds_mask = ALT_DMA_CCR_OPT_SS8 | ALT_DMA_CCR_OPT_DS8;
                 reg_width_bytes_log2 = 0;
                 break;
             case 16:
-                /* Program in the following parameters:
-                 *  - SS16 (Source      burst size of 16 bits)
-                 *  - DS16 (Destination burst size of 16 bits) */
+                // Program in the following parameters:
+                 //  - SS16 (Source      burst size of 16 bits)
+                 //  - DS16 (Destination burst size of 16 bits) //
                 ccr_ss_ds_mask = ALT_DMA_CCR_OPT_SS16 | ALT_DMA_CCR_OPT_DS16;
                 reg_width_bytes_log2 = 1;
                 break;
             case 32:
-                /* Program in the following parameters:
-                 *  - SS32 (Source      burst size of 32 bits)
-                 *  - DS32 (Destination burst size of 32 bits) */
+                // Program in the following parameters:
+                 //  - SS32 (Source      burst size of 32 bits)
+                 //  - DS32 (Destination burst size of 32 bits) //
                 ccr_ss_ds_mask = ALT_DMA_CCR_OPT_SS32 | ALT_DMA_CCR_OPT_DS32;
                 reg_width_bytes_log2 = 2;
                 break;
             case 64:
-                /* Program in the following parameters:
-                 *  - SS64 (Source      burst size of 64 bits)
-                 *  - DS64 (Destination burst size of 64 bits) */
+                // Program in the following parameters:
+                 //  - SS64 (Source      burst size of 64 bits)
+                 //  - DS64 (Destination burst size of 64 bits) //
                 ccr_ss_ds_mask = ALT_DMA_CCR_OPT_SS64 | ALT_DMA_CCR_OPT_DS64;
                 reg_width_bytes_log2 = 3;
                 break;
@@ -2149,10 +2161,10 @@ ALT_STATUS_CODE alt_dma_memory_to_register(ALT_DMA_CHANNEL_t channel,
             }
         }
 
-        /* Detect if memory region overshoots address space
-         * This error checking is handled by the coalescing API. */
+        // Detect if memory region overshoots address space
+         // This error checking is handled by the coalescing API. //
 
-        /* Verify that the dst_reg and src_buf are aligned to the register width */
+        // Verify that the dst_reg and src_buf are aligned to the register width //
         if (status == ALT_E_SUCCESS)
         {
             if      (((uintptr_t)dst_reg & ((1 << reg_width_bytes_log2) - 1)) != 0)
@@ -2176,16 +2188,16 @@ ALT_STATUS_CODE alt_dma_memory_to_register(ALT_DMA_CHANNEL_t channel,
             status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_DAR, (uint32_t)dst_reg);
         }
 
-        /*
-         * The register operations are slightly more complicated because it
-         * counts everything in register transfers, and not bytes.
-         * */
+        //
+         // The register operations are slightly more complicated because it
+         // counts everything in register transfers, and not bytes.
+         ////
 
         size = count * (1 << reg_width_bytes_log2);
 
-        /*
-         * Attempt to coalesce and make the transfer.
-         * */
+        //
+         // Attempt to coalesce and make the transfer.
+         ///
 
         if (status == ALT_E_SUCCESS)
         {
@@ -2194,9 +2206,9 @@ ALT_STATUS_CODE alt_dma_memory_to_register(ALT_DMA_CHANNEL_t channel,
 
         while (size)
         {
-            /*
-             * Extract the next segment.
-             */
+            //
+             // Extract the next segment.
+             //
 
             uintptr_t segpa   = 0;
             uint32_t  segsize = 0;
@@ -2229,9 +2241,9 @@ ALT_STATUS_CODE alt_dma_memory_to_register(ALT_DMA_CHANNEL_t channel,
             status = alt_mmu_va_to_pa_coalesce_end(&coalesce);
         }
 
-    } /* if (count != 0) */
+    } // if (count != 0) //
 
-    /* Send event if requested. */
+    // Send event if requested. //
     if (send_evt)
     {
         if (status == ALT_E_SUCCESS)
@@ -2241,27 +2253,27 @@ ALT_STATUS_CODE alt_dma_memory_to_register(ALT_DMA_CHANNEL_t channel,
         }
     }
 
-    /* Now that everything is done, end the program. */
+    // Now that everything is done, end the program. //
     if (status == ALT_E_SUCCESS)
     {
         dprintf("DMA[M->R]: DMAEND program.\n");
         status = alt_dma_program_DMAEND(program);
     }
 
-    /* If there was a problem assembling the program, clean up the buffer and exit. */
+    // If there was a problem assembling the program, clean up the buffer and exit. //
     if (status != ALT_E_SUCCESS)
     {
-        /* Do not report the status for the clear operation. A failure should be
-         * reported regardless of if the clear is successful. */
+        // Do not report the status for the clear operation. A failure should be
+         // reported regardless of if the clear is successful. //
         alt_dma_program_clear(program);
         return status;
     }
 
-    /* Execute the program on the given channel. */
+    // Execute the program on the given channel. //
     return alt_dma_channel_exec(channel, program);
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_register_to_memory_segment(ALT_DMA_CHANNEL_t channel,
+/*static ALT_STATUS_CODE alt_dma_register_to_memory_segment(ALT_DMA_CHANNEL_t channel,
                                                           ALT_DMA_PROGRAM_t * program,
                                                           uint32_t ccr_ss_ds_mask,
                                                           uintptr_t segdstpa,
@@ -2269,7 +2281,7 @@ static ALT_STATUS_CODE alt_dma_register_to_memory_segment(ALT_DMA_CHANNEL_t chan
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /* This is the remaining count left to process. */
+    // This is the remaining count left to process. //
     uint32_t countleft = count;
 
     if (status == ALT_E_SUCCESS)
@@ -2277,7 +2289,7 @@ static ALT_STATUS_CODE alt_dma_register_to_memory_segment(ALT_DMA_CHANNEL_t chan
         status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_DAR, segdstpa);
     }
 
-    /* See how many 16-length bursts we can use */
+    // See how many 16-length bursts we can use //
     if (countleft >> 4)
     {
         uint32_t length16burst = countleft >> 4;
@@ -2286,19 +2298,19 @@ static ALT_STATUS_CODE alt_dma_register_to_memory_segment(ALT_DMA_CHANNEL_t chan
         dprintf("DMA[R->M][seg]:   Number of 16 burst length transfer(s): %" PRIu32 ".\n", length16burst);
         dprintf("DMA[R->M][seg]:   Number of remaining transfer(s):       %" PRIu32 ".\n", countleft);
 
-        /*
-         * The algorithm uses the strategy described in PL330 B.2.3.
-         * Not sure if registers will accept burst transfers so read the register in its own transfer.
-         * */
+        //
+         / The algorithm uses the strategy described in PL330 B.2.3.
+         / Not sure if registers will accept burst transfers so read the register in its own transfer.
+         ///
 
-        /* Program in the following parameters:
-         *  - SAF   : Source      address fixed
-         *  - SSx   : Source      burst size of [ccr_ss_ds_mask]
-         *  - DSx   : Destination burst size of [ccr_ss_ds_mask]
-         *  - SB16  : Source      burst length of 16 transfers
-         *  - DB16  : Destination burst length of 16 transfers
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other options default. */
+        // Program in the following parameters:
+         //  - SAF   : Source      address fixed
+         //  - SSx   : Source      burst size of [ccr_ss_ds_mask]
+         //  - DSx   : Destination burst size of [ccr_ss_ds_mask]
+         //  - SB16  : Source      burst length of 16 transfers
+         //  - DB16  : Destination burst length of 16 transfers
+         //  - DC(7) : Destination cacheable write-back, allocate on writes only
+         //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -2317,7 +2329,7 @@ static ALT_STATUS_CODE alt_dma_register_to_memory_segment(ALT_DMA_CHANNEL_t chan
                 );
         }
 
-        /* See how many 256x 16-length bursts we can do */
+        // See how many 256x 16-length bursts we can do //
         if (length16burst >> 8)
         {
             uint32_t loop256length16burst = length16burst >> 8;
@@ -2367,7 +2379,7 @@ static ALT_STATUS_CODE alt_dma_register_to_memory_segment(ALT_DMA_CHANNEL_t chan
             }
         }
 
-        /* The super loop above ensures that the length16burst is below 256. */
+        // The super loop above ensures that the length16burst is below 256. //
         if (length16burst > 0)
         {
             uint32_t loopcount = length16burst;
@@ -2394,31 +2406,31 @@ static ALT_STATUS_CODE alt_dma_register_to_memory_segment(ALT_DMA_CHANNEL_t chan
         }
     }
 
-    /* At this point, we should have [countleft] transfer(s) remaining.
-     * [countleft] should be less than 16. */
+    //At this point, we should have [countleft] transfer(s) remaining.
+     // [countleft] should be less than 16. //
 
     if (countleft)
     {
         dprintf("DMA[R->M][seg]:   Tail end %" PRIu32 "x transfer(s).\n", countleft);
 
-        /* Program in the following parameters:
-         *  - SAF   : Source      address fixed
-         *  - SSx   : Source      burst size of [ccr_ss_ds_mask]
-         *  - DSx   : Destination burst size of [ccr_ss_ds_mask]
-         *  - SBx   : Source      burst length of [countleft] transfer(s)
-         *  - DBx   : Destination burst length of [countleft] transfer(s)
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other options default. */
+        // Program in the following parameters:
+         //  - SAF   : Source      address fixed
+         //  - SSx   : Source      burst size of [ccr_ss_ds_mask]
+         //  - DSx   : Destination burst size of [ccr_ss_ds_mask]
+         //  - SBx   : Source      burst length of [countleft] transfer(s)
+         //  - DBx   : Destination burst length of [countleft] transfer(s)
+         //  - DC(7) : Destination cacheable write-back, allocate on writes only
+         //  - All other options default. //
 
         if (status == ALT_E_SUCCESS)
         {
             status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_CCR,
                                             (   ccr_ss_ds_mask
-                                              | ((countleft - 1) << 4) /* SB */
+                                              | ((countleft - 1) << 4) // SB //
                                               | ALT_DMA_CCR_OPT_SAF
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC_DEFAULT
-                                              | ((countleft - 1) << 18) /* DB */
+                                              | ((countleft - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
                                               | ALT_DMA_CCR_OPT_DC(7)
@@ -2438,9 +2450,9 @@ static ALT_STATUS_CODE alt_dma_register_to_memory_segment(ALT_DMA_CHANNEL_t chan
     }
 
     return status;
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_register_to_memory(ALT_DMA_CHANNEL_t channel,
+/*ALT_STATUS_CODE alt_dma_register_to_memory(ALT_DMA_CHANNEL_t channel,
                                            ALT_DMA_PROGRAM_t * program,
                                            void * dst_buf,
                                            const void * src_reg,
@@ -2451,7 +2463,7 @@ ALT_STATUS_CODE alt_dma_register_to_memory(ALT_DMA_CHANNEL_t channel,
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /* If the count is zero, and no event is requested, just return success. */
+    // If the count is zero, and no event is requested, just return success. //
     if ((count == 0) && (send_evt == false))
     {
         return ALT_E_SUCCESS;
@@ -2464,7 +2476,7 @@ ALT_STATUS_CODE alt_dma_register_to_memory(ALT_DMA_CHANNEL_t channel,
 
     if (count != 0)
     {
-        /* Verify valid register_width_bits and construct the CCR SS and DS parameters. */
+        // Verify valid register_width_bits and construct the CCR SS and DS parameters. //
         ALT_MMU_VA_TO_PA_COALESCE_t coalesce;
         uint32_t ccr_ss_ds_mask = 0;
         uint32_t reg_width_bytes_log2 = 0;
@@ -2475,30 +2487,30 @@ ALT_STATUS_CODE alt_dma_register_to_memory(ALT_DMA_CHANNEL_t channel,
             switch (register_width_bits)
             {
             case 8:
-                /* Program in the following parameters:
-                 *  - SS8 (Source      burst size of 8 bits)
-                 *  - DS8 (Destination burst size of 8 bits) */
+                // Program in the following parameters:
+                 //  - SS8 (Source      burst size of 8 bits)
+                 //  - DS8 (Destination burst size of 8 bits) //
                 ccr_ss_ds_mask = ALT_DMA_CCR_OPT_SS8 | ALT_DMA_CCR_OPT_DS8;
                 reg_width_bytes_log2 = 0;
                 break;
             case 16:
-                /* Program in the following parameters:
-                 *  - SS16 (Source      burst size of 16 bits)
-                 *  - DS16 (Destination burst size of 16 bits) */
+                /// Program in the following parameters:
+                 //  - SS16 (Source      burst size of 16 bits)
+                 //  - DS16 (Destination burst size of 16 bits) //
                 ccr_ss_ds_mask = ALT_DMA_CCR_OPT_SS16 | ALT_DMA_CCR_OPT_DS16;
                 reg_width_bytes_log2 = 1;
                 break;
             case 32:
-                /* Program in the following parameters:
-                 *  - SS32 (Source      burst size of 32 bits)
-                 *  - DS32 (Destination burst size of 32 bits) */
+                // Program in the following parameters:
+                 //  - SS32 (Source      burst size of 32 bits)
+                 //  - DS32 (Destination burst size of 32 bits) //
                 ccr_ss_ds_mask = ALT_DMA_CCR_OPT_SS32 | ALT_DMA_CCR_OPT_DS32;
                 reg_width_bytes_log2 = 2;
                 break;
             case 64:
-                /* Program in the following parameters:
-                 *  - SS64 (Source      burst size of 64 bits)
-                 *  - DS64 (Destination burst size of 64 bits) */
+                // Program in the following parameters:
+                //  - SS64 (Source      burst size of 64 bits)
+                //  - DS64 (Destination burst size of 64 bits) //
                 ccr_ss_ds_mask = ALT_DMA_CCR_OPT_SS64 | ALT_DMA_CCR_OPT_DS64;
                 reg_width_bytes_log2 = 3;
                 break;
@@ -2509,10 +2521,10 @@ ALT_STATUS_CODE alt_dma_register_to_memory(ALT_DMA_CHANNEL_t channel,
             }
         }
 
-        /* Detect if memory region overshoots address space
-         * This error checking is handled by the coalescing API. */
+        // Detect if memory region overshoots address space
+         // This error checking is handled by the coalescing API. //
 
-        /* Verify that the dst_buf and src_reg are aligned to the register width */
+        // Verify that the dst_buf and src_reg are aligned to the register width //
         if (status == ALT_E_SUCCESS)
         {
             if      (((uintptr_t)dst_buf & ((1 << reg_width_bytes_log2) - 1)) != 0)
@@ -2536,16 +2548,16 @@ ALT_STATUS_CODE alt_dma_register_to_memory(ALT_DMA_CHANNEL_t channel,
             status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_SAR, (uint32_t)src_reg);
         }
 
-        /*
-         * The register operations are slightly more complicated because it
-         * counts everything in register transfers, and not bytes.
-         * */
+        //
+         // The register operations are slightly more complicated because it
+         // counts everything in register transfers, and not bytes.
+         ///
 
         size = count * (1 << reg_width_bytes_log2);
 
-        /*
-         * Attempt to coalesce and make the transfer.
-        */
+        //
+         // Attempt to coalesce and make the transfer.
+        //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -2554,9 +2566,9 @@ ALT_STATUS_CODE alt_dma_register_to_memory(ALT_DMA_CHANNEL_t channel,
 
         while (size)
         {
-            /*
-             * Extract the next segment.
-            */
+            //
+             // Extract the next segment.
+            //
 
             uintptr_t segpa   = 0;
             uint32_t  segsize = 0;
@@ -2589,9 +2601,9 @@ ALT_STATUS_CODE alt_dma_register_to_memory(ALT_DMA_CHANNEL_t channel,
             status = alt_mmu_va_to_pa_coalesce_end(&coalesce);
         }
 
-    } /* if (count != 0) */
+    } // if (count != 0) //
 
-    /* Send event if requested. */
+    //Send event if requested. //
     if (send_evt)
     {
         if (status == ALT_E_SUCCESS)
@@ -2601,29 +2613,29 @@ ALT_STATUS_CODE alt_dma_register_to_memory(ALT_DMA_CHANNEL_t channel,
         }
     }
 
-    /* Now that everything is done, end the program. */
+    // Now that everything is done, end the program. //
     if (status == ALT_E_SUCCESS)
     {
         status = alt_dma_program_DMAEND(program);
     }
 
-    /* If there was a problem assembling the program, clean up the buffer and exit. */
+    // If there was a problem assembling the program, clean up the buffer and exit. //
     if (status != ALT_E_SUCCESS)
     {
-        /* Do not report the status for the clear operation. A failure should be
-         * reported regardless of if the clear is successful. */
+        //Do not report the status for the clear operation. A failure should be
+         // reported regardless of if the clear is successful. //
         alt_dma_program_clear(program);
         return status;
     }
 
-    /* Execute the program on the given channel. */
+    // Execute the program on the given channel. //
     return alt_dma_channel_exec(channel, program);
-}
+}*/
 
-#if ALT_DMA_PERIPH_PROVISION_I2C_SUPPORT
-/*
- * These are here to break the dependence on including alt_i2c.c in HWLibs projects.
-*/
+/*#if ALT_DMA_PERIPH_PROVISION_I2C_SUPPORT
+///
+ // These are here to break the dependence on including alt_i2c.c in HWLibs projects.
+///
 
 __attribute__((weak)) ALT_STATUS_CODE alt_i2c_op_mode_get(ALT_I2C_DEV_t *i2c_dev,
                                                           ALT_I2C_MODE_t* mode)
@@ -2635,8 +2647,9 @@ __attribute__((weak)) ALT_STATUS_CODE alt_i2c_op_mode_get(ALT_I2C_DEV_t *i2c_dev
 
     return ALT_E_SUCCESS;
 }
+*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_i2c_master_custom(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_memory_to_i2c_master_custom(ALT_DMA_PROGRAM_t * program,
                                                            ALT_DMA_PERIPH_t periph,
                                                            ALT_I2C_DEV_t * i2c_dev,
                                                            uintptr_t write_info_pa,
@@ -2721,9 +2734,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c_master_custom(ALT_DMA_PROGRAM_t * p
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_i2c_common_segment(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_memory_to_i2c_common_segment(ALT_DMA_PROGRAM_t * program,
                                                             ALT_DMA_PERIPH_t periph,
                                                             uint8_t threshold,
                                                             uintptr_t segsrcpa,
@@ -2900,9 +2913,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c_common_segment(ALT_DMA_PROGRAM_t * 
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_i2c_common(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_memory_to_i2c_common(ALT_DMA_PROGRAM_t * program,
                                                     ALT_DMA_PERIPH_t periph,
                                                     ALT_DMA_PERIPH_INFO_I2C_t * i2c_info,
                                                     const char * src,
@@ -2912,7 +2925,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c_common(ALT_DMA_PROGRAM_t * program,
     ALT_MMU_VA_TO_PA_COALESCE_t coalesce;
 
 
-    /* Use the I2C register interface to avoid coupling I2C and DMA. */
+    // Use the I2C register interface to avoid coupling I2C and DMA. //
     uint8_t threshold = ALT_I2C_TX_TL_TX_TL_GET(alt_read_word(ALT_I2C_TX_TL_ADDR(i2c_info->i2c_dev->location))) + 1;
 
     if (status == ALT_E_SUCCESS)
@@ -2921,9 +2934,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c_common(ALT_DMA_PROGRAM_t * program,
                                         (uintptr_t)ALT_I2C_DATA_CMD_ADDR(i2c_info->i2c_dev->location));
     }
 
-    /*
-     * Attempt to coalesce and make the transfer.
-    */
+    //
+     // Attempt to coalesce and make the transfer.
+    //
 
     if (status == ALT_E_SUCCESS)
     {
@@ -2932,9 +2945,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c_common(ALT_DMA_PROGRAM_t * program,
 
     while (size)
     {
-        /*
-         * Extract the next segment;
-        */
+        //
+         // Extract the next segment;
+        //
 
         uintptr_t segpa   = 0;
         uint32_t  segsize = 0;
@@ -2949,9 +2962,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c_common(ALT_DMA_PROGRAM_t * program,
         size -= segsize;
         dprintf("DMA[M->P][I2C][common]: Next segment PA = 0x%x, size = 0x%" PRIx32 "; remaining = 0x%x\n", segpa, segsize, size);
 
-        /*
-         * Transfer out the current segment.
-        */
+        //
+         // Transfer out the current segment.
+        //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -2969,9 +2982,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c_common(ALT_DMA_PROGRAM_t * program,
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_i2c_master(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_memory_to_i2c_master(ALT_DMA_PROGRAM_t * program,
                                                     ALT_DMA_PERIPH_t periph,
                                                     ALT_DMA_PERIPH_INFO_I2C_t * i2c_info,
                                                     const char * src,
@@ -3006,19 +3019,19 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c_master(ALT_DMA_PROGRAM_t * program,
             status = alt_dma_memory_to_i2c_master_custom(program,
                                                          periph,
                                                          i2c_info->i2c_dev,
-                                                         scratchpa + (sizeof(uint32_t) * 3), /* &i2c_info->scratch[3], */
+                                                         scratchpa + (sizeof(uint32_t) * 3), // &i2c_info->scratch[3], //
                                                          1,
                                                          true);
         }
     }
     else
     {
-        /* RESTART and STOP decreases the effective size as the first and/or last bytes requires custom
-         * handling. */
+        // RESTART and STOP decreases the effective size as the first and/or last bytes requires custom
+         //handling. //
 
         if (i2c_info->issue_stop)
         {
-            /* Process the STOP first because the RESTART may alter the src pointer. */
+            // Process the STOP first because the RESTART may alter the src pointer. //
 
             i2c_info->scratch[2] = ALT_I2C_DATA_CMD_DAT_SET(src[size - 1]) |
                                    ALT_I2C_DATA_CMD_RESTART_SET(false)     |
@@ -3042,16 +3055,16 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c_master(ALT_DMA_PROGRAM_t * program,
                 status = alt_dma_memory_to_i2c_master_custom(program,
                                                              periph,
                                                              i2c_info->i2c_dev,
-                                                             scratchpa + (sizeof(uint32_t) * 1), /* &i2c_info->scratch[1], */
+                                                             scratchpa + (sizeof(uint32_t) * 1), // &i2c_info->scratch[1], //
                                                              1,
                                                              true);
 
-                /* Increment the src here so the single/burst transfers will avoid the first item. */
+                // Increment the src here so the single/burst transfers will avoid the first item. //
                 ++src;
             }
         }
 
-        /* Transfer non-{RESTART,STOP} of the data. */
+        // Transfer non-{RESTART,STOP} of the data. //
 
         if ((status == ALT_E_SUCCESS) && (size > 0))
         {
@@ -3071,17 +3084,17 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c_master(ALT_DMA_PROGRAM_t * program,
                 status = alt_dma_memory_to_i2c_master_custom(program,
                                                              periph,
                                                              i2c_info->i2c_dev,
-                                                             scratchpa + (sizeof(uint32_t) * 2), /* &i2c_info->scratch[2], */
+                                                             scratchpa + (sizeof(uint32_t) * 2), // &i2c_info->scratch[2], //
                                                              1,
                                                              (size != 0));
             }
         }
     }
 
-    /* Ensure that the scratch data is in SDRAM for the DMAC to read. */
+    // Ensure that the scratch data is in SDRAM for the DMAC to read. //
     if (status == ALT_E_SUCCESS)
     {
-        /* Sync the periph scratch information to RAM. */
+        // Sync the periph scratch information to RAM. //
         void * vaddr  = (void *)((uintptr_t)(i2c_info->scratch) & ~(ALT_CACHE_LINE_SIZE - 1));
         void * vend   = (void *)(((uintptr_t)(i2c_info->scratch) + sizeof(i2c_info->scratch) + (ALT_CACHE_LINE_SIZE - 1)) & ~(ALT_CACHE_LINE_SIZE - 1));
         size_t length = (uintptr_t)vend - (uintptr_t)vaddr;
@@ -3132,9 +3145,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_i2c(ALT_DMA_PROGRAM_t * program,
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_i2c_to_memory_common_segment(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_i2c_to_memory_common_segment(ALT_DMA_PROGRAM_t * program,
                                                             ALT_DMA_PERIPH_t periph,
                                                             uint8_t threshold,
                                                             uintptr_t segdstpa,
@@ -3312,9 +3325,9 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_common_segment(ALT_DMA_PROGRAM_t * 
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_i2c_to_memory_common(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_i2c_to_memory_common(ALT_DMA_PROGRAM_t * program,
                                                     ALT_DMA_PERIPH_t periph,
                                                     ALT_DMA_PERIPH_INFO_I2C_t * i2c_info,
                                                     void * dst,
@@ -3323,7 +3336,7 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_common(ALT_DMA_PROGRAM_t * program,
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
     ALT_MMU_VA_TO_PA_COALESCE_t coalesce;
 
-    /* Use the I2C register interface to avoid coupling I2C and DMA. */
+    // Use the I2C register interface to avoid coupling I2C and DMA. //
     uint8_t threshold = ALT_I2C_RX_TL_RX_TL_GET(alt_read_word(ALT_I2C_RX_TL_ADDR(i2c_info->i2c_dev->location))) + 1;
 
     if (status == ALT_E_SUCCESS)
@@ -3332,9 +3345,9 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_common(ALT_DMA_PROGRAM_t * program,
                                         (uintptr_t)ALT_I2C_DATA_CMD_ADDR(i2c_info->i2c_dev->location));
     }
 
-    /*
-     * Attempt to coalesce and make the transfer.
-    */
+    //
+     // Attempt to coalesce and make the transfer.
+    //
 
     if (status == ALT_E_SUCCESS)
     {
@@ -3343,9 +3356,9 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_common(ALT_DMA_PROGRAM_t * program,
 
     while (size)
     {
-        /*
-         * Extract the next segment.
-        */
+        //
+         // Extract the next segment.
+        //
 
         uintptr_t segpa   = 0;
         uint32_t  segsize = 0;
@@ -3360,9 +3373,9 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_common(ALT_DMA_PROGRAM_t * program,
         size -= segsize;
         dprintf("DMA[P->M][I2C][common]: Next segment PA = 0x%x, size = 0x%" PRIx32 "; remaining = 0x%x.\n", segpa, segsize, size);
 
-        /*
-         * Transfer in the current segment.
-        */
+        //
+         /// Transfer in the current segment.
+        //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -3380,9 +3393,9 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_common(ALT_DMA_PROGRAM_t * program,
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
                                                     ALT_DMA_PERIPH_t rx_periph,
                                                     ALT_DMA_PERIPH_INFO_I2C_t * i2c_info,
                                                     char * dst,
@@ -3392,12 +3405,12 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
     uintptr_t scratchpa;
     uint32_t prefill_count;
 
-    /*
-     * Looking at the periph values, the TX is always 1 less than the RX.
-     *
-     * TX request DMA items cannot be bursted as the memory used to store that
-     * info is only 1 item wide.
-     * */
+    //
+     // Looking at the periph values, the TX is always 1 less than the RX.
+     //
+     // TX request DMA items cannot be bursted as the memory used to store that
+     // info is only 1 item wide.
+     ///
     ALT_DMA_PERIPH_t tx_periph = (ALT_DMA_PERIPH_t)((int)rx_periph - 1);
     size_t           tx_left   = size;
     size_t           rx_left   = size;
@@ -3416,11 +3429,11 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
         }
     }
 
-    /* DMA scratch space allocation:
-     *  [0] => regular reads (no restart, no stop)
-     *  [1] => start read (restart, no stop)
-     *  [2] => stop read (no restart, stop)
-     *  [3] => single read (restart, stop) */
+    /// DMA scratch space allocation:
+     //  [0] => regular reads (no restart, no stop)
+     //  [1] => start read (restart, no stop)
+     // [2] => stop read (no restart, stop)
+     //  [3] => single read (restart, stop) //
 
     i2c_info->scratch[0] = ALT_I2C_DATA_CMD_CMD_SET(ALT_I2C_DATA_CMD_CMD_E_RD) |
                            ALT_I2C_DATA_CMD_RESTART_SET(false)                 |
@@ -3438,13 +3451,13 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
                            ALT_I2C_DATA_CMD_RESTART_SET(i2c_info->issue_restart) |
                            ALT_I2C_DATA_CMD_STOP_SET(i2c_info->issue_stop);
 
-    /* First, fill up the TX buffer with the read requests. It doesn't matter if the TX has not yet flushed
-     * from a previous request. */
+    // First, fill up the TX buffer with the read requests. It doesn't matter if the TX has not yet flushed
+     / from a previous request. //
 
     prefill_count = ALT_MIN(tx_left, fifo_size);
     tx_left -= prefill_count;
 
-    /* Issue the read which may contain the restart. */
+    // Issue the read which may contain the restart.//
 
     if (prefill_count == 1)
     {
@@ -3455,7 +3468,7 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
             status = alt_dma_memory_to_i2c_master_custom(program,
                                                          tx_periph,
                                                          i2c_info->i2c_dev,
-                                                         scratchpa + (sizeof(uint32_t) * 3), /* &i2c_info->scratch[3], */
+                                                         scratchpa + (sizeof(uint32_t) * 3), // &i2c_info->scratch[3], //
                                                          1,
                                                          true);
         }
@@ -3469,7 +3482,7 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
             status = alt_dma_memory_to_i2c_master_custom(program,
                                                          tx_periph,
                                                          i2c_info->i2c_dev,
-                                                         scratchpa + (sizeof(uint32_t) * 1), /* &i2c_info->scratch[1], */
+                                                         scratchpa + (sizeof(uint32_t) * 1), // &i2c_info->scratch[1], //
                                                          1,
                                                          true);
         }
@@ -3481,7 +3494,7 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
             status = alt_dma_memory_to_i2c_master_custom(program,
                                                          tx_periph,
                                                          i2c_info->i2c_dev,
-                                                         scratchpa + (sizeof(uint32_t) * 0), /* &i2c_info->scratch[0], */
+                                                         scratchpa + (sizeof(uint32_t) * 0), // &i2c_info->scratch[0], //
                                                          prefill_count - 2,
                                                          false);
         }
@@ -3493,7 +3506,7 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
             status = alt_dma_memory_to_i2c_master_custom(program,
                                                          tx_periph,
                                                          i2c_info->i2c_dev,
-                                                         scratchpa + (sizeof(uint32_t) * 2), /* &i2c_info->scratch[2], */
+                                                         scratchpa + (sizeof(uint32_t) * 2), // &i2c_info->scratch[2], //
                                                          1,
                                                          false);
         }
@@ -3507,7 +3520,7 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
             status = alt_dma_memory_to_i2c_master_custom(program,
                                                          tx_periph,
                                                          i2c_info->i2c_dev,
-                                                         scratchpa + (sizeof(uint32_t) * 1), /* &i2c_info->scratch[1], */
+                                                         scratchpa + (sizeof(uint32_t) * 1), // &i2c_info->scratch[1], //
                                                          1,
                                                          true);
         }
@@ -3519,20 +3532,20 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
             status = alt_dma_memory_to_i2c_master_custom(program,
                                                          tx_periph,
                                                          i2c_info->i2c_dev,
-                                                         scratchpa + (sizeof(uint32_t) * 0), /* &i2c_info->scratch[0], */
+                                                         scratchpa + (sizeof(uint32_t) * 0), // &i2c_info->scratch[0], //
                                                          prefill_count - 1,
                                                          false);
         }
     }
 
-    /* Loop:
-     *  - read in half of the FIFO size
-     *  - refill half FIFO size
-     * Until all the data requested is transfered. */
+    // Loop:
+     //  - read in half of the FIFO size
+     //  - refill half FIFO size
+     //Until all the data requested is transfered. //
 
     while (rx_left > 0)
     {
-        /* Read in half of the FIFO size. */
+        // Read in half of the FIFO size. //
 
         uint32_t single_count = ALT_MIN(rx_left, fifo_size / 2);
 
@@ -3550,7 +3563,7 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
         rx_left -= single_count;
         dst     += single_count;
 
-        /* Now request in another half of the TX FIFO. */
+        // Now request in another half of the TX FIFO. //
 
         if (tx_left > 0)
         {
@@ -3566,7 +3579,7 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
                     status = alt_dma_memory_to_i2c_master_custom(program,
                                                                  tx_periph,
                                                                  i2c_info->i2c_dev,
-                                                                 scratchpa + (sizeof(uint32_t) * 0), /* &i2c_info->scratch[0], */
+                                                                 scratchpa + (sizeof(uint32_t) * 0), // &i2c_info->scratch[0], //
                                                                  refill_count - 1,
                                                                  true);
                 }
@@ -3578,7 +3591,7 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
                     status = alt_dma_memory_to_i2c_master_custom(program,
                                                                  tx_periph,
                                                                  i2c_info->i2c_dev,
-                                                                 scratchpa + (sizeof(uint32_t) * 2), /* &i2c_info->scratch[2], */
+                                                                 scratchpa + (sizeof(uint32_t) * 2), // &i2c_info->scratch[2], //
                                                                  1,
                                                                  false);
                 }
@@ -3592,19 +3605,19 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
                     status = alt_dma_memory_to_i2c_master_custom(program,
                                                                  tx_periph,
                                                                  i2c_info->i2c_dev,
-                                                                 scratchpa + (sizeof(uint32_t) * 0), /* &i2c_info->scratch[0], */
+                                                                 scratchpa + (sizeof(uint32_t) * 0), // &i2c_info->scratch[0], //
                                                                  refill_count,
                                                                  true);
                 }
             }
         }
 
-    } /* while (rx_left > 0) */
+    } // while (rx_left > 0) //
 
-    /* Ensure that the scratch data is in SDRAM for the DMAC to read. */
+    // Ensure that the scratch data is in SDRAM for the DMAC to read. //
     if (status == ALT_E_SUCCESS)
     {
-        /* Sync the periph scratch information to RAM. */
+        // Sync the periph scratch information to RAM. //
         void * vaddr  = (void *)((uintptr_t)(i2c_info->scratch) & ~(ALT_CACHE_LINE_SIZE - 1));
         void * vend   = (void *)(((uintptr_t)(i2c_info->scratch) + sizeof(i2c_info->scratch) + (ALT_CACHE_LINE_SIZE - 1)) & ~(ALT_CACHE_LINE_SIZE - 1));
         size_t length = (uintptr_t)vend - (uintptr_t)vaddr;
@@ -3613,9 +3626,9 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory_master(ALT_DMA_PROGRAM_t * program,
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_i2c_to_memory(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_i2c_to_memory(ALT_DMA_PROGRAM_t * program,
                                              ALT_DMA_PERIPH_t periph,
                                              ALT_DMA_PERIPH_INFO_I2C_t * i2c_info,
                                              void * dst,
@@ -3657,8 +3670,8 @@ static ALT_STATUS_CODE alt_dma_i2c_to_memory(ALT_DMA_PROGRAM_t * program,
     return status;
 }
 #endif
-
-#if ALT_DMA_PERIPH_PROVISION_QSPI_SUPPORT
+*/
+/*#if ALT_DMA_PERIPH_PROVISION_QSPI_SUPPORT
 static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * program,
                                                       uint32_t qspi_single_size_log2,
                                                       uint32_t qspi_burst_size_log2,
@@ -3689,9 +3702,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
 
     dprintf("DMA[M->P][QSPI][seg]: QSPI Single = %" PRIu32 "; Burst = %" PRIu32 ".\n", qspi_single_size, qspi_burst_size);
 
-    /* Because single transfers are equal or smaller than burst (and in the
-     * smaller case, it is always a clean multiple), only the single size
-     * check is needed for transfer composability. */
+    // Because single transfers are equal or smaller than burst (and in the
+     // smaller case, it is always a clean multiple), only the single size
+     // check is needed for transfer composability. //
     if (segsize & (qspi_single_size - 1))
     {
         dprintf("DMA[M->P][QSPI][seg]: QSPI DMA size configuration not suitable for transfer request.\n");
@@ -3700,7 +3713,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
 
     if (segsrcpa & 0x7)
     {
-        /* Source address is not 8-byte aligned. Do 1x 32-bit transfer to get it 8-byte aligned. */
+        // Source address is not 8-byte aligned. Do 1x 32-bit transfer to get it 8-byte aligned. //
 
         dprintf("DMA[M->P][QSPI][seg]: Creating 1x 4-byte aligning transfer.\n");
 
@@ -3747,22 +3760,22 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
 
     qspi_burst_count  = segsize >> qspi_burst_size_log2;
 
-    /* Use QSPI burst transfers if:
-     *  - QSPI bursts are larger than QSPI singles [AND]
-     *  - Size is large enough that at least 1 burst will be used. */
+    // Use QSPI burst transfers if:
+     //  - QSPI bursts are larger than QSPI singles [AND]
+     //  - Size is large enough that at least 1 burst will be used. //
 
     if (   (qspi_burst_size_log2 > qspi_single_size_log2)
         && (qspi_burst_count != 0)
        )
     {
-        /* 1 << 3 => 8 bytes => 64 bits, which is the width of the AXI bus. */
+        // 1 << 3 => 8 bytes => 64 bits, which is the width of the AXI bus. //
         uint32_t src_size_log2 = ALT_MIN(3, qspi_burst_size_log2);
 
         uint32_t dst_multiple;
         uint32_t src_length   = 0;
         uint32_t src_multiple = 0;
 
-        /* qspi_burst_count = segsize >> qspi_burst_size_log2; */
+        // qspi_burst_count = segsize >> qspi_burst_size_log2; //
         qspi_single_count   = (segsize & (qspi_burst_size - 1)) >> qspi_single_size_log2;
 
         dprintf("DMA[M->P][QSPI][seg][B]: Burst size = %" PRIu32 " bytes, count = %" PRIu32 ".\n", qspi_burst_size, qspi_burst_count);
@@ -3775,7 +3788,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
         else
         {
             src_length   = 16;
-            src_multiple = (qspi_burst_size >> src_size_log2) >> 4; /* divide by 16 */
+            src_multiple = (qspi_burst_size >> src_size_log2) >> 4; // divide by 16 //
 
             if (src_multiple == 0)
             {
@@ -3784,30 +3797,30 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
             }
         }
 
-        /* uint32_t dst_length = 1; // dst_length is always 1 because the address is fixed. */
-        dst_multiple = qspi_burst_size >> 2; /* divide by sizeof(uint32_t) */
+        // uint32_t dst_length = 1; // dst_length is always 1 because the address is fixed. //
+        dst_multiple = qspi_burst_size >> 2; // divide by sizeof(uint32_t) //
 
         dprintf("DMA[M->P][QSPI][seg][B]: dst_size = %u bits, dst_length = %u, dst_multiple = %" PRIu32 ".\n",
                 32,                       1,          dst_multiple);
         dprintf("DMA[M->P][QSPI][seg][B]: src_size = %u bits, src_length = %" PRIu32", src_multiple = %" PRIu32 ".\n",
                 (1 << src_size_log2) * 8, src_length, src_multiple);
 
-        /* Program in the following parameters:
-         *  - SAI   : Source      address increment
-         *  - SSx   : Source      burst size of [1 << src_size_log2]-bytes
-         *  - SBx   : Source      burst length of [src_length] transfer(s)
-         *  - SC(7) : Source      cacheable write-back, allocate on reads only
-         *  - DAF   : Destination address fixed
-         *  - DS32  : Destination burst size of 4-bytes
-         *  - DB1   : Destination burst length of 1 transfer
-         *  - All other parameters default */
+        // Program in the following parameters:
+         //  - SAI   : Source      address increment
+         //  - SSx   : Source      burst size of [1 << src_size_log2]-bytes
+         //  - SBx   : Source      burst length of [src_length] transfer(s)
+         //  - SC(7) : Source      cacheable write-back, allocate on reads only
+         //  - DAF   : Destination address fixed
+         //  - DS32  : Destination burst size of 4-bytes
+         //  - DB1   : Destination burst length of 1 transfer
+         //  - All other parameters default //
 
         if (status == ALT_E_SUCCESS)
         {
             status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_CCR,
                                             (   ALT_DMA_CCR_OPT_SAI
-                                              | (src_size_log2 << 1) /* SS */
-                                              | ((src_length - 1) << 4) /* SB */
+                                              | (src_size_log2 << 1) // SS //
+                                              | ((src_length - 1) << 4) // SB //
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC(7)
                                               | ALT_DMA_CCR_OPT_DAF
@@ -3820,8 +3833,8 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
                 );
         }
 
-        /* NOTE: We do not do the 256x bursts for M->P case because we only
-         *   write up to 256 B at a time. */
+        // NOTE: We do not do the 256x bursts for M->P case because we only
+         //   write up to 256 B at a time. //
 
         while (qspi_burst_count > 0)
         {
@@ -3875,10 +3888,10 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
         qspi_single_count = segsize >> qspi_single_size_log2;
     }
 
-    /* Assemble the single portion of the DMA program. */
+    // Assemble the single portion of the DMA program. //
     if (qspi_single_count)
     {
-        /* 1 << 3 => 8 bytes => 64 bits, which is the width of the AXI bus. */
+        // 1 << 3 => 8 bytes => 64 bits, which is the width of the AXI bus. //
         uint32_t src_size_log2 = ALT_MIN(3, qspi_single_size_log2);
 
         uint32_t src_length   = 0;
@@ -3895,7 +3908,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
         else
         {
             src_length   = 16;
-            src_multiple = (qspi_single_size >> src_size_log2) >> 4; /* divide by 16 */
+            src_multiple = (qspi_single_size >> src_size_log2) >> 4; // divide by 16 //
 
             if (src_multiple == 0)
             {
@@ -3904,30 +3917,30 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
             }
         }
 
-        /* uint32_t dst_length = 1; // dst_length is always 1 becaus the address is fixed. */
-        dst_multiple = qspi_single_size >> 2; /* divide by sizeof(uint32_t) */
+        // uint32_t dst_length = 1; // dst_length is always 1 becaus the address is fixed. //
+        dst_multiple = qspi_single_size >> 2; // divide by sizeof(uint32_t)//
 
         dprintf("DMA[M->P][QSPI][seg][S]: dst_size = %u bits, dst_length = %u, dst_multiple = %" PRIu32 ".\n",
                 32,                      1,          dst_multiple);
         dprintf("DMA[M->P][QSPI][seg][S]: src_size = %u bits, src_length = %" PRIu32 ", src_multiple = %" PRIu32 ".\n",
                 (1 <<src_size_log2) * 8, src_length, src_multiple);
 
-        /* Program in the following parameters:
-         *  - SAI   : Source      address increment)
-         *  - SSx   : Source      burst size of [1 << src_size_log2]-bytes
-         *  - SBx   : Source      burst length of [src_length] transfer(s)
-         *  - SC(7) : Source      cacheable write-back, allocate on reads only
-         *  - DAF   : Destination address fixed
-         *  - DS32  : Destination burst size of 4-bytes
-         *  - DB1   : Destination burst length of 1 transfer
-         *  - All other parameters default */
+        // Program in the following parameters:
+         //  - SAI   : Source      address increment)
+         //  - SSx   : Source      burst size of [1 << src_size_log2]-bytes
+        //  - SBx   : Source      burst length of [src_length] transfer(s)
+         //  - SC(7) : Source      cacheable write-back, allocate on reads only
+         //  - DAF   : Destination address fixed
+         //  - DS32  : Destination burst size of 4-bytes
+         //  - DB1   : Destination burst length of 1 transfer
+         //  - All other parameters default //
 
         if (status == ALT_E_SUCCESS)
         {
             status = alt_dma_program_DMAMOV(program, ALT_DMA_PROGRAM_REG_CCR,
                                             (   ALT_DMA_CCR_OPT_SAI
-                                              | (src_size_log2 << 1) /* SS */
-                                              | ((src_length - 1) << 4) /* SB */
+                                              | (src_size_log2 << 1) // SS //
+                                              | ((src_length - 1) << 4) // SB //
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC_DEFAULT
                                               | ALT_DMA_CCR_OPT_DAF
@@ -3940,8 +3953,8 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
                 );
         }
 
-        /* NOTE: We do not do the 256x bursts for M->P case because we only
-         *   write up to 256 B at a time. */
+        // NOTE: We do not do the 256x bursts for M->P case because we only
+         //   write up to 256 B at a time. //
 
         while (qspi_single_count > 0)
         {
@@ -3990,17 +4003,17 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi_segment(ALT_DMA_PROGRAM_t * progra
             }
         }
 
-    } /* if (qspi_single_count != 0) */
+    } // if (qspi_single_count != 0) //
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_qspi(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_memory_to_qspi(ALT_DMA_PROGRAM_t * program,
                                               const char * src,
                                               size_t size)
 {
-    /* Detect if memory region overshoots address space
-     * This error checking is handled by the coalescing API. */
+    // Detect if memory region overshoots address space
+     // This error checking is handled by the coalescing API. //
 
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
     uint32_t dmaper;
@@ -4018,9 +4031,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi(ALT_DMA_PROGRAM_t * program,
     qspi_single_size_log2 = ALT_QSPI_DMAPER_NUMSGLREQBYTES_GET(dmaper);
     qspi_burst_size_log2  = ALT_QSPI_DMAPER_NUMBURSTREQBYTES_GET(dmaper);
 
-    /*
-     * Attempt to coalesce and make the transfer.
-    */
+    //
+     // Attempt to coalesce and make the transfer.
+    ///
 
     if (status == ALT_E_SUCCESS)
     {
@@ -4029,9 +4042,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi(ALT_DMA_PROGRAM_t * program,
 
     while (size)
     {
-        /*
-         * Extract the next segment.
-        */
+        //
+         // Extract the next segment.
+        //
 
         uintptr_t segpa   = 0;
         uint32_t  segsize = 0;
@@ -4046,9 +4059,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi(ALT_DMA_PROGRAM_t * program,
         size -= segsize;
         dprintf("DMA[M->P][QSPI]: Next segment PA = 0x%x, size = 0x%" PRIx32 "; remaining = 0x%x.\n", segpa, segsize, size);
 
-        /*
-         * Transfer in the current segment.
-        */
+        //
+        // / Transfer in the current segment.
+        //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -4066,9 +4079,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_qspi(ALT_DMA_PROGRAM_t * program,
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * program,
                                                       uint32_t qspi_single_size_log2,
                                                       uint32_t qspi_burst_size_log2,
                                                       uintptr_t segdstpa,
@@ -4098,9 +4111,9 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
 
     dprintf("DMA[P->M][QSPI][seg]: QSPI Single = %" PRIu32 "; Burst = %" PRIu32 ".\n", qspi_single_size, qspi_burst_size);
 
-    /* Because single transfers are equal or smaller than burst (and in the
-     * smaller case, it is always a clean multiple), only the single size
-     * check is needed for transfer composability. */
+    // Because single transfers are equal or smaller than burst (and in the
+     // smaller case, it is always a clean multiple), only the single size
+     // check is needed for transfer composability. //
     if (segsize & (qspi_single_size - 1))
     {
         dprintf("DMA[P->M][QSPI][seg]: QSPI DMA size configuration not suitable for transfer request.\n");
@@ -4109,7 +4122,7 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
 
     if (segdstpa & 0x7)
     {
-        /* Destination address is not 8-byte aligned. Do 1x 32-bit transfer to get it 8-byte aligned. */
+        // Destination address is not 8-byte aligned. Do 1x 32-bit transfer to get it 8-byte aligned. //
 
         dprintf("DMA[P->M][QSPI][seg]: Creating 1x 4-byte aligning transfer.\n");
 
@@ -4156,21 +4169,21 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
 
     qspi_burst_count  = segsize >> qspi_burst_size_log2;
 
-    /* Use QSPI burst transfers if:
-     *  - QSPI bursts are larger than QSPI singles [AND]
-     *  - Size is large enough that at least 1 burst will be used. */
+    // Use QSPI burst transfers if:
+     //  - QSPI bursts are larger than QSPI singles [AND]
+    //  - Size is large enough that at least 1 burst will be used. //
 
     if (   (qspi_burst_size_log2 > qspi_single_size_log2)
         && (qspi_burst_count != 0)
        )
     {
-        /* 1 << 3 => 8 bytes => 64 bits, which is the width of the AXI bus. */
+        // 1 << 3 => 8 bytes => 64 bits, which is the width of the AXI bus. //
         uint32_t dst_size_log2 = ALT_MIN(3, qspi_burst_size_log2);
         uint32_t dst_length   = 0;
         uint32_t dst_multiple = 0;
         uint32_t src_multiple;
 
-        /* qspi_burst_count = segsize >> qspi_burst_size_log2; */
+        // qspi_burst_count = segsize >> qspi_burst_size_log2; //
         qspi_single_count   = (segsize & (qspi_burst_size - 1)) >> qspi_single_size_log2;
 
         dprintf("DMA[P->M][QSPI][seg][B]: Burst size = %" PRIu32 " bytes, count = %" PRIu32 ".\n", qspi_burst_size, qspi_burst_count);
@@ -4183,7 +4196,7 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
         else
         {
             dst_length   = 16;
-            dst_multiple = (qspi_burst_size >> dst_size_log2) >> 4; /* divide by 16 */
+            dst_multiple = (qspi_burst_size >> dst_size_log2) >> 4; // divide by 16//
 
             if (dst_multiple == 0)
             {
@@ -4192,23 +4205,23 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
             }
         }
 
-        /* uint32_t src_length = 1; // src_length is always 1 because the address is fixed. */
-        src_multiple = qspi_burst_size >> 2; /* divide by sizeof(uint32_t) */
+        // uint32_t src_length = 1; // src_length is always 1 because the address is fixed. //
+        src_multiple = qspi_burst_size >> 2; // divide by sizeof(uint32_t) //
 
         dprintf("DMA[P->M][QSPI][seg][B]: dst_size = %u bits, dst_length = %" PRIu32 ", dst_multiple = %" PRIu32 ".\n",
                 (1 << dst_size_log2) * 8, dst_length, dst_multiple);
         dprintf("DMA[P->M][QSPI][seg][B]: src_size = %u bits, src_length = %u, src_multiple = %" PRIu32 ".\n",
                 32,                       1,          src_multiple);
 
-        /* Program in the following parameters:
-         *  - SAF   : Source      address fixed
-         *  - SS32  : Source      burst size of 4-bytes
-         *  - SB1   : Source      burst length of 1 transfer
-         *  - DAI   : Destination address increment
-         *  - DSx   : Destination burst size of [1 << dst_size_log2]-bytes]
-         *  - DBx   : Destination burst length of [dst_length] transfer(s)
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other parameters default */
+        // Program in the following parameters:
+         //  - SAF   : Source      address fixed
+         //  - SS32  : Source      burst size of 4-bytes
+         //  - SB1   : Source      burst length of 1 transfer
+         //  - DAI   : Destination address increment
+         //  - DSx   : Destination burst size of [1 << dst_size_log2]-bytes]
+         //  - DBx   : Destination burst length of [dst_length] transfer(s)
+         //  - DC(7) : Destination cacheable write-back, allocate on writes only
+        //  - All other parameters default //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -4219,8 +4232,8 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC_DEFAULT
                                               | ALT_DMA_CCR_OPT_DAI
-                                              | (dst_size_log2 << 15) /* DS */
-                                              | ((dst_length - 1) << 18) /* DB */
+                                              | (dst_size_log2 << 15) // DS //
+                                              | ((dst_length - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
                                               | ALT_DMA_CCR_OPT_DC(7)
                                               | ALT_DMA_CCR_OPT_ES_DEFAULT
@@ -4228,7 +4241,7 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
                 );
         }
 
-        /* See how many 256x bursts we can construct. This will allow for extremely large requests. */
+        // See how many 256x bursts we can construct. This will allow for extremely large requests.//
 
         if (qspi_burst_count >> 8)
         {
@@ -4248,14 +4261,14 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
 
                 dprintf("DMA[P->M][QSPI][seg][B]: Creating %" PRIu32 " 256x burst-type transfer(s).\n", loopcount);
 
-                /* Outer loop { */
+                //Outer loop { //
 
                 if ((status == ALT_E_SUCCESS) && (loopcount > 1))
                 {
                     status = alt_dma_program_DMALP(program, loopcount);
                 }
 
-                /* Inner loop { */
+                // Inner loop { //
 
                 if (status == ALT_E_SUCCESS)
                 {
@@ -4290,14 +4303,14 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
                     status = alt_dma_program_DMALPEND(program, ALT_DMA_PROGRAM_INST_MOD_NONE);
                 }
 
-                /* } Inner loop */
+                // } Inner loop //
 
                 if ((status == ALT_E_SUCCESS) && (loopcount > 1))
                 {
                     status = alt_dma_program_DMALPEND(program, ALT_DMA_PROGRAM_INST_MOD_NONE);
                 }
 
-                /* } Outer loop */
+                // } Outer loop //
             }
         }
 
@@ -4353,10 +4366,10 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
         qspi_single_count = segsize >> qspi_single_size_log2;
     }
 
-    /* Assemble the single portion of the DMA program. */
+    // Assemble the single portion of the DMA program. //
     if (qspi_single_count)
     {
-        /* 1 << 3 => 8 bytes => 64 bits, which is the width of the AXI bus. */
+        // 1 << 3 => 8 bytes => 64 bits, which is the width of the AXI bus. //
         uint32_t dst_size_log2 = ALT_MIN(3, qspi_single_size_log2);
         uint32_t dst_length   = 0;
         uint32_t dst_multiple = 0;
@@ -4372,7 +4385,7 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
         else
         {
             dst_length   = 16;
-            dst_multiple = (qspi_single_size >> dst_size_log2) >> 4; /* divide by 16 */
+            dst_multiple = (qspi_single_size >> dst_size_log2) >> 4; //divide by 16 //
 
             if (dst_multiple == 0)
             {
@@ -4381,23 +4394,23 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
             }
         }
 
-        /* uint32_t src_length = 1; // src_length is always 1 because the address is fixed. */
-        src_multiple = qspi_single_size >> 2; /* divide by sizeof(uint32_t) */
+        // uint32_t src_length = 1; // src_length is always 1 because the address is fixed. //
+        src_multiple = qspi_single_size >> 2; // divide by sizeof(uint32_t) //
 
         dprintf("DMA[P->M][QSPI][seg][S]: dst_size = %u bits, dst_length = %" PRIu32 ", dst_multiple = %" PRIu32 ".\n",
                 (1 << dst_size_log2) * 8, dst_length, dst_multiple);
         dprintf("DMA[P->M][QSPI][seg][S]: src_size = %u bits, src_length = %u, src_multiple = %" PRIu32 ".\n",
                 32,                       1,          src_multiple);
 
-        /* Program in the following parameters:
-         *  - SAF   : Source      address fixed
-         *  - SS32  : Source      burst size of 4-bytes
-         *  - SB1   : Source      burst length of 1 transfer
-         *  - DAI   : Destination address increment
-         *  - DSx   : Destination burst size of [1 << dst_size_log2]-bytes]
-         *  - DBx   : Destination burst length of [dst_length] transfer(s)
-         *  - DC(7) : Destination cacheable write-back, allocate on writes only
-         *  - All other parameters default */
+        // Program in the following parameters:
+         //  - SAF   : Source      address fixed
+         //  - SS32  : Source      burst size of 4-bytes
+         //  - SB1   : Source      burst length of 1 transfer
+         // - DAI   : Destination address increment
+         //  - DSx   : Destination burst size of [1 << dst_size_log2]-bytes]
+         //  - DBx   : Destination burst length of [dst_length] transfer(s)
+         //  - DC(7) : Destination cacheable write-back, allocate on writes only
+        //  - All other parameters default //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -4408,8 +4421,8 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
                                               | ALT_DMA_CCR_OPT_SC_DEFAULT
                                               | ALT_DMA_CCR_OPT_DAI
-                                              | (dst_size_log2 << 15) /* DS */
-                                              | ((dst_length - 1) << 18) /* DB */
+                                              | (dst_size_log2 << 15) // DS //
+                                              | ((dst_length - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
                                               | ALT_DMA_CCR_OPT_DC(7)
                                               | ALT_DMA_CCR_OPT_ES_DEFAULT
@@ -4417,7 +4430,7 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
                 );
         }
 
-        /* See how many 256x bursts we can construct. This will allow for extremely large requests. */
+        // See how many 256x bursts we can construct. This will allow for extremely large requests. //
 
         if (qspi_single_count >> 8)
         {
@@ -4437,14 +4450,14 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
 
                 dprintf("DMA[P->M][QSPI][seg][S]: Creating %" PRIu32 " 256x single-type transfer(s).\n", loopcount);
 
-                /* Outer loop { */
+                // Outer loop { //
 
                 if ((status == ALT_E_SUCCESS) && (loopcount > 1))
                 {
                     status = alt_dma_program_DMALP(program, loopcount);
                 }
 
-                /* Inner loop { */
+                // Inner loop { //
 
                 if (status == ALT_E_SUCCESS)
                 {
@@ -4479,14 +4492,14 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
                     status = alt_dma_program_DMALPEND(program, ALT_DMA_PROGRAM_INST_MOD_NONE);
                 }
 
-                /* } Inner loop */
+                // } Inner loop //
 
                 if ((status == ALT_E_SUCCESS) && (loopcount > 1))
                 {
                     status = alt_dma_program_DMALPEND(program, ALT_DMA_PROGRAM_INST_MOD_NONE);
                 }
 
-                /* } Outer loop */
+                // } Outer loop //
             }
         }
 
@@ -4537,17 +4550,17 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory_segment(ALT_DMA_PROGRAM_t * progra
             }
         }
 
-    } /* if (qspi_single_count != 0) */
+    } // if (qspi_single_count != 0) //
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_qspi_to_memory(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_qspi_to_memory(ALT_DMA_PROGRAM_t * program,
                                               char * dst,
                                               size_t size)
 {
-    /* Detect if memory region overshoots address space
-     * This error checking is handled by the coalescing API. */
+    // Detect if memory region overshoots address space
+    // This error checking is handled by the coalescing API. ///
 
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
     ALT_MMU_VA_TO_PA_COALESCE_t coalesce;
@@ -4565,9 +4578,9 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory(ALT_DMA_PROGRAM_t * program,
     qspi_single_size_log2 = ALT_QSPI_DMAPER_NUMSGLREQBYTES_GET(dmaper);
     qspi_burst_size_log2  = ALT_QSPI_DMAPER_NUMBURSTREQBYTES_GET(dmaper);
 
-    /*
-     * Attempt to coalesce and make the transfer.
-    */
+    //
+     // Attempt to coalesce and make the transfer.
+    ///
 
     if (status == ALT_E_SUCCESS)
     {
@@ -4576,9 +4589,9 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory(ALT_DMA_PROGRAM_t * program,
 
     while (size)
     {
-        /*
-         * Extract the next segment.
-        */
+        //
+         // Extract the next segment.
+        //
 
         uintptr_t segpa   = 0;
         uint32_t  segsize = 0;
@@ -4596,9 +4609,9 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory(ALT_DMA_PROGRAM_t * program,
         size -= segsize;
         dprintf("DMA[P->M][QSPI]: Next segment PA = 0x%x, size = 0x%" PRIx32 "; remaining = 0x%x.\n", segpa, segsize, size);
 
-        /*
-         * Transfer in the current segment.
-        */
+        //
+         // Transfer in the current segment.
+        //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -4617,9 +4630,9 @@ static ALT_STATUS_CODE alt_dma_qspi_to_memory(ALT_DMA_PROGRAM_t * program,
 
     return status;
 }
-#endif /* ALT_DMA_PERIPH_PROVISION_QSPI_SUPPORT */
-
-#if ALT_DMA_PERIPH_PROVISION_16550_SUPPORT
+#endif // ALT_DMA_PERIPH_PROVISION_QSPI_SUPPORT //
+*/
+/*#if ALT_DMA_PERIPH_PROVISION_16550_SUPPORT
 
 static ALT_STATUS_CODE alt_dma_memory_to_16550_single_segment(ALT_DMA_PROGRAM_t * program,
                                                               ALT_DMA_PERIPH_t periph,
@@ -4628,18 +4641,18 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_single_segment(ALT_DMA_PROGRAM_t 
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
     uint32_t sizeleft;
 
-    /* 16550 is unusual in that the segments does not write out the SAR.
-     * This is because burst and singles can be mixed. Caller is responsible
-     * for ensuring the SAR is updated. */
+    /// 16550 is unusual in that the segments does not write out the SAR.
+     // This is because burst and singles can be mixed. Caller is responsible
+     // for ensuring the SAR is updated. //
 
-    /* Program in the following parameters:
-     *  - SS8   : Source      burst size of 1-byte
-     *  - DS8   : Destination burst size of 1-byte
-     *  - SB1   : Source      burst length of 1 transfer
-     *  - DB1   : Destination burst length of 1 transfer
-     *  - DAF   : Destination address fixed
-     *  - SC(7) : Source      cacheable write-back, allocate on reads only
-     *  - All other options default. */
+    // Program in the following parameters:
+     //  - SS8   : Source      burst size of 1-byte
+     //  - DS8   : Destination burst size of 1-byte
+     //  - SB1   : Source      burst length of 1 transfer
+    //  - DB1   : Destination burst length of 1 transfer
+     //  - DAF   : Destination address fixed
+     //  - SC(7) : Source      cacheable write-back, allocate on reads only
+     // - All other options default. //
 
     if (status == ALT_E_SUCCESS)
     {
@@ -4702,27 +4715,27 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_single_segment(ALT_DMA_PROGRAM_t 
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_16550_burst_segment(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_memory_to_16550_burst_segment(ALT_DMA_PROGRAM_t * program,
                                                              ALT_DMA_PERIPH_t periph,
                                                              size_t burst_size,
                                                              size_t burst_count)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /* 16550 is unusual in that the segments does not write out the SAR.
-     * This is because burst and singles can be mixed. Caller is responsible
-     * for ensuring the SAR is updated. */
+    // 16550 is unusual in that the segments does not write out the SAR.
+     // This is because burst and singles can be mixed. Caller is responsible
+     // for ensuring the SAR is updated. //
 
-    /* Program in the following parameters:
-     *  - SS8   : Source      burst size of 1-byte
-     *  - DS8   : Destination burst size of 1-byte
-     *  - SB16  : Source      burst length of 16 transfers
-     *  - DB16  : Destination burst length of 16 transfers
-     *  - DAF   : Source      address fixed
-     *  - SC(7) : Source      cacheable write-back, allocate on reads only
-     *  - All other options default. */
+    // Program in the following parameters:
+     //  - SS8   : Source      burst size of 1-byte
+     //  - DS8   : Destination burst size of 1-byte
+     //  - SB16  : Source      burst length of 16 transfers
+     //  - DB16  : Destination burst length of 16 transfers
+     //  - DAF   : Source      address fixed
+     //  - SC(7) : Source      cacheable write-back, allocate on reads only
+     //  - All other options default. //
 
     if (status == ALT_E_SUCCESS)
     {
@@ -4754,7 +4767,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_burst_segment(ALT_DMA_PROGRAM_t *
 
         dprintf("DMA[M->P][16550][B][seg]: Creating outer %" PRIu32 " inner loop(s).\n", loopcount);
 
-        /* Outer loop { */
+        // Outer loop { //
 
         if ((status == ALT_E_SUCCESS) && (loopcount > 1))
         {
@@ -4769,17 +4782,17 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_burst_segment(ALT_DMA_PROGRAM_t *
             status = alt_dma_program_DMAWFP(program, periph, ALT_DMA_PROGRAM_INST_MOD_BURST);
         }
 
-        /* Inner loop { */
+        // Inner loop { //
 
-        /* Loop [burst_size / 16] times. The burst_size was trimmed to the
-         * nearest multiple of 16 by the caller. Each burst does 16 transfers
-         * hence the need for the divide. */
+        // Loop [burst_size / 16] times. The burst_size was trimmed to the
+         // nearest multiple of 16 by the caller. Each burst does 16 transfers
+         // hence the need for the divide. //
 
         dprintf("DMA[M->P][16550][B][seg]: Creating inner %u transfer(s).\n", burst_size >> 4);
 
         if (status == ALT_E_SUCCESS)
         {
-            status = alt_dma_program_DMALP(program, burst_size >> 4); /* divide by 16. */
+            status = alt_dma_program_DMALP(program, burst_size >> 4); // divide by 16. //
         }
         if (status == ALT_E_SUCCESS)
         {
@@ -4794,32 +4807,32 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_burst_segment(ALT_DMA_PROGRAM_t *
             status = alt_dma_program_DMALPEND(program, ALT_DMA_PROGRAM_INST_MOD_BURST);
         }
 
-        /* } Inner loop */
+        // } Inner loop //
 
         if ((status == ALT_E_SUCCESS) && (loopcount > 1))
         {
             status = alt_dma_program_DMALPEND(program, ALT_DMA_PROGRAM_INST_MOD_BURST);
         }
 
-        /* } Outer loop */
+        // } Outer loop //
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_16550_single(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_memory_to_16550_single(ALT_DMA_PROGRAM_t * program,
                                                       ALT_DMA_PERIPH_t periph,
                                                       const void * src,
                                                       size_t size)
 {
-    /* Detect if memory region overshoots address space.
-     * This error checking is handled by the coalescing API. */
+    // Detect if memory region overshoots address space.
+     // This error checking is handled by the coalescing API. //
 
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /*
-     * Attempt to coalesce and make the transfer.
-    */
+    //
+     //Attempt to coalesce and make the transfer.
+    ///
 
     ALT_MMU_VA_TO_PA_COALESCE_t coalesce;
 
@@ -4830,9 +4843,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_single(ALT_DMA_PROGRAM_t * progra
 
     while (size)
     {
-        /*
-         * Extract the next segment.
-        */
+        //
+         // Extract the next segment.
+        //
 
         uintptr_t segpa   = 0;
         uint32_t  segsize = 0;
@@ -4850,9 +4863,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_single(ALT_DMA_PROGRAM_t * progra
         size -= segsize;
         dprintf("DMA[M->P][16550][S]: Current segment PA = 0x%x, size = 0x%" PRIx32 "; remaining = 0x%x.\n", segpa, segsize, size);
 
-        /*
-         * Transfer out the current segment.
-        */
+        //
+         // Transfer out the current segment.
+        //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -4874,22 +4887,22 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_single(ALT_DMA_PROGRAM_t * progra
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_16550_burst(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_memory_to_16550_burst(ALT_DMA_PROGRAM_t * program,
                                                      ALT_DMA_PERIPH_t periph,
                                                      uint32_t burst_size,
                                                      const void * src,
                                                      size_t size)
 {
-    /* Detect if memory region overshoots address space.
-     * This error checking is handled by the coalescing API. */
+    // Detect if memory region overshoots address space.
+     // This error checking is handled by the coalescing API. //
 
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /*
-     * Attempt to coalesce and make the transfer.
-    */
+    //
+     // Attempt to coalesce and make the transfer.
+   ///
 
     ALT_MMU_VA_TO_PA_COALESCE_t coalesce;
 
@@ -4911,9 +4924,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_burst(ALT_DMA_PROGRAM_t * program
             break;
         }
 
-        /*
-         * Extract the next segment.
-        */
+        //
+         // Extract the next segment.
+       //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -4923,13 +4936,13 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_burst(ALT_DMA_PROGRAM_t * program
         size -= segsize;
         dprintf("DMA[M->P][16550][B]: Next segment PA = 0x%x, size = 0x%" PRIx32 "; remaining = 0x%x.\n", segpa, segsize, size);
 
-        /*
-         * Transfer out the current segment.
-        */
+        //
+         // Transfer out the current segment.
+       //
 
         sizeleft = segsize;
 
-        /* Determine how many burst transfers can be done */
+        // Determine how many burst transfers can be done //
         rslt = ldiv(sizeleft, burst_size);
         burst_count = rslt.quot;
         sizeleft    = rslt.rem;
@@ -4942,7 +4955,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_burst(ALT_DMA_PROGRAM_t * program
 
         if ((status == ALT_E_SUCCESS) && (burst_count))
         {
-            /* Do the burst transfers */
+            // Do the burst transfers //
 
             status = alt_dma_memory_to_16550_burst_segment(program,
                                                            periph,
@@ -4952,7 +4965,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_burst(ALT_DMA_PROGRAM_t * program
 
         if ((status == ALT_E_SUCCESS) && (sizeleft))
         {
-            /* Do the single transfers */
+            // Do the single transfers //
 
             status = alt_dma_memory_to_16550_single_segment(program,
                                                             periph,
@@ -4966,9 +4979,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550_burst(ALT_DMA_PROGRAM_t * program
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_16550(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_memory_to_16550(ALT_DMA_PROGRAM_t * program,
                                                ALT_DMA_PERIPH_t periph,
                                                ALT_16550_HANDLE_t * handle,
                                                const void * src,
@@ -4982,24 +4995,24 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550(ALT_DMA_PROGRAM_t * program,
                                         (uint32_t)ALT_UART_RBR_THR_DLL_ADDR(handle->location));
     }
 
-    /* Determine if FIFOs are enabled from the FCR cache */
+    //Determine if FIFOs are enabled from the FCR cache //
 
     if (ALT_UART_FCR_FIFOE_GET(handle->fcr) != 0)
     {
-        /*
-         * FIFOs are enabled.
-        */
+        //
+         // FIFOs are enabled.
+        //
 
         uint32_t tx_size;
         uint32_t burst_size;
 
         dprintf("DMA[M->P][16550]: FIFOs enabled.\n");
 
-        /* Get the TX FIFO Size
-         * Use the register interface to avoid coupling the 16550 and DMA. */
+        // Get the TX FIFO Size
+         // Use the register interface to avoid coupling the 16550 and DMA. //
         tx_size = ALT_UART_CPR_FIFO_MOD_GET(alt_read_word(ALT_UART_CPR_ADDR(handle->location))) << 4;
 
-        /* Get the TX FIFO Trigger Level from the FCR cache */
+        // Get the TX FIFO Trigger Level from the FCR cache //
         switch ((ALT_16550_FIFO_TRIGGER_TX_t)ALT_UART_FCR_TET_GET(handle->fcr))
         {
         case ALT_16550_FIFO_TRIGGER_TX_EMPTY:
@@ -5015,13 +5028,13 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550(ALT_DMA_PROGRAM_t * program,
             burst_size = tx_size >> 1;
             break;
         default:
-            /* This case should never happen. */
+            // This case should never happen. //
             return ALT_E_ERROR;
         }
 
         if (burst_size < 16)
         {
-            /* There's no point bursting 1 byte at a time per notify, so just do single transfers. */
+            // There's no point bursting 1 byte at a time per notify, so just do single transfers. //
             if (status == ALT_E_SUCCESS)
             {
                 status = alt_dma_memory_to_16550_single(program,
@@ -5032,8 +5045,8 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550(ALT_DMA_PROGRAM_t * program,
         }
         else
         {
-            /* Now trim the burst size to a multiple of 16.
-             * This will optimize the bursting in the fewest possible commands. */
+            // Now trim the burst size to a multiple of 16.
+             // This will optimize the bursting in the fewest possible commands. //
             dprintf("DMA[M->P][16550]: Untrimmed burst size = %" PRIu32 ".\n", burst_size);
             burst_size &= ~0xf;
             dprintf("DMA[M->P][16550]: Trimmed burst size   = %" PRIu32 ".\n", burst_size);
@@ -5054,9 +5067,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550(ALT_DMA_PROGRAM_t * program,
         {
             dprintf("DMA[M->P][16550]: FIFOs disabled.\n");
 
-            /*
-             * FIFOs are disabled.
-            */
+            //
+             // FIFOs are disabled.
+            //
 
             status = alt_dma_memory_to_16550_single(program,
                                                     periph,
@@ -5066,9 +5079,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_16550(ALT_DMA_PROGRAM_t * program,
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_16550_to_memory_single_segment(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_16550_to_memory_single_segment(ALT_DMA_PROGRAM_t * program,
                                                               ALT_DMA_PERIPH_t periph,
                                                               size_t segsize)
 {
@@ -5076,18 +5089,18 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_single_segment(ALT_DMA_PROGRAM_t 
     uint32_t sizeleft = segsize;
 
 
-    /* 16550 is unusual in that the segments does not write out the DAR.
-     * This is because burst and singles can be mixed. Caller is responsible
-     * for ensuring the SAR is updated. */
+    //16550 is unusual in that the segments does not write out the DAR.
+     // This is because burst and singles can be mixed. Caller is responsible
+     // for ensuring the SAR is updated. //
 
-    /* Program in the following parameters:
-     *  - SS8   : Source      burst size of 1-byte
-     *  - DS8   : Destination burst size of 1-byte
-     *  - SB1   : Source      burst length of 1 transfer
-     *  - DB1   : Destination burst length of 1 transfer
-     *  - SAF   : Source      address fixed
-     *  - DC(7) : Destination cacheable write-back, allocate on writes only
-     *  - All other options default. */
+    // Program in the following parameters:
+     //  - SS8   : Source      burst size of 1-byte
+     //  - DS8   : Destination burst size of 1-byte
+     //  - SB1   : Source      burst length of 1 transfer
+    // - DB1   : Destination burst length of 1 transfer
+     //  - SAF   : Source      address fixed
+     //  - DC(7) : Destination cacheable write-back, allocate on writes only
+     //  - All other options default. //
 
     if (status == ALT_E_SUCCESS)
     {
@@ -5146,27 +5159,27 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_single_segment(ALT_DMA_PROGRAM_t 
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_16550_to_memory_burst_segment(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_16550_to_memory_burst_segment(ALT_DMA_PROGRAM_t * program,
                                                              ALT_DMA_PERIPH_t periph,
                                                              size_t burst_size,
                                                              size_t burst_count)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /* 16550 is unusual in that the segments does not write out the DAR.
-     * This is because burst and singles can be mixed. Caller is responsible
-     * for ensuring the SAR is updated. */
+    // 16550 is unusual in that the segments does not write out the DAR.
+     // This is because burst and singles can be mixed. Caller is responsible
+     // for ensuring the SAR is updated. //
 
-    /* Program in the following parameters:
-     *  - SS8   : Source      burst size of 1-byte
-     *  - DS8   : Destination burst size of 1-byte
-     *  - SB16  : Source      burst length of 16 transfers
-     *  - DB16  : Destination burst length of 16 transfers
-     *  - SAF   : Source      address fixed
-     *  - DC(7) : Destination cacheable write-back, allocate on writes only
-     *  - All other options default. */
+    // Program in the following parameters:
+     //  - SS8   : Source      burst size of 1-byte
+     //  - DS8   : Destination burst size of 1-byte
+     //  - SB16  : Source      burst length of 16 transfers
+     //  - DB16  : Destination burst length of 16 transfers
+     //  - SAF   : Source      address fixed
+     //  - DC(7) : Destination cacheable write-back, allocate on writes only
+     //  - All other options default. //
 
     if (status == ALT_E_SUCCESS)
     {
@@ -5198,7 +5211,7 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_burst_segment(ALT_DMA_PROGRAM_t *
 
         dprintf("DMA[P->M][16550][B][seg]: Creating outer %" PRIu32 " inner loop(s).\n", loopcount);
 
-        /* Outer loop { */
+        // Outer loop { //
 
         if ((status == ALT_E_SUCCESS) && (loopcount > 1))
         {
@@ -5213,17 +5226,17 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_burst_segment(ALT_DMA_PROGRAM_t *
             status = alt_dma_program_DMAWFP(program, periph, ALT_DMA_PROGRAM_INST_MOD_BURST);
         }
 
-        /* Inner loop { */
+        // Inner loop { //
 
-        /* Loop [burst_size / 16] times. The burst_size was trimmed to the
-         * nearest multiple of 16 by the caller. Each burst does 16 transfers
-         * hence the need for the divide. */
+        // Loop [burst_size / 16] times. The burst_size was trimmed to the
+         // nearest multiple of 16 by the caller. Each burst does 16 transfers
+         // hence the need for the divide. //
 
         dprintf("DMA[P->M][16550][B][seg]: Creating inner %u transfer(s).\n", burst_size >> 4);
 
         if (status == ALT_E_SUCCESS)
         {
-            status = alt_dma_program_DMALP(program, burst_size >> 4); /* divide by 16. */
+            status = alt_dma_program_DMALP(program, burst_size >> 4); // divide by 16. //
         }
         if (status == ALT_E_SUCCESS)
         {
@@ -5238,32 +5251,32 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_burst_segment(ALT_DMA_PROGRAM_t *
             status = alt_dma_program_DMALPEND(program, ALT_DMA_PROGRAM_INST_MOD_BURST);
         }
 
-        /* } Inner loop */
+        // } Inner loop //
 
         if ((status == ALT_E_SUCCESS) && (loopcount > 1))
         {
             status = alt_dma_program_DMALPEND(program, ALT_DMA_PROGRAM_INST_MOD_BURST);
         }
 
-        /* } Outer loop */
+        // } Outer loop //
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_16550_to_memory_single(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_16550_to_memory_single(ALT_DMA_PROGRAM_t * program,
                                                       ALT_DMA_PERIPH_t periph,
                                                       void * dst,
                                                       size_t size)
 {
-    /* Detect if memory region overshoots address space.
-     * This error checking is handled by the coalescing API. */
+    //Detect if memory region overshoots address space.
+     // This error checking is handled by the coalescing API. //
 
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /*
-     * Attempt to coalesce and make the transfer.
-     * */
+    //
+     // Attempt to coalesce and make the transfer.
+    ///
 
     ALT_MMU_VA_TO_PA_COALESCE_t coalesce;
 
@@ -5274,9 +5287,9 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_single(ALT_DMA_PROGRAM_t * progra
 
     while (size)
     {
-        /*
-         * Extract the next segment.
-        */
+        //
+         // Extract the next segment.
+       //
 
         uintptr_t segpa   = 0;
         uint32_t  segsize = 0;
@@ -5291,9 +5304,9 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_single(ALT_DMA_PROGRAM_t * progra
         size -= segsize;
         dprintf("DMA[P->M][16550][S]: Next segment PA = 0x%x, size = 0x%" PRIx32 "; remaining = 0x%x.\n", segpa, segsize, size);
 
-        /*
-         * Transfer in the current segment.
-        */
+        //
+         // Transfer in the current segment.
+        //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -5312,22 +5325,22 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_single(ALT_DMA_PROGRAM_t * progra
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_16550_to_memory_burst(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_16550_to_memory_burst(ALT_DMA_PROGRAM_t * program,
                                                      ALT_DMA_PERIPH_t periph,
                                                      uint32_t burst_size,
                                                      void * dst,
                                                      size_t size)
 {
-    /* Detect if memory region overshoots address space.
-     * This error checking is handled by the coalescing API. */
+    // Detect if memory region overshoots address space.
+     // This error checking is handled by the coalescing API. //
 
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /*
-     * Attempt to coalesce and make the transfer.
-    */
+    //
+     / Attempt to coalesce and make the transfer.
+    //
 
     ALT_MMU_VA_TO_PA_COALESCE_t coalesce;
 
@@ -5338,9 +5351,9 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_burst(ALT_DMA_PROGRAM_t * program
 
     while (size)
     {
-        /*
-         * Extract the next segment.
-        */
+        //
+         // Extract the next segment.
+        //
 
         uintptr_t segpa   = 0;
         uint32_t  segsize = 0;
@@ -5358,19 +5371,19 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_burst(ALT_DMA_PROGRAM_t * program
         size -= segsize;
         dprintf("DMA[P->M][16550][B]: Next segment PA = 0x%x, size = 0x%" PRIx32 "; remaining = 0x%x.\n", segpa, segsize, size);
 
-        /*
-         * Transfer in the current segment.
-        */
+        //
+         // Transfer in the current segment.
+        //
 
         sizeleft = segsize;
 
-        /* Determine how many burst transfers can be done */
+        // Determine how many burst transfers can be done //
 
         rslt = ldiv(sizeleft, burst_size);
         burst_count = rslt.quot;
         sizeleft    = rslt.rem;
 
-        /* TODO [Fred Hsueh]: Move out the dmamove DAR here. */
+        // TODO [Fred Hsueh]: Move out the dmamove DAR here. //
 
         if (status == ALT_E_SUCCESS)
         {
@@ -5380,7 +5393,7 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_burst(ALT_DMA_PROGRAM_t * program
 
         if ((status == ALT_E_SUCCESS) && (burst_count))
         {
-            /* Do the burst transfers */
+            // Do the burst transfers //
 
             status = alt_dma_16550_to_memory_burst_segment(program,
                                                            periph,
@@ -5390,7 +5403,7 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_burst(ALT_DMA_PROGRAM_t * program
 
         if ((status == ALT_E_SUCCESS) && (sizeleft))
         {
-            /* Do the single transfers */
+            //Do the single transfers //
 
             status = alt_dma_16550_to_memory_single_segment(program,
                                                             periph,
@@ -5404,9 +5417,9 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory_burst(ALT_DMA_PROGRAM_t * program
     }
 
     return status;
-}
+}*/
 
-static ALT_STATUS_CODE alt_dma_16550_to_memory(ALT_DMA_PROGRAM_t * program,
+/*static ALT_STATUS_CODE alt_dma_16550_to_memory(ALT_DMA_PROGRAM_t * program,
                                                ALT_DMA_PERIPH_t periph,
                                                ALT_16550_HANDLE_t * handle,
                                                void * dst,
@@ -5420,46 +5433,46 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory(ALT_DMA_PROGRAM_t * program,
                                         (uint32_t)ALT_UART_RBR_THR_DLL_ADDR(handle->location));
     }
 
-    /* Determine if FIFOs are enabled from the FCR cache */
+    // Determine if FIFOs are enabled from the FCR cache //
 
     if (ALT_UART_FCR_FIFOE_GET(handle->fcr) != 0)
     {
-        /*
-         * FIFOs are enabled.
-        */
+        //
+         / FIFOs are enabled.
+        //
 
         uint32_t rx_size;
         uint32_t burst_size;
 
         dprintf("DMA[P->M][16550]: FIFOs enabled.\n");
 
-        /* Get the RX FIFO Size
-         * Use the register interface to avoid coupling the 16550 and DMA. */
+        // Get the RX FIFO Size
+         // Use the register interface to avoid coupling the 16550 and DMA. ///
         rx_size = ALT_UART_CPR_FIFO_MOD_GET(alt_read_word(ALT_UART_CPR_ADDR(handle->location))) << 4;
 
-        /* Get the RX FIFO Trigger Level from the FCR cache */
+        // Get the RX FIFO Trigger Level from the FCR cache //
         switch ((ALT_16550_FIFO_TRIGGER_RX_t)ALT_UART_FCR_RT_GET(handle->fcr))
         {
         case ALT_16550_FIFO_TRIGGER_RX_ANY:
             burst_size = 1;
             break;
         case ALT_16550_FIFO_TRIGGER_RX_QUARTER_FULL:
-            burst_size = rx_size >> 2; /* divide by 4 */
+            burst_size = rx_size >> 2; //divide by 4 //
             break;
         case ALT_16550_FIFO_TRIGGER_RX_HALF_FULL:
-            burst_size = rx_size >> 1; /* divide by 2 */
+            burst_size = rx_size >> 1; // divide by 2 //
             break;
         case ALT_16550_FIFO_TRIGGER_RX_ALMOST_FULL:
             burst_size = rx_size - 2;
             break;
         default:
-            /* This case should never happen. */
+            // This case should never happen. //
             return ALT_E_ERROR;
         }
 
         if (burst_size < 16)
         {
-            /* There's no point bursting 1 byte at a time per notify, so just do single transfers. */
+            // There's no point bursting 1 byte at a time per notify, so just do single transfers. //
             if (status == ALT_E_SUCCESS)
             {
                 status = alt_dma_16550_to_memory_single(program,
@@ -5470,8 +5483,8 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory(ALT_DMA_PROGRAM_t * program,
         }
         else
         {
-            /* Now trim the burst size to a multiple of 16.
-             * This will optimize the bursting in the fewest possible commands. */
+            // Now trim the burst size to a multiple of 16.
+             // This will optimize the bursting in the fewest possible commands. //
             dprintf("DMA[P->M][16550]: Untrimmed burst size = %" PRIu32 ".\n", burst_size);
             burst_size &= ~0xf;
             dprintf("DMA[P->M][16550]: Trimmed burst size   = %" PRIu32 ".\n", burst_size);
@@ -5492,9 +5505,9 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory(ALT_DMA_PROGRAM_t * program,
         {
             dprintf("DMA[P->M][16550]: FIFOs disabled.\n");
 
-            /*
-             * FIFOs are disabled.
-            */
+            //
+             // FIFOs are disabled.
+            //
 
             status = alt_dma_16550_to_memory_single(program,
                                                     periph,
@@ -5505,9 +5518,10 @@ static ALT_STATUS_CODE alt_dma_16550_to_memory(ALT_DMA_PROGRAM_t * program,
 
     return status;
 }
-#endif /* ALT_DMA_PERIPH_PROVISION_16550_SUPPORT */
+#endif //ALT_DMA_PERIPH_PROVISION_16550_SUPPORT //
+*/
 
-ALT_STATUS_CODE alt_dma_memory_to_periph(ALT_DMA_CHANNEL_t channel,
+/*ALT_STATUS_CODE alt_dma_memory_to_periph(ALT_DMA_CHANNEL_t channel,
                                          ALT_DMA_PROGRAM_t * program,
                                          ALT_DMA_PERIPH_t dstp,
                                          const void * src,
@@ -5518,7 +5532,7 @@ ALT_STATUS_CODE alt_dma_memory_to_periph(ALT_DMA_CHANNEL_t channel,
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /* If the size is zero, and no event is requested, just return success. */
+    // If the size is zero, and no event is requested, just return success. //
     if ((size == 0) && (send_evt == false))
     {
         return ALT_E_SUCCESS;
@@ -5532,7 +5546,7 @@ ALT_STATUS_CODE alt_dma_memory_to_periph(ALT_DMA_CHANNEL_t channel,
 
     if ((status == ALT_E_SUCCESS) && (size != 0))
     {
-        /* Detect if memory region overshoots address space. */
+        // Detect if memory region overshoots address space. //
         if ((uintptr_t)src + size - 1 < (uintptr_t)src)
         {
             return ALT_E_BAD_ARG;
@@ -5588,7 +5602,7 @@ ALT_STATUS_CODE alt_dma_memory_to_periph(ALT_DMA_CHANNEL_t channel,
         }
     }
 
-    /* Send event if requested. */
+    // Send event if requested. //
     if (send_evt)
     {
         if (status == ALT_E_SUCCESS)
@@ -5598,27 +5612,27 @@ ALT_STATUS_CODE alt_dma_memory_to_periph(ALT_DMA_CHANNEL_t channel,
         }
     }
 
-    /* Now that everything is done, end the program. */
+    // Now that everything is done, end the program. //
     if (status == ALT_E_SUCCESS)
     {
         status = alt_dma_program_DMAEND(program);
     }
 
-    /* If there was a problem assembling the program, clean up the buffer and exit. */
+    // If there was a problem assembling the program, clean up the buffer and exit. //
     if (status != ALT_E_SUCCESS)
     {
-        /* Do not report the status for the clear operation. A failure should be
-         * reported regardless of if the clear is successful. */
+        // Do not report the status for the clear operation. A failure should be
+        // reported regardless of if the clear is successful. //
         alt_dma_program_clear(program);
         return status;
     }
 
-    /* Execute the program on the given channel. */
+    // Execute the program on the given channel. //
 
     return alt_dma_channel_exec(channel, program);
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_periph_to_memory(ALT_DMA_CHANNEL_t channel,
+/*ALT_STATUS_CODE alt_dma_periph_to_memory(ALT_DMA_CHANNEL_t channel,
                                          ALT_DMA_PROGRAM_t * program,
                                          void * dst,
                                          ALT_DMA_PERIPH_t srcp,
@@ -5629,7 +5643,7 @@ ALT_STATUS_CODE alt_dma_periph_to_memory(ALT_DMA_CHANNEL_t channel,
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
 
-    /* If the size is zero, and no event is requested, just return success. */
+    // If the size is zero, and no event is requested, just return success. //
     if ((size == 0) && (send_evt == false))
     {
         return ALT_E_SUCCESS;
@@ -5643,7 +5657,7 @@ ALT_STATUS_CODE alt_dma_periph_to_memory(ALT_DMA_CHANNEL_t channel,
 
     if ((status == ALT_E_SUCCESS) && (size != 0))
     {
-        /* Detect if memory region overshoots address space. */
+        // Detect if memory region overshoots address space. //
         if ((uintptr_t)dst + size - 1 < (uintptr_t)dst)
         {
             return ALT_E_BAD_ARG;
@@ -5699,7 +5713,7 @@ ALT_STATUS_CODE alt_dma_periph_to_memory(ALT_DMA_CHANNEL_t channel,
         }
     }
 
-    /* Send event if requested. */
+    // Send event if requested. //
     if (send_evt)
     {
         if (status == ALT_E_SUCCESS)
@@ -5709,27 +5723,27 @@ ALT_STATUS_CODE alt_dma_periph_to_memory(ALT_DMA_CHANNEL_t channel,
         }
     }
 
-    /* Now that everything is done, end the program. */
+    // Now that everything is done, end the program. //
     if (status == ALT_E_SUCCESS)
     {
         status = alt_dma_program_DMAEND(program);
     }
 
-    /* If there was a problem assembling the program, clean up the buffer and exit. */
+    // If there was a problem assembling the program, clean up the buffer and exit. //
     if (status != ALT_E_SUCCESS)
     {
-        /* Do not report the status for the clear operation. A failure should be
-         * reported regardless of if the clear is successful. */
+        //Do not report the status for the clear operation. A failure should be
+        /reported regardless of if the clear is successful. //
         alt_dma_program_clear(program);
         return status;
     }
 
-    /* Execute the program on the given channel. */
+    // Execute the program on the given channel. //
 
     return alt_dma_channel_exec(channel, program);
-}
+}*/
 
-static bool alt_dma_is_init(void)
+/*static bool alt_dma_is_init(void)
 {
 #if defined(soc_cv_av)
 
@@ -5758,9 +5772,9 @@ static bool alt_dma_is_init(void)
     }
 
 #endif
-}
+}*/
 
-ALT_STATUS_CODE alt_dma_ecc_start(void * block, size_t size)
+/*ALT_STATUS_CODE alt_dma_ecc_start(void * block, size_t size)
 {
     int i;
 
@@ -5769,7 +5783,7 @@ ALT_STATUS_CODE alt_dma_ecc_start(void * block, size_t size)
         return ALT_E_ERROR;
     }
 
-    /* Verify that all channels are either unallocated or allocated and idle. */
+    // Verify that all channels are either unallocated or allocated and idle. //
 
     for (i = 0; i < ARRAY_COUNT(g_dmaState.channel_info); ++i)
     {
@@ -5793,12 +5807,12 @@ ALT_STATUS_CODE alt_dma_ecc_start(void * block, size_t size)
         return ALT_E_ERROR;
     }
 
-    /* Enable ECC for DMA RAM */
+    // Enable ECC for DMA RAM //
 
     dprintf("DEBUG[DMA][ECC]: Enable ECC in SysMgr.\n");
     alt_write_word(ALT_SYSMGR_ECC_DMA_ADDR, ALT_SYSMGR_ECC_DMA_EN_SET_MSK);
 
-    /* Clear any pending spurious DMA ECC interrupts. */
+    // Clear any pending spurious DMA ECC interrupts. //
 
     dprintf("DEBUG[DMA][ECC]: Clear any pending spurious ECC status in SysMgr.\n");
     alt_write_word(ALT_SYSMGR_ECC_DMA_ADDR,
@@ -5808,10 +5822,10 @@ ALT_STATUS_CODE alt_dma_ecc_start(void * block, size_t size)
 
 #elif defined(soc_a10)
 
-    /*
-     * Start ECC memory initialization and wait for it to complete.
-     * NOTE: This needs to be done before enabling ECC.
-     */
+    //
+     // Start ECC memory initialization and wait for it to complete.
+     // NOTE: This needs to be done before enabling ECC.
+     //
     alt_write_word(ALT_ECC_DMAC_CTL_ADDR,
                    ALT_ECC_DMAC_CTL_INITA_SET_MSK);
 
@@ -5826,19 +5840,19 @@ ALT_STATUS_CODE alt_dma_ecc_start(void * block, size_t size)
     }
     dprintf("ECC[start][DMA]: i = %d.\n", i);
 
-    /*
-     * Enable ECC on DMAC.
-     */
+    //
+     // Enable ECC on DMAC.
+     ///
     alt_write_word(ALT_ECC_DMAC_CTL_ADDR,
                    ALT_ECC_DMAC_CTL_ECC_EN_SET_MSK);
 
-    /*
-     * Enable SERR to interrupt.
-     */
+    //
+     // Enable SERR to interrupt.
+     //
     alt_write_word(ALT_ECC_DMAC_ERRINTEN_ADDR,
                    ALT_ECC_DMAC_ERRINTEN_SERRINTEN_SET_MSK);
 
 #endif
 
     return ALT_E_SUCCESS;
-}
+}*/
