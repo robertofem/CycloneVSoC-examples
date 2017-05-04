@@ -1,5 +1,6 @@
 #Intermediate files in c compilation
 **.o 
+**.ko.mod
 **.mod.c
 **.cmd
 **-swp
