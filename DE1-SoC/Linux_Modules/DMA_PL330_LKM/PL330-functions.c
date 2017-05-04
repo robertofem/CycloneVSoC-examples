@@ -7,16 +7,6 @@
 #include "hwlib_socal_linux.h" 
 #include "PL330-functions.h"
 
-//PL330 DMAC Hardware Details
-#define PL330_HADDRESS_SECURE 	0xffe01000	//hardware secure address
-#define PL330_HSIZE		0x1000		//PL330 size=4kB 
-//Reset Manager Hardware Details
-#define RSTMGR_HADDRESS 	0xffd05000	//hardware secure address
-#define RSTMGR_HSIZE		0x100		//PL330 size=256B 
-
-
-
-
 /******************************************************************************/
 /*!
  * System Initialization
@@ -89,7 +79,16 @@ ALT_STATUS_CODE PL330_init(void)
 ALT_STATUS_CODE  PL330_uninit(void)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
-    printk("INFO: DMA Controller shutdown.\n\r");
+    printk("DMA LKM: DMA Controller shutdown.\n");
+    
+    //-----Uninit DMA------//
+    status = alt_dma_uninit();
+    if(status == ALT_E_SUCCESS)
+    {
+       printk(KERN_INFO "DMA: DMAC uninit success\n");
+    }else{
+       printk(KERN_INFO "DMA: DMAC uninit failed\n");
+    }
     
     //-----DMA unmap------//
     status = alt_dma_iounmap();
@@ -100,13 +99,5 @@ ALT_STATUS_CODE  PL330_uninit(void)
        printk(KERN_INFO "DMA: DMAC iounmap failed\n");
     }
     
-    //-----Uninit DMA------//
-    status = alt_dma_uninit();
-    if(status == ALT_E_SUCCESS)
-    {
-       printk(KERN_INFO "DMA: DMAC uninit success\n");
-    }else{
-       printk(KERN_INFO "DMA: DMAC uninit failed\n");
-    }
     return status;
 }

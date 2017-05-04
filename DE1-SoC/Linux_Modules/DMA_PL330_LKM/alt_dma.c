@@ -103,7 +103,7 @@
 #define PL330_HSIZE		0x1000		//PL330 size=4kB 
 //Reset Manager Hardware Details
 #define RSTMGR_HADDRESS 	0xffd05000	//hardware secure address
-#define RSTMGR_HSIZE		0x100		//rstmgr size=256B 
+#define RSTMGR_HSIZE		0x1000		//rstmgr size=4kB 
 //System Manager Hardware Details
 #define SYSMGR_HADDRESS 	0xffd08000
 #define SYSMGR_HSIZE		0x4000		//sysmgr size = 16KB
@@ -403,8 +403,6 @@ ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
 
     // Update the System Manager DMA peripheral security items//
     uint32_t dmapersecurity = 0;
-    
-    printk("cycloneV selected\n");
 
     // Initialize the channel information array //
     for (i = 0; i < ARRAY_COUNT(g_dmaState.channel_info); ++i)
@@ -638,7 +636,7 @@ ALT_STATUS_CODE alt_dma_uninit(void)
     return ALT_E_SUCCESS;
 }
 
-/*ALT_STATUS_CODE alt_dma_channel_alloc(ALT_DMA_CHANNEL_t channel)
+ALT_STATUS_CODE alt_dma_channel_alloc(ALT_DMA_CHANNEL_t channel)
 {
     // Validate channel 
     switch (channel)
@@ -668,9 +666,9 @@ ALT_STATUS_CODE alt_dma_uninit(void)
     g_dmaState.channel_info[channel].flag |= ALT_DMA_CHANNEL_INFO_FLAG_ALLOCED;
 
     return ALT_E_SUCCESS;
-}*/
+}
 
-/*ALT_STATUS_CODE alt_dma_channel_alloc_any(ALT_DMA_CHANNEL_t * allocated)
+ALT_STATUS_CODE alt_dma_channel_alloc_any(ALT_DMA_CHANNEL_t * allocated)
 {
     // Sweep channel array for unallocated channel /
     int i;
@@ -692,7 +690,7 @@ ALT_STATUS_CODE alt_dma_uninit(void)
     // No free channels found. /
 
     return ALT_E_ERROR;
-}*/
+}
 
 ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
 {
@@ -1055,7 +1053,7 @@ ALT_STATUS_CODE alt_dma_channel_state_get(ALT_DMA_CHANNEL_t channel,
     return ALT_E_SUCCESS;
 }*/
 
-/*ALT_STATUS_CODE alt_dma_channel_fault_status_get(ALT_DMA_CHANNEL_t channel,
+ALT_STATUS_CODE alt_dma_channel_fault_status_get(ALT_DMA_CHANNEL_t channel,
                                                  ALT_DMA_CHANNEL_FAULT_t * fault)
 {
     // Validate channel /
@@ -1079,7 +1077,7 @@ ALT_STATUS_CODE alt_dma_channel_state_get(ALT_DMA_CHANNEL_t channel,
     *fault = (ALT_DMA_CHANNEL_FAULT_t)alt_read_word(ALT_DMA_FTRx_ADDR(ALT_DMASECURE_ADDR, channel));
 
     return ALT_E_SUCCESS;
-}*/
+}
 
 /*ALT_STATUS_CODE alt_dma_event_int_select(ALT_DMA_EVENT_t evt_num,
                                          ALT_DMA_EVENT_SELECT_t opt)

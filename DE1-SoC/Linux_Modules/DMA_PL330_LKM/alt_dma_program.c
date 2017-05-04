@@ -130,7 +130,7 @@ ALT_STATUS_CODE alt_dma_program_validate(const ALT_DMA_PROGRAM_t * pgm)
 
 ALT_STATUS_CODE alt_dma_program_progress_reg(ALT_DMA_PROGRAM_t * pgm,
                                              ALT_DMA_PROGRAM_REG_t reg,
-                                             uint32_t current, uint32_t * progress)
+                                             uint32_t current_, uint32_t * progress)
 {
     /* Pointer to where the register is initialized in the program buffer. */
     uint8_t * buffer = NULL;
@@ -164,7 +164,7 @@ ALT_STATUS_CODE alt_dma_program_progress_reg(ALT_DMA_PROGRAM_t * pgm,
         (buffer[1] <<  8) |
         (buffer[0] <<  0);
 
-    *progress = current - initial;
+    *progress = current_ - initial;
 
     return ALT_E_SUCCESS;
 }

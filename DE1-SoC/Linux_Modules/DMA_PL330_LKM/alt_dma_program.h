@@ -284,7 +284,7 @@ ALT_STATUS_CODE alt_dma_program_validate(const ALT_DMA_PROGRAM_t * pgm);
  */
 ALT_STATUS_CODE alt_dma_program_progress_reg(ALT_DMA_PROGRAM_t * pgm,
                                              ALT_DMA_PROGRAM_REG_t reg,
-                                             uint32_t current, uint32_t * progress);
+                                             uint32_t current_, uint32_t * progress);
 
 /*!
  * This function updates a pre-existing DMAMOV value affecting the SAR or DAR
