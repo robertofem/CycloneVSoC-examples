@@ -1,0 +1,8 @@
+#Intermediate files in c compilation
+**.o 
+**.mod.c
+**.cmd
+**-swp
+**symvers
+**.order
+ 

@@ -92,12 +92,30 @@
  *
  * Macros which have a channel parameter does no validation.
  * */
+
+//--------------------------------------------------------------//
 //In Linux Module we need virtual addresses for the component
 //We make it visible here with extern keyword. We do iomap in PL330-functions.CAUTION
 //We define ALT_DMASECURE_ADDR and ALT_RSTMGR_ADDR in 
 //hwlib_socal_linux.h
-extern void* pl330_vaddress;
-extern void* rstmgr_vaddress;
+//PL330 DMAC Hardware Details
+#define PL330_HADDRESS_SECURE 	0xffe01000	//hardware secure address
+#define PL330_HSIZE		0x1000		//PL330 size=4kB 
+//Reset Manager Hardware Details
+#define RSTMGR_HADDRESS 	0xffd05000	//hardware secure address
+#define RSTMGR_HSIZE		0x100		//rstmgr size=256B 
+//System Manager Hardware Details
+#define SYSMGR_HADDRESS 	0xffd08000
+#define SYSMGR_HSIZE		0x4000		//sysmgr size = 16KB
+//virtual addresses for components
+static void* pl330_vaddress;
+static void* rstmgr_vaddress;
+static void* sysmgr_vaddress;
+//This makes alt_dma to use the virtual addresses
+#define ALT_DMASECURE_ADDR	pl330_vaddress 
+#define ALT_RSTMGR_ADDR		rstmgr_vaddress 
+#define ALT_SYSMGR_ADDR 	sysmgr_vaddress
+//--------------------------------------------------------------//
 
 //#if defined(soc_a10)
 //#define ALT_DMASECURE_ADDR    ALT_DMA_SCTL_ADDR
@@ -316,16 +334,77 @@ static struct
     return ALT_E_SUCCESS;
 }*/
 
-/*ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
+ALT_STATUS_CODE alt_dma_iomap()
+{
+   //--Prepare virtual addresses for DMA Secure and Reset Manager--//
+    //Use ioremap to obtain a virtual address for the DMAC
+    pl330_vaddress = ioremap(PL330_HADDRESS_SECURE, PL330_HSIZE);
+    if (pl330_vaddress == NULL) 
+    {
+      printk(KERN_INFO "DMA: error doing DMAC ioremap\n");
+      goto error_DMAC_ioremap;
+    }
+    else
+    {
+      printk(KERN_INFO "DMA: DMAC ioremap success\n");
+    }
+    
+    //Use ioremap to obtain a virtual address for Reset Manager
+    rstmgr_vaddress = ioremap(RSTMGR_HADDRESS, RSTMGR_HSIZE);
+    if (rstmgr_vaddress == NULL) 
+    {
+      printk(KERN_INFO "DMA: error doing RSTMGR ioremap\n");
+      goto error_RSTMGR_ioremap;
+    }
+    else
+    {
+      printk(KERN_INFO "DMA: RSTMGR ioremap success\n");
+    }
+    
+    //Use ioremap to obtain a virtual address for System Manager
+    sysmgr_vaddress = ioremap(SYSMGR_HADDRESS, SYSMGR_HSIZE);
+    if (sysmgr_vaddress == NULL) 
+    {
+      printk(KERN_INFO "DMA: error doing RSTMGR ioremap\n");
+      goto error_SYSMGR_ioremap;
+    }
+    else
+    {
+      printk(KERN_INFO "DMA: SYSMGR ioremap success\n");
+    }
+
+    //------Error recovery--------//
+    return ALT_E_SUCCESS;
+error_SYSMGR_ioremap:
+    iounmap(rstmgr_vaddress); //iounmap the RSTMGR
+error_RSTMGR_ioremap:
+    iounmap(pl330_vaddress); //iounmap the DMAC
+error_DMAC_ioremap: 
+    return ALT_E_ERROR;
+}
+
+ALT_STATUS_CODE alt_dma_iounmap()
+{
+  iounmap(sysmgr_vaddress); //iounmap the RSTMGR
+  iounmap(rstmgr_vaddress); //iounmap the RSTMGR
+  iounmap(pl330_vaddress); //iounmap the DMAC
+  return ALT_E_SUCCESS;
+}
+
+
+ALT_STATUS_CODE alt_dma_init(const ALT_DMA_CFG_t * dma_cfg)
 {
     int i;
 #if defined(soc_cv_av)
+    
 
     // Update the System Manager DMA configuration items//
     uint32_t dmactrl = 0;
 
     // Update the System Manager DMA peripheral security items//
     uint32_t dmapersecurity = 0;
+    
+    printk("cycloneV selected\n");
 
     // Initialize the channel information array //
     for (i = 0; i < ARRAY_COUNT(g_dmaState.channel_info); ++i)
@@ -414,6 +493,7 @@ static struct
     alt_clrbits_word(ALT_RSTMGR_PERMODRST_ADDR, ALT_RSTMGR_PERMODRST_DMA_SET_MSK);
 
 #elif defined(soc_a10)
+    printk("arria10 selected\n");
 
     // Update the System Manager DMA configuration items //
     uint32_t sysmgrdma = 0;
@@ -528,7 +608,7 @@ static struct
 #endif
 
     return ALT_E_SUCCESS;
-}*/
+}
 
 ALT_STATUS_CODE alt_dma_uninit(void)
 {
@@ -614,7 +694,7 @@ ALT_STATUS_CODE alt_dma_uninit(void)
     return ALT_E_ERROR;
 }*/
 
-/*ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
+ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
 {
     ALT_DMA_CHANNEL_STATE_t state;
     ALT_STATUS_CODE status;
@@ -659,7 +739,7 @@ ALT_STATUS_CODE alt_dma_uninit(void)
     g_dmaState.channel_info[channel].flag &= ~ALT_DMA_CHANNEL_INFO_FLAG_ALLOCED;
 
     return ALT_E_SUCCESS;
-}*/
+}
 
 /*ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_t * pgm)
 {

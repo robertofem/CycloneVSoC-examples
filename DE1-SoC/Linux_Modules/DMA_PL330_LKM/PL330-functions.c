@@ -14,9 +14,7 @@
 #define RSTMGR_HADDRESS 	0xffd05000	//hardware secure address
 #define RSTMGR_HSIZE		0x100		//PL330 size=256B 
 
-//virtual addresses for components
-static void* pl330_vaddress;
-static void* rstmgr_vaddress;
+
 
 
 /******************************************************************************/
@@ -28,33 +26,17 @@ ALT_STATUS_CODE PL330_init(void)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
     int i;
-    ALT_DMA_CFG_t dma_config;
-
-    //--Prepare virtual addresses for DMA Secure and Reset Manager--//
-    //Use ioremap to obtain a virtual address for the DMAC
-    pl330_vaddress = ioremap(PL330_HADDRESS_SECURE, PL330_HSIZE);
-    if (pl330_vaddress == NULL) 
-    {
-      printk(KERN_INFO "DMA: error doing DMAC ioremap\n");
-      goto error_DMAC_ioremap;
-    }
-    else
-    {
-      printk(KERN_INFO "DMA: DMAC ioremap success\n");
-    }
+    ALT_DMA_CFG_t dma_config;  
     
-    //Use ioremap to obtain a virtual address for Reset Manager
-    rstmgr_vaddress = ioremap(RSTMGR_HADDRESS, RSTMGR_HSIZE);
-    if (rstmgr_vaddress == NULL) 
+    //-----IOMAP DMA to be able to access from kernel space------//
+    status = alt_dma_iomap();
+    if(status == ALT_E_SUCCESS)
     {
-      printk(KERN_INFO "DMA: error doing RSTMGR ioremap\n");
-      goto error_RSTMGR_ioremap;
+       printk(KERN_INFO "DMA: iomap process success\n");
+    }else{
+       printk(KERN_INFO "DMA: iomap process failed\n");
+       goto error_iomap;
     }
-    else
-    {
-      printk(KERN_INFO "DMA: RSTMGR ioremap success\n");
-    }
-    
     
     //-----Uninit DMA------//
     status = alt_dma_uninit();
@@ -82,7 +64,7 @@ ALT_STATUS_CODE PL330_init(void)
     }
 
     //------Initialize DMAC--------//
-    //status = alt_dma_init(&dma_config);
+    status = alt_dma_init(&dma_config);
     if(status == ALT_E_SUCCESS)
     {
        printk(KERN_INFO "DMA: DMAC init success\n");
@@ -90,14 +72,11 @@ ALT_STATUS_CODE PL330_init(void)
        printk(KERN_INFO "DMA: DMAC init failed\n");
        goto error_uninit;
     }
-    return ALT_E_SUCCESS;
     
-    //------Error recovery--------//
+    return ALT_E_SUCCESS;
  error_uninit:
-     iounmap(rstmgr_vaddress); //iounmap the RSTMGR
- error_RSTMGR_ioremap:
-     iounmap(pl330_vaddress); //iounmap the DMAC
- error_DMAC_ioremap:   
+     alt_dma_iounmap();
+ error_iomap:  
     return ALT_E_ERROR;
 }
 
@@ -107,14 +86,21 @@ ALT_STATUS_CODE PL330_init(void)
  *
  * \return      result of the function
  */
-ALT_STATUS_CODE PL330_uninit(void)
+ALT_STATUS_CODE  PL330_uninit(void)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
     printk("INFO: DMA Controller shutdown.\n\r");
-    iounmap(rstmgr_vaddress); //iounmap the RSTMGR
-    iounmap(pl330_vaddress); //iounmap the DMAC
     
-     //-----Uninit DMA------//
+    //-----DMA unmap------//
+    status = alt_dma_iounmap();
+    if(status == ALT_E_SUCCESS)
+    {
+       printk(KERN_INFO "DMA: DMAC iounmap success\n");
+    }else{
+       printk(KERN_INFO "DMA: DMAC iounmap failed\n");
+    }
+    
+    //-----Uninit DMA------//
     status = alt_dma_uninit();
     if(status == ALT_E_SUCCESS)
     {

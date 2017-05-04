@@ -83,6 +83,11 @@ typedef int32_t             ALT_STATUS_CODE;
  */
 #define     alt_setbits_word(dest, bits)        (alt_write_word(dest, alt_read_word(dest) | (bits)))
 
+/*! Clear selected bits in the 32 bit word at the destination address in device memory.
+ *  \param dest - Destination pointer address
+ *  \param bits - Bits to clear in destination word
+ */
+#define     alt_clrbits_word(dest, bits)        (alt_write_word(dest, alt_read_word(dest) & ~(bits)))
 
 //-----------------------------------------------------------------//
 //-------------code from alt_rstmgr.h (for cyclone V)--------------//
@@ -143,7 +148,7 @@ typedef int32_t             ALT_STATUS_CODE;
 /* The base address byte offset for the start of the ALT_RSTMGR component. */
 //#define ALT_RSTMGR_OFST        0xffd05000
 /* The start address of the ALT_RSTMGR component. */
-#define ALT_RSTMGR_ADDR       rstmgr_vaddress // ALT_CAST(void *, (ALT_CAST(char *, ALT_HPS_ADDR) + ALT_RSTMGR_OFST))
+//#define ALT_RSTMGR_ADDR       rstmgr_vaddress // ALT_CAST(void *, (ALT_CAST(char *, ALT_HPS_ADDR) + ALT_RSTMGR_OFST))
 /* The lower bound address range of the ALT_RSTMGR component. */
 #define ALT_RSTMGR_LB_ADDR     ALT_RSTMGR_ADDR
 /* The upper bound address range of the ALT_RSTMGR component. */
@@ -163,10 +168,175 @@ typedef int32_t             ALT_STATUS_CODE;
 /* The base address byte offset for the start of the ALT_DMASECURE component. */
 //#define ALT_DMASECURE_OFST        0xffe01000
 /* The start address of the ALT_DMASECURE component. */
-#define ALT_DMASECURE_ADDR    pl330_vaddress //    ALT_CAST(void *, (ALT_CAST(char *, ALT_HPS_ADDR) + ALT_DMASECURE_OFST))
+//#define ALT_DMASECURE_ADDR    pl330_vaddress //    ALT_CAST(void *, (ALT_CAST(char *, ALT_HPS_ADDR) + ALT_DMASECURE_OFST))
 /* The lower bound address range of the ALT_DMASECURE component. */
 #define ALT_DMASECURE_LB_ADDR     ALT_DMASECURE_ADDR
 /* The upper bound address range of the ALT_DMASECURE component. */
 #define ALT_DMASECURE_UB_ADDR     ALT_CAST(void *, ((ALT_CAST(char *, ALT_DMASECURE_ADDR) + 0x4) - 1))
 
 #endif
+
+
+/*
+ * Component Instance : sysmgr
+ * 
+ * Instance sysmgr of component ALT_SYSMGR.
+ * 
+ * 
+ */
+/* The base address byte offset for the start of the ALT_SYSMGR component. */
+//#define ALT_SYSMGR_OFST        0xffd08000
+/* The start address of the ALT_SYSMGR component. */
+//#define ALT_SYSMGR_ADDR        ALT_CAST(void *, (ALT_CAST(char *, ALT_HPS_ADDR) + ALT_SYSMGR_OFST))
+/* The lower bound address range of the ALT_SYSMGR component. */
+#define ALT_SYSMGR_LB_ADDR     ALT_SYSMGR_ADDR
+/* The upper bound address range of the ALT_SYSMGR component. */
+#define ALT_SYSMGR_UB_ADDR     ALT_CAST(void *, ((ALT_CAST(char *, ALT_SYSMGR_ADDR) + 0x4000) - 1))
+
+/* The address of the ALT_SYSMGR_SILICONID1 register for the ALT_SYSMGR instance. */
+#define ALT_SYSMGR_SILICONID1_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_SYSMGR_ADDR) + ALT_SYSMGR_SILICONID1_OFST))
+/* The address of the ALT_SYSMGR_SILICONID2 register for the ALT_SYSMGR instance. */
+#define ALT_SYSMGR_SILICONID2_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_SYSMGR_ADDR) + ALT_SYSMGR_SILICONID2_OFST))
+/* The address of the ALT_SYSMGR_WDDBG register for the ALT_SYSMGR instance. */
+#define ALT_SYSMGR_WDDBG_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_SYSMGR_ADDR) + ALT_SYSMGR_WDDBG_OFST))
+/* The address of the ALT_SYSMGR_BOOT register for the ALT_SYSMGR instance. */
+#define ALT_SYSMGR_BOOT_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_SYSMGR_ADDR) + ALT_SYSMGR_BOOT_OFST))
+/* The address of the ALT_SYSMGR_HPSINFO register for the ALT_SYSMGR instance. */
+#define ALT_SYSMGR_HPSINFO_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_SYSMGR_ADDR) + ALT_SYSMGR_HPSINFO_OFST))
+/* The address of the ALT_SYSMGR_PARITYINJ register for the ALT_SYSMGR instance. */
+#define ALT_SYSMGR_PARITYINJ_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_SYSMGR_ADDR) + ALT_SYSMGR_PARITYINJ_OFST))
+
+/*
+ * Register Group Instance : dmagrp
+ * 
+ * Instance dmagrp of register group ALT_SYSMGR_DMA.
+ * 
+ * 
+ */
+/* The address of the ALT_SYSMGR_DMA_CTL register for the ALT_SYSMGR_DMA instance. */
+#define ALT_SYSMGR_DMA_CTL_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_SYSMGR_DMA_ADDR) + ALT_SYSMGR_DMA_CTL_OFST))
+/* The address of the ALT_SYSMGR_DMA_PERSECURITY register for the ALT_SYSMGR_DMA instance. */
+#define ALT_SYSMGR_DMA_PERSECURITY_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_SYSMGR_DMA_ADDR) + ALT_SYSMGR_DMA_PERSECURITY_OFST))
+/* The base address byte offset for the start of the ALT_SYSMGR_DMA component. */
+#define ALT_SYSMGR_DMA_OFST        0x70
+/* The start address of the ALT_SYSMGR_DMA component. */
+#define ALT_SYSMGR_DMA_ADDR        ALT_CAST(void *, (ALT_CAST(char *, ALT_SYSMGR_ADDR) + ALT_SYSMGR_DMA_OFST))
+/* The lower bound address range of the ALT_SYSMGR_DMA component. */
+#define ALT_SYSMGR_DMA_LB_ADDR     ALT_SYSMGR_DMA_ADDR
+/* The upper bound address range of the ALT_SYSMGR_DMA component. */
+#define ALT_SYSMGR_DMA_UB_ADDR     ALT_CAST(void *, ((ALT_CAST(char *, ALT_SYSMGR_DMA_ADDR) + 0x8) - 1))
+
+//-----------------------------------------------------------------//
+//----------code from socal/alt_sysmgr.h (for cyclone V)-----------//
+//-----------------------------------------------------------------//
+
+/* Extracts the ALT_SYSMGR_HPSINFO_CAN field value from a register. */
+#define ALT_SYSMGR_HPSINFO_CAN_GET(value) (((value) & 0x00000002) >> 1)
+
+/* The byte offset of the ALT_SYSMGR_HPSINFO register from the beginning of the component. */
+#define ALT_SYSMGR_HPSINFO_OFST        0x18
+
+/*
+ * Enumerated value for register field ALT_SYSMGR_HPSINFO_CAN
+ * 
+ * CAN0 and CAN1 are not available.
+ */
+#define ALT_SYSMGR_HPSINFO_CAN_E_CAN_UNAVAILABLE    0x0
+
+/*
+ * Enumerated value for register field ALT_SYSMGR_HPSINFO_CAN
+ * 
+ * CAN0 and CAN1 are available.
+ */
+#define ALT_SYSMGR_HPSINFO_CAN_E_CAN_AVAILABLE      0x1
+
+/* The byte offset of the ALT_SYSMGR_DMA_CTL register from the beginning of the component. */
+#define ALT_SYSMGR_DMA_CTL_OFST        0x0
+
+/*
+ * Enumerated value for register field ALT_SYSMGR_DMA_CTL_CHANSEL_0
+ * 
+ * CAN drives peripheral request interface
+ */
+#define ALT_SYSMGR_DMA_CTL_CHANSEL_0_E_CAN  0x1
+
+/* The Least Significant Bit (LSB) position of the ALT_SYSMGR_DMA_CTL_CHANSEL_0 register field. */
+#define ALT_SYSMGR_DMA_CTL_CHANSEL_0_LSB        0
+/* The Most Significant Bit (MSB) position of the ALT_SYSMGR_DMA_CTL_CHANSEL_0 register field. */
+#define ALT_SYSMGR_DMA_CTL_CHANSEL_0_MSB        0
+/* The width in bits of the ALT_SYSMGR_DMA_CTL_CHANSEL_0 register field. */
+#define ALT_SYSMGR_DMA_CTL_CHANSEL_0_WIDTH      1
+/* The mask used to set the ALT_SYSMGR_DMA_CTL_CHANSEL_0 register field value. */
+#define ALT_SYSMGR_DMA_CTL_CHANSEL_0_SET_MSK    0x00000001
+/* The mask used to clear the ALT_SYSMGR_DMA_CTL_CHANSEL_0 register field value. */
+#define ALT_SYSMGR_DMA_CTL_CHANSEL_0_CLR_MSK    0xfffffffe
+/* The reset value of the ALT_SYSMGR_DMA_CTL_CHANSEL_0 register field. */
+#define ALT_SYSMGR_DMA_CTL_CHANSEL_0_RESET      0x0
+/* Extracts the ALT_SYSMGR_DMA_CTL_CHANSEL_0 field value from a register. */
+#define ALT_SYSMGR_DMA_CTL_CHANSEL_0_GET(value) (((value) & 0x00000001) >> 0)
+/* Produces a ALT_SYSMGR_DMA_CTL_CHANSEL_0 register field value suitable for setting the register. */
+#define ALT_SYSMGR_DMA_CTL_CHANSEL_0_SET(value) (((value) << 0) & 0x00000001)
+
+/* The byte offset of the ALT_SYSMGR_DMA_PERSECURITY register from the beginning of the component. */
+#define ALT_SYSMGR_DMA_PERSECURITY_OFST        0x4
+
+/*
+ * Field : Manager Thread Security - mgrnonsecure
+ * 
+ * Specifies the security state of the DMA manager thread.
+ * 
+ * 0 = assigns DMA manager to the Secure state.
+ * 
+ * 1 = assigns DMA manager to the Non-secure state.
+ * 
+ * Sampled by the DMA controller when it exits from reset.
+ * 
+ * Field Access Macros:
+ * 
+ */
+/* The Least Significant Bit (LSB) position of the ALT_SYSMGR_DMA_CTL_MGRNONSECURE register field. */
+#define ALT_SYSMGR_DMA_CTL_MGRNONSECURE_LSB        4
+/* The Most Significant Bit (MSB) position of the ALT_SYSMGR_DMA_CTL_MGRNONSECURE register field. */
+#define ALT_SYSMGR_DMA_CTL_MGRNONSECURE_MSB        4
+/* The width in bits of the ALT_SYSMGR_DMA_CTL_MGRNONSECURE register field. */
+#define ALT_SYSMGR_DMA_CTL_MGRNONSECURE_WIDTH      1
+/* The mask used to set the ALT_SYSMGR_DMA_CTL_MGRNONSECURE register field value. */
+#define ALT_SYSMGR_DMA_CTL_MGRNONSECURE_SET_MSK    0x00000010
+/* The mask used to clear the ALT_SYSMGR_DMA_CTL_MGRNONSECURE register field value. */
+#define ALT_SYSMGR_DMA_CTL_MGRNONSECURE_CLR_MSK    0xffffffef
+/* The reset value of the ALT_SYSMGR_DMA_CTL_MGRNONSECURE register field. */
+#define ALT_SYSMGR_DMA_CTL_MGRNONSECURE_RESET      0x0
+/* Extracts the ALT_SYSMGR_DMA_CTL_MGRNONSECURE field value from a register. */
+#define ALT_SYSMGR_DMA_CTL_MGRNONSECURE_GET(value) (((value) & 0x00000010) >> 4)
+/* Produces a ALT_SYSMGR_DMA_CTL_MGRNONSECURE register field value suitable for setting the register. */
+#define ALT_SYSMGR_DMA_CTL_MGRNONSECURE_SET(value) (((value) << 4) & 0x00000010)
+
+/*
+ * Field : IRQ Security - irqnonsecure
+ * 
+ * Specifies the security state of an event-interrupt resource.
+ * 
+ * If bit index [x] is 0, the DMAC assigns event<x> or irq[x] to the Secure state.
+ * 
+ * If bit index [x] is 1, the DMAC assigns event<x> or irq[x] to the Non-secure
+ * state.
+ * 
+ * Field Access Macros:
+ * 
+ */
+/* The Least Significant Bit (LSB) position of the ALT_SYSMGR_DMA_CTL_IRQNONSECURE register field. */
+#define ALT_SYSMGR_DMA_CTL_IRQNONSECURE_LSB        5
+/* The Most Significant Bit (MSB) position of the ALT_SYSMGR_DMA_CTL_IRQNONSECURE register field. */
+#define ALT_SYSMGR_DMA_CTL_IRQNONSECURE_MSB        12
+/* The width in bits of the ALT_SYSMGR_DMA_CTL_IRQNONSECURE register field. */
+#define ALT_SYSMGR_DMA_CTL_IRQNONSECURE_WIDTH      8
+/* The mask used to set the ALT_SYSMGR_DMA_CTL_IRQNONSECURE register field value. */
+#define ALT_SYSMGR_DMA_CTL_IRQNONSECURE_SET_MSK    0x00001fe0
+/* The mask used to clear the ALT_SYSMGR_DMA_CTL_IRQNONSECURE register field value. */
+#define ALT_SYSMGR_DMA_CTL_IRQNONSECURE_CLR_MSK    0xffffe01f
+/* The reset value of the ALT_SYSMGR_DMA_CTL_IRQNONSECURE register field. */
+#define ALT_SYSMGR_DMA_CTL_IRQNONSECURE_RESET      0x0
+/* Extracts the ALT_SYSMGR_DMA_CTL_IRQNONSECURE field value from a register. */
+#define ALT_SYSMGR_DMA_CTL_IRQNONSECURE_GET(value) (((value) & 0x00001fe0) >> 5)
+/* Produces a ALT_SYSMGR_DMA_CTL_IRQNONSECURE register field value suitable for setting the register. */
+#define ALT_SYSMGR_DMA_CTL_IRQNONSECURE_SET(value) (((value) << 5) & 0x00001fe0)

@@ -384,6 +384,18 @@ typedef struct ALT_DMA_CFG_s
 ALT_DMA_CFG_t;
 
 /*!
+ * Remap DMAC and RSTMGR to have virtualo addresses for them.
+ * This is needed to access these peripherals from kernel space.
+ * */
+ALT_STATUS_CODE alt_dma_iomap();
+
+/*!
+ * Unmap DMAC and RSTMGR virtual addresses.
+ * */
+ALT_STATUS_CODE alt_dma_iounmap();
+
+
+/*!
  * Initialize the DMA controller.
  *
  * Initializes the DMA controller by setting the necessary control values to
