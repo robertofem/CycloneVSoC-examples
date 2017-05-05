@@ -33,11 +33,14 @@
 /*
  * $Id: //acds/rel/16.1/embedded/ip/hps/altera_hps/hwlib/src/hwmgr/alt_dma_program.c#1 $
  */
+#include "hwlib_socal_linux.h"
 
 #include "alt_dma_program.h"
-#include "alt_cache.h"
-#include <stdio.h>
-#include <alt_printf.h>
+//#include "alt_cache.h"
+//#include <stdio.h>
+//#include <alt_printf.h>
+
+#include <linux/kernel.h>    // Contains types, macros, functions for the kernel
 
 #ifdef DEBUG_ALT_DMA_PROGRAM
   #define dprintf printf

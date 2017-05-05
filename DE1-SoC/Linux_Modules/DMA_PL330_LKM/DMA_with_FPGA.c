@@ -41,6 +41,7 @@ static void* fpga_ocr_vaddress;       //virtual address of the On-CHip RAM in th
 static void* hps_ocr_vaddress;       //virtual address of the On-CHip RAM in the FPGA
 static void* non_cached_mem_v; 	//4k coherent buffer, address to use in module
 static dma_addr_t non_cached_mem_h; //4k coherent buffer, address to use in hardware
+#define NON_CACHED_MEM_SIZE (2*1024*1024) //Max in Angstrom and CycloneVSoC is 4MB
 
 #define DMA_TRANSFER_SIZE	4 //4 bytes
 #define DMA_TRANSFER_SRC_V  hps_ocr_vaddress
@@ -169,16 +170,20 @@ static int __init helloBBB_init(void){
    //invalidate or flush the cache which can be time consuming
 
    non_cached_mem_v = dma_alloc_coherent(
-		      &pdev, 
-		      PAGE_SIZE,
+		      //&pdev,
+		      NULL,
+		      //PAGE_SIZE,
+		      (NON_CACHED_MEM_SIZE), ////Max in Angstrom and CycloneVSoC is 4MB
 		      &non_cached_mem_h, //address to use from DMAC
 		      GFP_KERNEL);
    if (non_cached_mem_v == NULL) {
-	printk(KERN_INFO "DMA LKM: allocation of coherent buffer failed\n");
+	printk(KERN_INFO "DMA LKM: allocation of non-cached buffer failed\n");
 	goto error_dma_alloc_coherent;
    }else{
-      printk(KERN_INFO "DMA LKM: allocation of coherent buffer successful\n");
+      printk(KERN_INFO "DMA LKM: allocation of non-cached buffer successful\n");
    }
+   //printk(KERN_INFO "Allocation size: %d \n", NON_CACHED_MEM_SIZE);
+   //printk(KERN_INFO "Page size: %d \n", PAGE_SIZE);
 
    //-----TRANSFER------//
    printk(KERN_INFO "\n---TRANSFER----\n ");
@@ -200,7 +205,7 @@ static int __init helloBBB_init(void){
 	false, 
 	(ALT_DMA_EVENT_t)0);
    
-   // Wait for transfer to complete
+    // Wait for transfer to complete
     if (status == ALT_E_SUCCESS)
     {
 	printk(KERN_INFO "INFO: Waiting for DMA transfer to complete.\n\r");
@@ -223,12 +228,11 @@ static int __init helloBBB_init(void){
    printk(KERN_INFO "---TRANSFER END----\n\n ");
    //-------------------//
    
-   
-   
    //End of module init
    printk(KERN_INFO "DMA LKM: Module initialization successful!!\n");
    return 0;
-
+   
+  dma_free_coherent(NULL, (NON_CACHED_MEM_SIZE), non_cached_mem_v, non_cached_mem_h);
 error_dma_alloc_coherent:  
    iounmap(hps_ocr_vaddress);
 error_HPS_ioremap:
@@ -245,6 +249,8 @@ error_PL330_init:
  */
 static void __exit helloBBB_exit(void){
    printk(KERN_INFO "DMA LKM: Exiting module!!\n", name);
+   printk(KERN_INFO "DMA LKM: Freeing non-cached buffer!!\n");
+   dma_free_coherent(NULL, (NON_CACHED_MEM_SIZE), non_cached_mem_v, non_cached_mem_h);
    iounmap(hps_ocr_vaddress);
    iounmap(fpga_ocr_vaddress);
    PL330_uninit();

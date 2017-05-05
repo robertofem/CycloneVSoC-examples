@@ -174,7 +174,7 @@ typedef int32_t             ALT_STATUS_CODE;
 /* The upper bound address range of the ALT_DMASECURE component. */
 #define ALT_DMASECURE_UB_ADDR     ALT_CAST(void *, ((ALT_CAST(char *, ALT_DMASECURE_ADDR) + 0x4) - 1))
 
-#endif
+
 
 
 /*
@@ -340,3 +340,33 @@ typedef int32_t             ALT_STATUS_CODE;
 #define ALT_SYSMGR_DMA_CTL_IRQNONSECURE_GET(value) (((value) & 0x00001fe0) >> 5)
 /* Produces a ALT_SYSMGR_DMA_CTL_IRQNONSECURE register field value suitable for setting the register. */
 #define ALT_SYSMGR_DMA_CTL_IRQNONSECURE_SET(value) (((value) << 5) & 0x00001fe0)
+
+
+//-----------------------------------------------------------------//
+//-------------code from alt_cache.h (for cyclone V)---------------//
+//-----------------------------------------------------------------//
+/*!
+ * This is the system wide cache line size, given in bytes.
+ */
+#define ALT_CACHE_LINE_SIZE         32
+
+
+
+//-----------------------------------------------------------------//
+//-------------code from alt_mmu.h (for cyclone V)---------------//
+//-----------------------------------------------------------------//
+/*!
+ * This type defines the structure used by the VA to PA coalescing API. The
+ * fields are internal to the coalescing API and thus not documented.
+ */
+typedef struct ALT_MMU_VA_TO_PA_COALESCE_s
+{
+    const char * va;
+    size_t       size;
+
+    uintptr_t nextsegpa;
+    uint32_t  nextsegsize;
+
+} ALT_MMU_VA_TO_PA_COALESCE_t;
+
+#endif // _HWLIB_SOCAL_

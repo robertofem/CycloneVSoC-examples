@@ -390,7 +390,7 @@ ALT_DMA_CFG_t;
 ALT_STATUS_CODE alt_dma_iomap();
 
 /*!
- * Unmap DMAC and RSTMGR virtual addresses.
+ * Unmap DMAC and RSTMGR 
  * */
 ALT_STATUS_CODE alt_dma_iounmap();
 
@@ -812,7 +812,8 @@ ALT_DMA_PERIPH_INFO_I2C_t;
  *                              specified are overlapping.
  */
 ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
-                                         ALT_DMA_PROGRAM_t * program,
+                                         ALT_DMA_PROGRAM_t * programv, //virtual address of DMAC microcode program (to be used in kernel space)
+					 ALT_DMA_PROGRAM_t * programh, //hardware address, to be used by the DMAC to find the program
                                          void * dest,
                                          const void * src,
                                          size_t size,
