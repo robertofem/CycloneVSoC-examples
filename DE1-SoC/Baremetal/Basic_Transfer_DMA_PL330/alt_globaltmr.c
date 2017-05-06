@@ -1,10 +1,3 @@
-
-/******************************************************************************
-*
-* alt_globaltmr.c - API for the Altera SoC FPGA global timer.
-*
-******************************************************************************/
-
 /******************************************************************************
 *
 * Copyright 2013 Altera Corporation. All Rights Reserved.
@@ -19,24 +12,32 @@
 * this list of conditions and the following disclaimer in the documentation
 * and/or other materials provided with the distribution.
 *
-* 3. The name of the author may not be used to endorse or promote products
-* derived from this software without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER "AS IS" AND ANY EXPRESS OR
-* IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-* MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED. IN NO
-* EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-* EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-* OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+* 3. Neither the name of the copyright holder nor the names of its contributors
+* may be used to endorse or promote products derived from this software without
+* specific prior written permission.
+* 
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-* IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-* OF SUCH DAMAGE.
+* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
 *
 ******************************************************************************/
 
+/*
+ * $Id: //acds/rel/16.1/embedded/ip/hps/altera_hps/hwlib/src/hwmgr/alt_globaltmr.c#1 $
+ */
 
-
+ #ifndef soc_cv_av
+    #define soc_cv_av
+#endif 
+ 
 #include    <stdlib.h>
 #include    <stdint.h>
 #include    <stdbool.h>
@@ -45,9 +46,12 @@
 #include    "hwlib.h"
 #include    "alt_mpu_registers.h"
 #include    "alt_globaltmr.h"
-#include    "alt_clock_manager.h"                    // for getting clock bus frequency
+#include    "alt_clock_manager.h"                    /* for getting clock bus frequency */
 
 
+#ifdef soc_a10
+#define ALT_MPUSCU_OFST                         ALT_MPU_REGS_MPUSCU_OFST
+#endif
 
 /************************************************************************************************************/
 
@@ -71,7 +75,7 @@
 
 bool alt_globaltmr_is_running(void)
 {
-    return alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) & GLOBALTMR_ENABLE_BIT;
+    return alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) & ALT_GLOBALTMR_ENABLE_BIT;
 }
 
 
@@ -81,14 +85,14 @@ bool alt_globaltmr_is_running(void)
 
 ALT_STATUS_CODE alt_globaltmr_uninit(void)
 {
-    alt_clrbits_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET,
-                GLOBALTMR_COMP_ENABLE_BIT | GLOBALTMR_INT_ENABLE_BIT |
-                GLOBALTMR_AUTOINC_ENABLE_BIT);
-            // do NOT clear the global timer enable bit or prescaler setting
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_COMP_LO_REG_OFFSET, 0);
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_COMP_HI_REG_OFFSET, 0);
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_AUTOINC_REG_OFFSET, 0);
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_INT_STAT_REG_OFFSET, GLOBALTMR_INT_STATUS_BIT);
+    alt_clrbits_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET,
+                ALT_GLOBALTMR_COMP_ENABLE_BIT | ALT_GLOBALTMR_INT_ENABLE_BIT |
+                ALT_GLOBALTMR_AUTOINC_ENABLE_BIT);
+            /* do NOT clear the global timer enable bit or prescaler setting */
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_COMP_LO_REG_OFFSET, 0);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_COMP_HI_REG_OFFSET, 0);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_AUTOINC_REG_OFFSET, 0);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_INT_STAT_REG_OFFSET, ALT_GLOBALTMR_INT_STATUS_BIT);
                 /* clear any interrupts by writing one to sticky bit */
     return ALT_E_SUCCESS;
 }
@@ -101,7 +105,7 @@ ALT_STATUS_CODE alt_globaltmr_uninit(void)
 ALT_STATUS_CODE alt_globaltmr_init(void)
 {
     alt_globaltmr_uninit();
-    alt_setbits_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET, GLOBALTMR_ENABLE_BIT);
+    alt_setbits_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET, ALT_GLOBALTMR_ENABLE_BIT);
     return ALT_E_SUCCESS;
 }
 
@@ -114,10 +118,10 @@ ALT_STATUS_CODE alt_globaltmr_init(void)
 
 ALT_STATUS_CODE alt_globaltmr_stop(void)
 {
-    uint32_t        regdata;                // value to read & write
+    uint32_t        regdata;                /* value to read & write */
 
-    regdata = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET);
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET, regdata & ~GLOBALTMR_COMP_ENABLE_BIT);
+    regdata = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET, regdata & ~ALT_GLOBALTMR_COMP_ENABLE_BIT);
     return ALT_E_SUCCESS;
 }
 
@@ -129,10 +133,10 @@ ALT_STATUS_CODE alt_globaltmr_stop(void)
 
 ALT_STATUS_CODE alt_globaltmr_start(void)
 {
-    uint32_t        regdata;                // value to read & write
+    uint32_t        regdata;                /* value to read & write */
 
-    regdata = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET);
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET, regdata | (GLOBALTMR_COMP_ENABLE_BIT | GLOBALTMR_ENABLE_BIT));
+    regdata = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET, regdata | (ALT_GLOBALTMR_COMP_ENABLE_BIT | ALT_GLOBALTMR_ENABLE_BIT));
     return ALT_E_SUCCESS;
 }
 
@@ -144,19 +148,19 @@ ALT_STATUS_CODE alt_globaltmr_start(void)
 ALT_STATUS_CODE alt_globaltmr_get(uint32_t* highword, uint32_t* loword)
 {
     ALT_STATUS_CODE     ret = ALT_E_ERROR;
-    uint32_t            hi, lo, temp;                   // temporary variables
-    uint32_t            cnt = 3;                        // Timeout counter, do 3 tries
+    uint32_t            hi, lo, temp;                   /* temporary variables */
+    uint32_t            cnt = 3;                        /* Timeout counter, do 3 tries */
 
     if ((highword == NULL) || (loword == NULL)) { ret = ALT_E_BAD_ARG; }
     else
     {
-        hi = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CNTR_HI_REG_OFFSET);
+        hi = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CNTR_HI_REG_OFFSET);
         do {
             temp = hi;
-            lo = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CNTR_LO_REG_OFFSET);
-            hi = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CNTR_HI_REG_OFFSET);
-        }  while ((temp != hi) && (cnt--));             // has the high-order word read the same twice yet?
-                       // note that if the first condition is true, cnt is neither tested nor decremented
+            lo = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CNTR_LO_REG_OFFSET);
+            hi = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CNTR_HI_REG_OFFSET);
+        }  while ((temp != hi) && (cnt--));             /* has the high-order word read the same twice yet? */
+                       /* note that if the first condition is true, cnt is neither tested nor decremented */
 
         if (cnt) {
             *highword = hi;
@@ -175,17 +179,17 @@ ALT_STATUS_CODE alt_globaltmr_get(uint32_t* highword, uint32_t* loword)
 uint64_t  alt_globaltmr_get64(void)
 {
 
-    uint64_t        ret = 0;                    // zero a very unlikely value for this timer
-    uint32_t        hi, lo, temp;               // temporary variables
-    uint32_t        cnt = 3;                    // Timeout counter, do 3 tries
+    uint64_t        ret = 0;                    /* zero a very unlikely value for this timer */
+    uint32_t        hi, lo, temp;               /* temporary variables */
+    uint32_t        cnt = 3;                    /* Timeout counter, do 3 tries */
 
-    hi = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CNTR_HI_REG_OFFSET);
+    hi = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CNTR_HI_REG_OFFSET);
     do {
         temp = hi;
-        lo = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CNTR_LO_REG_OFFSET);
-        hi = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CNTR_HI_REG_OFFSET);
-    }  while ((temp != hi) && (cnt--));             // has the high-order word read the same twice yet?
-                        // note that if the first condition is true, cnt is neither tested nor decremented
+        lo = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CNTR_LO_REG_OFFSET);
+        hi = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CNTR_HI_REG_OFFSET);
+    }  while ((temp != hi) && (cnt--));             /* has the high-order word read the same twice yet? */
+                        /* note that if the first condition is true, cnt is neither tested nor decremented */
 
     if (cnt)
     {
@@ -202,7 +206,7 @@ uint64_t  alt_globaltmr_get64(void)
 
 uint32_t alt_globaltmr_counter_get_low32(void)
 {
-    return alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CNTR_LO_REG_OFFSET);
+    return alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CNTR_LO_REG_OFFSET);
 
 }
 
@@ -213,7 +217,7 @@ uint32_t alt_globaltmr_counter_get_low32(void)
 
 uint32_t alt_globaltmr_counter_get_hi32(void)
 {
-    return alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CNTR_HI_REG_OFFSET);
+    return alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CNTR_HI_REG_OFFSET);
 }
 
 
@@ -226,18 +230,18 @@ ALT_STATUS_CODE alt_globaltmr_comp_set(uint32_t highword, uint32_t loword)
     bool                was_comping = false;
     ALT_STATUS_CODE     ret = ALT_E_ERROR;
 
-    if (alt_globaltmr_is_comp_mode())                   // necessary to prevent a spurious interrupt
+    if (alt_globaltmr_is_comp_mode())                   /* necessary to prevent a spurious interrupt */
     {
         was_comping = true;
         ret = alt_globaltmr_comp_mode_stop();
         if (ret != ALT_E_SUCCESS)   { return ret; }
     }
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_COMP_LO_REG_OFFSET, loword);
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_COMP_HI_REG_OFFSET, highword);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_COMP_LO_REG_OFFSET, loword);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_COMP_HI_REG_OFFSET, highword);
     ret = ALT_E_SUCCESS;
 
     if (was_comping)  { ret = alt_globaltmr_comp_mode_start(); }
-                // If global timer was in comparison mode before, re-enable it before returning
+                /* If global timer was in comparison mode before, re-enable it before returning */
     return    ret;
 }
 
@@ -258,13 +262,13 @@ ALT_STATUS_CODE alt_globaltmr_comp_set64(uint64_t compval)
         if (ret != ALT_E_SUCCESS)   { return ret; }
     }
 
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_COMP_LO_REG_OFFSET, (uint32_t) (compval & UINT32_MAX));
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_COMP_HI_REG_OFFSET,
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_COMP_LO_REG_OFFSET, (uint32_t) (compval & UINT32_MAX));
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_COMP_HI_REG_OFFSET,
                 (uint32_t) ((compval >> (sizeof(uint32_t)*8)) & UINT32_MAX));
     ret = ALT_E_SUCCESS;
 
     if (was_comping)  { ret = alt_globaltmr_comp_mode_start(); }
-                                // If global timer was in comparison mode before, re-enable it
+                                /* If global timer was in comparison mode before, re-enable it */
     return    ret;
 }
 
@@ -277,8 +281,8 @@ ALT_STATUS_CODE alt_globaltmr_comp_set64(uint64_t compval)
 ALT_STATUS_CODE alt_globaltmr_comp_get(uint32_t *hiword, uint32_t *loword)
 {
     if ((hiword == NULL) || (loword == NULL)) {return ALT_E_ERROR; }
-    *loword = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_COMP_LO_REG_OFFSET);
-    *hiword = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_COMP_HI_REG_OFFSET);
+    *loword = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_COMP_LO_REG_OFFSET);
+    *hiword = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_COMP_HI_REG_OFFSET);
     /* no need to read these multiple times since the register is not expected to change mid-read */
     return    ALT_E_SUCCESS;
 }
@@ -292,8 +296,8 @@ uint64_t alt_globaltmr_comp_get64(void)
 {
     uint64_t        ret;
 
-    ret = ((uint64_t) alt_read_word(GLOBALTMR_BASE + GLOBALTMR_COMP_HI_REG_OFFSET)) << (sizeof(uint32_t)*8);
-    ret = ret | ((uint64_t) alt_read_word(GLOBALTMR_BASE + GLOBALTMR_COMP_LO_REG_OFFSET));
+    ret = ((uint64_t) alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_COMP_HI_REG_OFFSET)) << (sizeof(uint32_t)*8);
+    ret = ret | ((uint64_t) alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_COMP_LO_REG_OFFSET));
     return ret;
 }
 
@@ -333,8 +337,8 @@ uint32_t alt_globaltmr_remain_get(void)
 
 ALT_STATUS_CODE alt_globaltmr_comp_mode_start(void)
 {
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET,
-                alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) | GLOBALTMR_COMP_ENABLE_BIT);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET,
+                alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) | ALT_GLOBALTMR_COMP_ENABLE_BIT);
     return ALT_E_SUCCESS;
 }
 
@@ -346,8 +350,8 @@ ALT_STATUS_CODE alt_globaltmr_comp_mode_start(void)
 
 ALT_STATUS_CODE alt_globaltmr_comp_mode_stop(void)
 {
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET,
-                alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) & ~GLOBALTMR_COMP_ENABLE_BIT);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET,
+                alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) & ~ALT_GLOBALTMR_COMP_ENABLE_BIT);
     return ALT_E_SUCCESS;
 }
 
@@ -358,7 +362,7 @@ ALT_STATUS_CODE alt_globaltmr_comp_mode_stop(void)
 
 bool alt_globaltmr_is_comp_mode(void)
 {
-    return alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) & GLOBALTMR_COMP_ENABLE_BIT;
+    return alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) & ALT_GLOBALTMR_COMP_ENABLE_BIT;
 }
 
 
@@ -369,7 +373,7 @@ bool alt_globaltmr_is_comp_mode(void)
 
 uint32_t alt_globaltmr_prescaler_get(void)
 {
-    return (alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) & GLOBALTMR_PS_MASK) >> GLOBALTMR_PS_SHIFT;
+    return (alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) & ALT_GLOBALTMR_PS_MASK) >> ALT_GLOBALTMR_PS_SHIFT;
 }
 
 
@@ -380,13 +384,13 @@ uint32_t alt_globaltmr_prescaler_get(void)
 
 ALT_STATUS_CODE alt_globaltmr_prescaler_set(uint32_t val)
 {
-    // It is not defined in the ARM global timer spec if the prescaler can be rewritten while
-    //the global timer is counting or not. This is how we find out:
+    /* It is not defined in the ARM global timer spec if the prescaler can be rewritten while
+     *the global timer is counting or not. This is how we find out: */
     uint32_t        regdata;
 
     if (val > UINT8_MAX) return ALT_E_BAD_ARG;
-    regdata = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) & ~GLOBALTMR_PS_MASK;
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET, regdata | (val << GLOBALTMR_PS_SHIFT));
+    regdata = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) & ~ALT_GLOBALTMR_PS_MASK;
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET, regdata | (val << ALT_GLOBALTMR_PS_SHIFT));
     return ALT_E_SUCCESS;
 }
 
@@ -404,15 +408,15 @@ ALT_STATUS_CODE alt_globaltmr_autoinc_set(uint32_t inc)
     {
         was_comping = true;
         ret = alt_globaltmr_comp_mode_stop();
-                            // if timer is currently in comparison mode, disable comparison mode
+                            /* if timer is currently in comparison mode, disable comparison mode */
         if (ret != ALT_E_SUCCESS)   { return ret; }
     }
 
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_AUTOINC_REG_OFFSET, inc);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_AUTOINC_REG_OFFSET, inc);
     ret = ALT_E_SUCCESS;
 
     if (was_comping)  { ret = alt_globaltmr_comp_mode_start(); }
-                      // If global timer was in comparison mode before, re-enable it
+                      /* If global timer was in comparison mode before, re-enable it */
     return    ret;
 }
 
@@ -423,7 +427,7 @@ ALT_STATUS_CODE alt_globaltmr_autoinc_set(uint32_t inc)
 
 uint32_t alt_globaltmr_autoinc_get(void)
 {
-    return alt_read_word(GLOBALTMR_BASE + GLOBALTMR_AUTOINC_REG_OFFSET);
+    return alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_AUTOINC_REG_OFFSET);
 }
 
 
@@ -434,8 +438,8 @@ uint32_t alt_globaltmr_autoinc_get(void)
 
 ALT_STATUS_CODE alt_globaltmr_autoinc_mode_start(void)
 {
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET,
-            alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) | GLOBALTMR_AUTOINC_ENABLE_BIT);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET,
+            alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) | ALT_GLOBALTMR_AUTOINC_ENABLE_BIT);
     return ALT_E_SUCCESS;
 }
 
@@ -447,8 +451,8 @@ ALT_STATUS_CODE alt_globaltmr_autoinc_mode_start(void)
 
 ALT_STATUS_CODE alt_globaltmr_autoinc_mode_stop(void)
 {
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET,
-            alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) & ~GLOBALTMR_AUTOINC_ENABLE_BIT);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET,
+            alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) & ~ALT_GLOBALTMR_AUTOINC_ENABLE_BIT);
     return ALT_E_SUCCESS;
 }
 
@@ -460,7 +464,7 @@ ALT_STATUS_CODE alt_globaltmr_autoinc_mode_stop(void)
 
 bool alt_globaltmr_is_autoinc_mode(void)
 {
-    return alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) & GLOBALTMR_AUTOINC_ENABLE_BIT;
+    return alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) & ALT_GLOBALTMR_AUTOINC_ENABLE_BIT;
 }
 
 
@@ -470,7 +474,7 @@ bool alt_globaltmr_is_autoinc_mode(void)
 
 uint32_t alt_globaltmr_maxcounter_get(void)
 {
-    return GLOBALTMR_MAX;
+    return ALT_GLOBALTMR_MAX;
 }
 
 
@@ -480,8 +484,8 @@ uint32_t alt_globaltmr_maxcounter_get(void)
 
 ALT_STATUS_CODE alt_globaltmr_int_disable(void)
 {
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET,
-            alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) & ~GLOBALTMR_INT_ENABLE_BIT);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET,
+            alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) & ~ALT_GLOBALTMR_INT_ENABLE_BIT);
     return ALT_E_SUCCESS;
 }
 
@@ -494,12 +498,12 @@ ALT_STATUS_CODE alt_globaltmr_int_disable(void)
 
 ALT_STATUS_CODE alt_globaltmr_int_enable(void)
 {
-    if (!alt_globaltmr_is_running())                        // Is gbl timer running?
+    if (!alt_globaltmr_is_running())                        /* Is gbl timer running? */
     {
         if ( alt_globaltmr_start() != ALT_E_SUCCESS)   { return ALT_E_ERROR; }
     }
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET,
-            alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) | GLOBALTMR_INT_ENABLE_BIT);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET,
+            alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) | ALT_GLOBALTMR_INT_ENABLE_BIT);
     return ALT_E_SUCCESS;
 }
 
@@ -510,7 +514,7 @@ ALT_STATUS_CODE alt_globaltmr_int_enable(void)
 
 bool alt_globaltmr_int_is_enabled(void)
 {
-    return alt_read_word(GLOBALTMR_BASE + GLOBALTMR_CTRL_REG_OFFSET) & GLOBALTMR_INT_ENABLE_BIT;
+    return alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_CTRL_REG_OFFSET) & ALT_GLOBALTMR_INT_ENABLE_BIT;
 }
 
 
@@ -520,7 +524,7 @@ bool alt_globaltmr_int_is_enabled(void)
 
 ALT_STATUS_CODE alt_globaltmr_int_clear_pending(void)
 {
-    alt_write_word(GLOBALTMR_BASE + GLOBALTMR_INT_STAT_REG_OFFSET, GLOBALTMR_INT_STATUS_BIT);
+    alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_INT_STAT_REG_OFFSET, ALT_GLOBALTMR_INT_STATUS_BIT);
                 /* clear interrupt sticky bit by writing one to it */
     return    ALT_E_SUCCESS;
 }
@@ -533,7 +537,7 @@ ALT_STATUS_CODE alt_globaltmr_int_clear_pending(void)
 
 bool alt_globaltmr_int_is_pending(void)
 {
-    return alt_read_word(GLOBALTMR_BASE + GLOBALTMR_INT_STAT_REG_OFFSET) & GLOBALTMR_INT_STATUS_BIT;
+    return alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_INT_STAT_REG_OFFSET) & ALT_GLOBALTMR_INT_STATUS_BIT;
 }
 
 
@@ -546,11 +550,11 @@ bool alt_globaltmr_int_if_pending_clear(void)
 {
     bool                ret;
 
-    ret = alt_read_word(GLOBALTMR_BASE + GLOBALTMR_INT_STAT_REG_OFFSET) & GLOBALTMR_INT_STATUS_BIT;
+    ret = alt_read_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_INT_STAT_REG_OFFSET) & ALT_GLOBALTMR_INT_STATUS_BIT;
     if (ret)
     {
-        alt_write_word(GLOBALTMR_BASE + GLOBALTMR_INT_STAT_REG_OFFSET, GLOBALTMR_INT_STATUS_BIT);
-    }          //clear int by writing to sticky bit
+        alt_write_word(ALT_GLOBALTMR_BASE + ALT_GLOBALTMR_INT_STAT_REG_OFFSET, ALT_GLOBALTMR_INT_STATUS_BIT);
+    }          /*clear int by writing to sticky bit */
 
     return  ret;
 }

@@ -27,7 +27,11 @@
 * OF SUCH DAMAGE.
 *
 ******************************************************************************/
+ #ifndef soc_cv_av
+    #define soc_cv_av
+#endif
 
+#include "hwlib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -114,26 +118,23 @@ ALT_STATUS_CODE system_uninit(void)
  */
 int main(void)
 {
-    printf("Hello1!!!\n\r");
+    printf("INFO: DMA memory to memory transfer.\n\r");
 	ALT_STATUS_CODE status = ALT_E_SUCCESS;
 	
-	
-	// Maximum size of test data
-	#define TEST_BYTES  (1 * 1024)
+	// Maximum size of transfer
+	#define TEST_BYTES  (2 * 1024 * 1024)
 
-	// Buffers used for testing
-	//uint8_t Write_Buffer[TEST_BYTES];
-	uint8_t* Write_Buffer = (uint8_t*) 0xC0000000; //FPGA On-Chip RAM in first position of High Performance HPS-FPGA bridge
+	// Buffers used for the transfer
+	uint8_t Write_Buffer[TEST_BYTES];
+	//uint8_t* Write_Buffer = (uint8_t*) 0xC0000000; //FPGA On-Chip RAM in first position of High Performance HPS-FPGA bridge
 	uint8_t Read_Buffer[TEST_BYTES];
 
 	// DMA channel to be used
 	ALT_DMA_CHANNEL_t Dma_Channel;
-	
-
 	ALT_DMA_PROGRAM_t program;
 	ALT_DMA_CHANNEL_FAULT_t fault;
 
-    // System init
+    // DMAC init
     if(status == ALT_E_SUCCESS)
     {
         status = system_init();
@@ -146,9 +147,6 @@ int main(void)
         status = alt_dma_channel_alloc_any(&Dma_Channel);
     }
 
-    // Demo memory to memory DMA transfers
-	uint32_t src_offs = 0;
-	uint32_t dst_offs = 0;
 	uint32_t size = TEST_BYTES;
 	
 	//Initialize Buffers with random data
@@ -157,12 +155,13 @@ int main(void)
 		Read_Buffer[i] = (uint8_t)rand();
 		Write_Buffer[i] = (uint8_t)rand();
 	}
-	
-	void* dst=&Write_Buffer[dst_offs];
-	void* src=&Read_Buffer[src_offs];
-	
-	printf("INFO: Demo DMA memory to memory transfer.\n\r");
+    printf("\n\rBuffers before the transfer filled with random data\n\r");
+    printf("Write:%d,%d,%d,%d,%d,%d,%d,%d Read:%d,%d,%d,%d,%d,%d,%d,%d\n\r", Write_Buffer[0],Write_Buffer[1],Write_Buffer[2],Write_Buffer[3],
+	Write_Buffer[4],Write_Buffer[5],Write_Buffer[6],Write_Buffer[7],Read_Buffer[0],Read_Buffer[1],Read_Buffer[2],Read_Buffer[3],Read_Buffer[4],Read_Buffer[5],Read_Buffer[6],Read_Buffer[7]);
 
+	void* dst=&Write_Buffer[0]; //destiny of the trensfer
+	void* src=&Read_Buffer[0]; //source of the trasfer
+	
 	// Copy source buffer over destination buffer
 	if(status == ALT_E_SUCCESS)
 	{
@@ -181,12 +180,17 @@ int main(void)
 			if(channel_state == ALT_DMA_CHANNEL_STATE_FAULTING)
 			{
 				 alt_dma_channel_fault_status_get(Dma_Channel, &fault);
-				 printf("ERROR: DMA CHannel Fault: %d\n\r", (int)fault);
+				 printf("ERROR: DMA Channel Fault: %d\n\r", (int)fault);
 				 status = ALT_E_ERROR;
 			}
 		}
 	}
 
+     printf("\n\rBuffers after the transfer\n\r");
+    printf("Write:%d,%d,%d,%d,%d,%d,%d,%d Read:%d,%d,%d,%d,%d,%d,%d,%d\n\r", Write_Buffer[0],Write_Buffer[1],Write_Buffer[2],Write_Buffer[3],
+	Write_Buffer[4],Write_Buffer[5],Write_Buffer[6],Write_Buffer[7],Read_Buffer[0],Read_Buffer[1],Read_Buffer[2],Read_Buffer[3],Read_Buffer[4],Read_Buffer[5],Read_Buffer[6],Read_Buffer[7]);
+
+    
 	// Compare results
 	if(status == ALT_E_SUCCESS)
 	{

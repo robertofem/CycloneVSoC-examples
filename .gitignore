@@ -1,4 +1,6 @@
 #Intermediate files in c compilation
+
+#modules
 **.o 
 **.ko.mod
 **.mod.c
@@ -6,4 +8,6 @@
 **-swp
 **symvers
 **.order
- 
+
+#baremetal
+**.axf** 

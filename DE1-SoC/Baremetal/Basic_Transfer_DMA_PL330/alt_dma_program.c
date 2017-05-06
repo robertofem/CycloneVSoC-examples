@@ -1,89 +1,95 @@
 /******************************************************************************
- *
- * Copyright 2013 Altera Corporation. All Rights Reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * 3. The name of the author may not be used to endorse or promote products
- * derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER "AS IS" AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED. IN NO
- * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
- * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- * OF SUCH DAMAGE.
- *
- ******************************************************************************/
+*
+* Copyright 2013 Altera Corporation. All Rights Reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+*
+* 1. Redistributions of source code must retain the above copyright notice,
+* this list of conditions and the following disclaimer.
+*
+* 2. Redistributions in binary form must reproduce the above copyright notice,
+* this list of conditions and the following disclaimer in the documentation
+* and/or other materials provided with the distribution.
+*
+* 3. Neither the name of the copyright holder nor the names of its contributors
+* may be used to endorse or promote products derived from this software without
+* specific prior written permission.
+* 
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*
+******************************************************************************/
 
+/*
+ * $Id: //acds/rel/16.1/embedded/ip/hps/altera_hps/hwlib/src/hwmgr/alt_dma_program.c#1 $
+ */
+
+  #ifndef soc_cv_av
+    #define soc_cv_av
+#endif
+ 
 #include "alt_dma_program.h"
 #include "alt_cache.h"
 #include <stdio.h>
+#include <alt_printf.h>
 
-/////
+#ifdef DEBUG_ALT_DMA_PROGRAM
+  #define dprintf printf
+#else
+  #define dprintf null_printf
+#endif
 
-// NOTE: To enable debugging output, delete the next line and uncomment the
-//   line after.
-#define dprintf(...)
-// #define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
+/*
+ * The following section describes how the bits are used in the "flag" field:
+*/
 
-/////
-
-//
-// The following section describes how the bits are used in the "flag" field:
-//
-
-// [17:16] Which loop registers (LOOP0, LOOP1) are currently being used by a
-//   partially assembled program. LOOP0 is always used before LOOP1. LOOP1 is
-//   always ended before LOOP0.
+/* [17:16] Which loop registers (LOOP0, LOOP1) are currently being used by a
+ *   partially assembled program. LOOP0 is always used before LOOP1. LOOP1 is
+ *   always ended before LOOP0. */
 #define ALT_DMA_PROGRAM_FLAG_LOOP0 (1UL << 16)
 #define ALT_DMA_PROGRAM_FLAG_LOOP1 (1UL << 17)
 #define ALT_DMA_PROGRAM_FLAG_LOOP_ALL (ALT_DMA_PROGRAM_FLAG_LOOP0 | ALT_DMA_PROGRAM_FLAG_LOOP1)
 
-// [18] Flag that marks LOOP0 as a forever loop. Said another way, LOOP0 is
-//   being used to execute the DMALPFE directive.
+/* [18] Flag that marks LOOP0 as a forever loop. Said another way, LOOP0 is
+ *   being used to execute the DMALPFE directive. */
 #define ALT_DMA_PROGRAM_FLAG_LOOP0_IS_FE (1UL << 18)
-// [19] Flag that marks LOOP1 as a forever loop. Said another way, LOOP1 is
-//   being used to execute the DMALPFE directive.
+/* [19] Flag that marks LOOP1 as a forever loop. Said another way, LOOP1 is
+ *   being used to execute the DMALPFE directive. */
 #define ALT_DMA_PROGRAM_FLAG_LOOP1_IS_FE (1UL << 19)
 
-// [24] Flag that the first SAR has been programmed. The SAR field is valid and
-//    is the offset from the start of the buffer where SAR is located.
+/* [24] Flag that the first SAR has been programmed. The SAR field is valid and
+ *    is the offset from the start of the buffer where SAR is located. */
 #define ALT_DMA_PROGRAM_FLAG_SAR (1UL << 24)
-// [25] Flag that the first DAR has been programmed. The DAR field is valid and
-//    is the offset from the start of the buffer where DAR is located.
+/* [25] Flag that the first DAR has been programmed. The DAR field is valid and
+ *    is the offset from the start of the buffer where DAR is located. */
 #define ALT_DMA_PROGRAM_FLAG_DAR (1UL << 25)
 
-// [31] Flag that marks the last assembled instruction as DMAEND.
+/* [31] Flag that marks the last assembled instruction as DMAEND. */
 #define ALT_DMA_PROGRAM_FLAG_ENDED (1UL << 31)
-
-/////
 
 ALT_STATUS_CODE alt_dma_program_init(ALT_DMA_PROGRAM_t * pgm)
 {
-    // Clear the variables that matter.
-    pgm->flag      = 0;
-    pgm->code_size = 0;
-
-    // Calculate the cache aligned start location of the buffer.
+    /* Calculate the cache aligned start location of the buffer. */
     size_t buffer = (size_t)pgm->program;
     size_t offset = ((buffer + ALT_DMA_PROGRAM_CACHE_LINE_SIZE - 1) & ~(ALT_DMA_PROGRAM_CACHE_LINE_SIZE - 1)) - buffer;
 
-    // It is safe to cast to uint16_t because the extra offset can only be up to
-    // (ALT_DMA_PROGRAM_CACHE_LINE_SIZE - 1) or 31, which is within range of the
-    // uint16_t.
+    /* Clear the variables that matter. */
+    pgm->flag      = 0;
+    pgm->code_size = 0;
+
+    /* It is safe to cast to uint16_t because the extra offset can only be up to
+     * (ALT_DMA_PROGRAM_CACHE_LINE_SIZE - 1) or 31, which is within range of the
+     * uint16_t. */
     pgm->buffer_start = (uint16_t)offset;
 
     return ALT_E_SUCCESS;
@@ -96,7 +102,7 @@ ALT_STATUS_CODE alt_dma_program_uninit(ALT_DMA_PROGRAM_t * pgm)
 
 ALT_STATUS_CODE alt_dma_program_clear(ALT_DMA_PROGRAM_t * pgm)
 {
-    // Clear the variables that matter
+    /* Clear the variables that matter */
     pgm->flag      = 0;
     pgm->code_size = 0;
 
@@ -105,19 +111,19 @@ ALT_STATUS_CODE alt_dma_program_clear(ALT_DMA_PROGRAM_t * pgm)
 
 ALT_STATUS_CODE alt_dma_program_validate(const ALT_DMA_PROGRAM_t * pgm)
 {
-    // Verify that at least one instruction is in the buffer
+    /* Verify that at least one instruction is in the buffer */
     if (pgm->code_size == 0)
     {
         return ALT_E_ERROR;
     }
 
-    // Verify all loops are completed.
+    /* Verify all loops are completed. */
     if (pgm->flag & ALT_DMA_PROGRAM_FLAG_LOOP_ALL)
     {
         return ALT_E_ERROR;
     }
 
-    // Verify last item is DMAEND
+    /* Verify last item is DMAEND */
     if (!(pgm->flag & ALT_DMA_PROGRAM_FLAG_ENDED))
     {
         return ALT_E_ERROR;
@@ -130,8 +136,9 @@ ALT_STATUS_CODE alt_dma_program_progress_reg(ALT_DMA_PROGRAM_t * pgm,
                                              ALT_DMA_PROGRAM_REG_t reg,
                                              uint32_t current, uint32_t * progress)
 {
-    // Pointer to where the register is initialized in the program buffer.
+    /* Pointer to where the register is initialized in the program buffer. */
     uint8_t * buffer = NULL;
+    uint32_t initial;
 
     switch (reg)
     {
@@ -155,7 +162,7 @@ ALT_STATUS_CODE alt_dma_program_progress_reg(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    uint32_t initial =
+    initial =
         (buffer[3] << 24) |
         (buffer[2] << 16) |
         (buffer[1] <<  8) |
@@ -204,16 +211,17 @@ ALT_STATUS_CODE alt_dma_program_update_reg(ALT_DMA_PROGRAM_t * pgm,
 ALT_STATUS_CODE alt_dma_program_DMAADDH(ALT_DMA_PROGRAM_t * pgm,
                                         ALT_DMA_PROGRAM_REG_t addr_reg, uint16_t val)
 {
-    // For information on DMAADDH, see PL330, section 4.3.1.
+    uint8_t * buffer;
+    uint8_t ra_mask = 0;
+    /* For information on DMAADDH, see PL330, section 4.3.1. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 3) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify valid register; construct instruction modifier.
-    uint8_t ra_mask = 0;
+    /* Verify valid register; construct instruction modifier. */
     switch (addr_reg)
     {
     case ALT_DMA_PROGRAM_REG_SAR:
@@ -226,15 +234,15 @@ ALT_STATUS_CODE alt_dma_program_DMAADDH(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAADDH
+    /* Assemble DMAADDH */
     buffer[0] = 0x54 | ra_mask;
     buffer[1] = (uint8_t)(val & 0xff);
     buffer[2] = (uint8_t)(val >> 8);
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 3;
 
     return ALT_E_SUCCESS;
@@ -243,16 +251,17 @@ ALT_STATUS_CODE alt_dma_program_DMAADDH(ALT_DMA_PROGRAM_t * pgm,
 ALT_STATUS_CODE alt_dma_program_DMAADNH(ALT_DMA_PROGRAM_t * pgm,
                                         ALT_DMA_PROGRAM_REG_t addr_reg, uint16_t val)
 {
-    // For information on DMAADNH, see PL330, section 4.3.2.
+    uint8_t * buffer;
+    uint8_t ra_mask = 0;
+    /* For information on DMAADNH, see PL330, section 4.3.2. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 3) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify valid register; construct instruction modifier.
-    uint8_t ra_mask = 0;
+    /* Verify valid register; construct instruction modifier. */
     switch (addr_reg)
     {
     case ALT_DMA_PROGRAM_REG_SAR:
@@ -265,15 +274,15 @@ ALT_STATUS_CODE alt_dma_program_DMAADNH(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAADNH
+    /* Assemble DMAADNH */
     buffer[0] = 0x5c | ra_mask;
     buffer[1] = (uint8_t)(val & 0xff);
     buffer[2] = (uint8_t)(val >> 8);
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 3;
 
     return ALT_E_SUCCESS;
@@ -281,24 +290,25 @@ ALT_STATUS_CODE alt_dma_program_DMAADNH(ALT_DMA_PROGRAM_t * pgm,
 
 ALT_STATUS_CODE alt_dma_program_DMAEND(ALT_DMA_PROGRAM_t * pgm)
 {
-    // For information on DMAEND, see PL330, section 4.3.3.
+    uint8_t * buffer;
+    /* For information on DMAEND, see PL330, section 4.3.3. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 1) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAEND
+    /* Assemble DMAEND */
     buffer[0] = 0x00;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 1;
 
-    // Mark program as ended.
+    /* Mark program as ended. */
     pgm->flag |= ALT_DMA_PROGRAM_FLAG_ENDED;
 
     return ALT_E_SUCCESS;
@@ -307,28 +317,29 @@ ALT_STATUS_CODE alt_dma_program_DMAEND(ALT_DMA_PROGRAM_t * pgm)
 ALT_STATUS_CODE alt_dma_program_DMAFLUSHP(ALT_DMA_PROGRAM_t * pgm,
                                           ALT_DMA_PERIPH_t periph)
 {
-    // For information on DMAFLUSHP, see PL330, section 4.3.4.
+    uint8_t * buffer;
+    /* For information on DMAFLUSHP, see PL330, section 4.3.4. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 2) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify valid peripheral identifier.
+    /* Verify valid peripheral identifier. */
     if (periph > ((1 << 5) - 1))
     {
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAFLUSHP
+    /* Assemble DMAFLUSHP */
     buffer[0] = 0x35;
     buffer[1] = (uint8_t)(periph) << 3;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 2;
 
     return ALT_E_SUCCESS;
@@ -338,15 +349,17 @@ ALT_STATUS_CODE alt_dma_program_DMAGO(ALT_DMA_PROGRAM_t * pgm,
                                       ALT_DMA_CHANNEL_t channel, uint32_t val,
                                       ALT_DMA_SECURITY_t sec)
 {
-    // For information on DMAGO, see PL330, section 4.3.5.
+    uint8_t * buffer;
+    uint8_t ns_mask = 0;
+    /* For information on DMAGO, see PL330, section 4.3.5. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 6) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify channel
+    /* Verify channel */
     switch (channel)
     {
     case ALT_DMA_CHANNEL_0:
@@ -362,8 +375,7 @@ ALT_STATUS_CODE alt_dma_program_DMAGO(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Verify security; construct ns mask value
-    uint8_t ns_mask = 0;
+    /* Verify security; construct ns mask value */
     switch (sec)
     {
     case ALT_DMA_SECURITY_DEFAULT:
@@ -377,10 +389,10 @@ ALT_STATUS_CODE alt_dma_program_DMAGO(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAGO
+    /* Assemble DMAGO */
     buffer[0] = 0xa0 | ns_mask;
     buffer[1] = (uint8_t)channel;
     buffer[2] = (uint8_t)((val >>  0) & 0xff);
@@ -388,7 +400,7 @@ ALT_STATUS_CODE alt_dma_program_DMAGO(ALT_DMA_PROGRAM_t * pgm,
     buffer[4] = (uint8_t)((val >> 16) & 0xff);
     buffer[5] = (uint8_t)((val >> 24) & 0xff);
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 6;
 
     return ALT_E_SUCCESS;
@@ -396,21 +408,22 @@ ALT_STATUS_CODE alt_dma_program_DMAGO(ALT_DMA_PROGRAM_t * pgm,
 
 ALT_STATUS_CODE alt_dma_program_DMAKILL(ALT_DMA_PROGRAM_t * pgm)
 {
-    // For information on DMAKILL, see PL330, section 4.3.6.
+    uint8_t * buffer;
+    /* For information on DMAKILL, see PL330, section 4.3.6. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 1) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAKILL
+    /* Assemble DMAKILL */
     buffer[0] = 0x01;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 1;
 
     return ALT_E_SUCCESS;
@@ -419,16 +432,17 @@ ALT_STATUS_CODE alt_dma_program_DMAKILL(ALT_DMA_PROGRAM_t * pgm)
 ALT_STATUS_CODE alt_dma_program_DMALD(ALT_DMA_PROGRAM_t * pgm,
                                       ALT_DMA_PROGRAM_INST_MOD_t mod)
 {
-    // For information on DMALD, see PL330, section 4.3.7.
+    uint8_t * buffer;
+    uint8_t bsx_mask = 0;
+    /* For information on DMALD, see PL330, section 4.3.7. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 1) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify instruction modifier; construct bs, x mask value.
-    uint8_t bsx_mask = 0;
+    /* Verify instruction modifier; construct bs, x mask value. */
     switch (mod)
     {
     case ALT_DMA_PROGRAM_INST_MOD_NONE:
@@ -444,13 +458,13 @@ ALT_STATUS_CODE alt_dma_program_DMALD(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMALD
+    /* Assemble DMALD */
     buffer[0] = 0x04 | bsx_mask;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 1;
 
     return ALT_E_SUCCESS;
@@ -459,16 +473,17 @@ ALT_STATUS_CODE alt_dma_program_DMALD(ALT_DMA_PROGRAM_t * pgm,
 ALT_STATUS_CODE alt_dma_program_DMALDP(ALT_DMA_PROGRAM_t * pgm,
                                        ALT_DMA_PROGRAM_INST_MOD_t mod, ALT_DMA_PERIPH_t periph)
 {
-    // For information on DMALDP, see PL330, section 4.3.8.
+    uint8_t * buffer;
+    uint8_t bs_mask = 0;
+    /* For information on DMALDP, see PL330, section 4.3.8. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 2) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify instruction modifier; construct bs mask value.
-    uint8_t bs_mask = 0;
+    /* Verify instruction modifier; construct bs mask value. */
     switch (mod)
     {
     case ALT_DMA_PROGRAM_INST_MOD_SINGLE:
@@ -481,20 +496,20 @@ ALT_STATUS_CODE alt_dma_program_DMALDP(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Verify valid peripheral identifier.
+    /* Verify valid peripheral identifier. */
     if (periph > ((1 << 5) - 1))
     {
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMALDP
+    /* Assemble DMALDP */
     buffer[0] = 0x25 | bs_mask;
     buffer[1] = (uint8_t)(periph) << 3;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 2;
 
     return ALT_E_SUCCESS;
@@ -503,51 +518,52 @@ ALT_STATUS_CODE alt_dma_program_DMALDP(ALT_DMA_PROGRAM_t * pgm,
 ALT_STATUS_CODE alt_dma_program_DMALP(ALT_DMA_PROGRAM_t * pgm,
                                       uint32_t iterations)
 {
-    // For information on DMALP, see PL330, section 4.3.9.
+    uint8_t * buffer;
+    uint8_t lc_mask = 0;
+    /* For information on DMALP, see PL330, section 4.3.9. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 2) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify iterations in range
+    /* Verify iterations in range */
     if ((iterations == 0) || (iterations > 256))
     {
         return ALT_E_BAD_ARG;
     }
 
-    // Find suitable LOOPx register to use; construct lc mask value.
-    uint8_t lc_mask = 0;
+    /* Find suitable LOOPx register to use; construct lc mask value. */
     switch (pgm->flag & ALT_DMA_PROGRAM_FLAG_LOOP_ALL)
     {
-    case 0:                              // No LOOPx in use. Use LOOP0.
+    case 0:                              /* No LOOPx in use. Use LOOP0. */
         pgm->flag |= ALT_DMA_PROGRAM_FLAG_LOOP0;
-        pgm->loop0 = pgm->code_size + 2; // This is the first instruction after the DMALP
+        pgm->loop0 = pgm->code_size + 2; /* This is the first instruction after the DMALP */
         lc_mask = 0x0;
         break;
 
-    case ALT_DMA_PROGRAM_FLAG_LOOP0:     // LOOP0 in use. Use LOOP1.
+    case ALT_DMA_PROGRAM_FLAG_LOOP0:     /* LOOP0 in use. Use LOOP1. */
         pgm->flag |= ALT_DMA_PROGRAM_FLAG_LOOP1;
-        pgm->loop1 = pgm->code_size + 2; // This is the first instruction after the DMALP
+        pgm->loop1 = pgm->code_size + 2; /* This is the first instruction after the DMALP */
         lc_mask = 0x2;
         break;
 
-    case ALT_DMA_PROGRAM_FLAG_LOOP_ALL: // All LOOPx in use. Report error.
+    case ALT_DMA_PROGRAM_FLAG_LOOP_ALL: /* All LOOPx in use. Report error. */
         return ALT_E_BAD_OPERATION;
 
-    default:                            // Catastrophic error !!!
+    default:                            /* Catastrophic error !!! */
         return ALT_E_ERROR;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMALP
+    /* Assemble DMALP */
     buffer[0] = 0x20 | lc_mask;
     buffer[1] = (uint8_t)(iterations - 1);
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 2;
 
     return ALT_E_SUCCESS;
@@ -556,16 +572,20 @@ ALT_STATUS_CODE alt_dma_program_DMALP(ALT_DMA_PROGRAM_t * pgm,
 ALT_STATUS_CODE alt_dma_program_DMALPEND(ALT_DMA_PROGRAM_t * pgm,
                                          ALT_DMA_PROGRAM_INST_MOD_t mod)
 {
-    // For information on DMALPEND, see PL330, section 4.3.10.
+    uint8_t * buffer;
+    uint8_t lc_mask = 0;
+    uint8_t nf_mask = 0;
+    uint16_t backwards_jump = 0;
+    uint8_t bsx_mask = 0;
+    /* For information on DMALPEND, see PL330, section 4.3.10. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 2) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify instruction modifier; construct bs, x mask value.
-    uint8_t bsx_mask = 0;
+    /* Verify instruction modifier; construct bs, x mask value. */
     switch (mod)
     {
     case ALT_DMA_PROGRAM_INST_MOD_NONE:
@@ -581,13 +601,10 @@ ALT_STATUS_CODE alt_dma_program_DMALPEND(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Determine the loop to end, if it is a forever loop; construct lc mask, nf mask, and backwards jump value.
-    uint8_t lc_mask = 0;
-    uint8_t nf_mask = 0;
-    uint16_t backwards_jump = 0;
+    /* Determine the loop to end, if it is a forever loop; construct lc mask, nf mask, and backwards jump value. */
     switch (pgm->flag & ALT_DMA_PROGRAM_FLAG_LOOP_ALL)
     {
-    case ALT_DMA_PROGRAM_FLAG_LOOP0:    // LOOP0 in use. End LOOP0.
+    case ALT_DMA_PROGRAM_FLAG_LOOP0:    /* LOOP0 in use. End LOOP0. */
 
         backwards_jump = pgm->code_size - pgm->loop0;
 
@@ -606,7 +623,7 @@ ALT_STATUS_CODE alt_dma_program_DMALPEND(ALT_DMA_PROGRAM_t * pgm,
         }
         break;
 
-    case ALT_DMA_PROGRAM_FLAG_LOOP_ALL: // All LOOPx in use. End LOOP1.
+    case ALT_DMA_PROGRAM_FLAG_LOOP_ALL: /* All LOOPx in use. End LOOP1. */
 
         backwards_jump = pgm->code_size - pgm->loop1;
 
@@ -625,27 +642,27 @@ ALT_STATUS_CODE alt_dma_program_DMALPEND(ALT_DMA_PROGRAM_t * pgm,
         }
         break;
 
-    case 0:                             // No LOOPx in use. Report error!
+    case 0:                             /* No LOOPx in use. Report error! */
         return ALT_E_BAD_OPERATION;
 
-    default:                            // Catastrophic error !!!
+    default:                            /* Catastrophic error !!! */
         return ALT_E_ERROR;
     }
 
-    // Verify that the jump size is suitable
+    /* Verify that the jump size is suitable */
     if (backwards_jump > 255)
     {
         return ALT_E_ARG_RANGE;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMALPEND
+    /* Assemble DMALPEND */
     buffer[0] = 0x28 | nf_mask | lc_mask | bsx_mask;
     buffer[1] = (uint8_t)(backwards_jump);
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 2;
 
     return ALT_E_SUCCESS;
@@ -653,31 +670,31 @@ ALT_STATUS_CODE alt_dma_program_DMALPEND(ALT_DMA_PROGRAM_t * pgm,
 
 ALT_STATUS_CODE alt_dma_program_DMALPFE(ALT_DMA_PROGRAM_t * pgm)
 {
-    // For information on DMALPFE, see PL330, section 4.3.11.
+    /* For information on DMALPFE, see PL330, section 4.3.11. */
 
-    // Find suitable LOOPx register to use;
+    /* Find suitable LOOPx register to use; */
     switch (pgm->flag & ALT_DMA_PROGRAM_FLAG_LOOP_ALL)
     {
-    case 0:                             // No LOOPx in use. Use LOOP0.
+    case 0:                             /* No LOOPx in use. Use LOOP0. */
         pgm->flag |= ALT_DMA_PROGRAM_FLAG_LOOP0;
         pgm->flag |= ALT_DMA_PROGRAM_FLAG_LOOP0_IS_FE;
         pgm->loop0 = pgm->code_size;
         break;
 
-    case ALT_DMA_PROGRAM_FLAG_LOOP0:    // LOOP0 in use. Use LOOP1.
+    case ALT_DMA_PROGRAM_FLAG_LOOP0:    /* LOOP0 in use. Use LOOP1. */
         pgm->flag |= ALT_DMA_PROGRAM_FLAG_LOOP1;
         pgm->flag |= ALT_DMA_PROGRAM_FLAG_LOOP1_IS_FE;
         pgm->loop1 = pgm->code_size;
         break;
 
-    case ALT_DMA_PROGRAM_FLAG_LOOP_ALL: // All LOOPx in use. Report error.
+    case ALT_DMA_PROGRAM_FLAG_LOOP_ALL: /* All LOOPx in use. Report error. */
         return ALT_E_BAD_OPERATION;
 
-    default:                            // Catastrophic error !!!
+    default:                            /* Catastrophic error !!! */
         return ALT_E_ERROR;
     }
 
-    // Nothing to assemble.
+    /* Nothing to assemble. */
 
     return ALT_E_SUCCESS;
 }
@@ -685,21 +702,22 @@ ALT_STATUS_CODE alt_dma_program_DMALPFE(ALT_DMA_PROGRAM_t * pgm)
 ALT_STATUS_CODE alt_dma_program_DMAMOV(ALT_DMA_PROGRAM_t * pgm,
                                        ALT_DMA_PROGRAM_REG_t chan_reg, uint32_t val)
 {
-    // For information on DMAMOV, see PL330, section 4.3.12.
+    uint8_t * buffer;
+    uint8_t rd_mask = 0;
+    /* For information on DMAMOV, see PL330, section 4.3.12. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 6) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify channel register; construct rd mask value
-    uint8_t rd_mask = 0;
+    /* Verify channel register; construct rd mask value */
     switch (chan_reg)
     {
     case ALT_DMA_PROGRAM_REG_SAR:
         rd_mask = 0;
-        // If SAR has not been set before, mark the location of where SAR is in the buffer.
+        /* If SAR has not been set before, mark the location of where SAR is in the buffer. */
         if (!(pgm->flag & ALT_DMA_PROGRAM_FLAG_SAR))
         {
             pgm->flag |= ALT_DMA_PROGRAM_FLAG_SAR;
@@ -713,7 +731,7 @@ ALT_STATUS_CODE alt_dma_program_DMAMOV(ALT_DMA_PROGRAM_t * pgm,
 
     case ALT_DMA_PROGRAM_REG_DAR:
         rd_mask = 2;
-        // If DAR has not been set before, mark the location of where DAR is in the buffer.
+        /* If DAR has not been set before, mark the location of where DAR is in the buffer. */
         if (!(pgm->flag & ALT_DMA_PROGRAM_FLAG_DAR))
         {
             pgm->flag |= ALT_DMA_PROGRAM_FLAG_DAR;
@@ -725,10 +743,10 @@ ALT_STATUS_CODE alt_dma_program_DMAMOV(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAMOV
+    /* Assemble DMAMOV */
     buffer[0] = 0xbc;;
     buffer[1] = rd_mask;
     buffer[2] = (uint8_t)((val >>  0) & 0xff);
@@ -736,7 +754,7 @@ ALT_STATUS_CODE alt_dma_program_DMAMOV(ALT_DMA_PROGRAM_t * pgm,
     buffer[4] = (uint8_t)((val >> 16) & 0xff);
     buffer[5] = (uint8_t)((val >> 24) & 0xff);
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 6;
 
     return ALT_E_SUCCESS;
@@ -745,21 +763,22 @@ ALT_STATUS_CODE alt_dma_program_DMAMOV(ALT_DMA_PROGRAM_t * pgm,
 
 ALT_STATUS_CODE alt_dma_program_DMANOP(ALT_DMA_PROGRAM_t * pgm)
 {
-    // For information on DMANOP, see PL330, section 4.3.13.
+    uint8_t * buffer;
+    /* For information on DMANOP, see PL330, section 4.3.13. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 1) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMANOP
+    /* Assemble DMANOP */
     buffer[0] = 0x18;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 1;
 
     return ALT_E_SUCCESS;
@@ -767,21 +786,22 @@ ALT_STATUS_CODE alt_dma_program_DMANOP(ALT_DMA_PROGRAM_t * pgm)
 
 ALT_STATUS_CODE alt_dma_program_DMARMB(ALT_DMA_PROGRAM_t * pgm)
 {
-    // For information on DMARMB, see PL330, section 4.3.14.
+    uint8_t * buffer;
+    /* For information on DMARMB, see PL330, section 4.3.14. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 1) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMARMB
+    /* Assemble DMARMB */
     buffer[0] = 0x12;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 1;
 
     return ALT_E_SUCCESS;
@@ -790,15 +810,16 @@ ALT_STATUS_CODE alt_dma_program_DMARMB(ALT_DMA_PROGRAM_t * pgm)
 ALT_STATUS_CODE alt_dma_program_DMASEV(ALT_DMA_PROGRAM_t * pgm,
                                        ALT_DMA_EVENT_t evt)
 {
-    // For information on DMA, see PL330, section 4.3.15.
+    uint8_t * buffer;
+    /* For information on DMA, see PL330, section 4.3.15. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 2) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Validate evt selection
+    /* Validate evt selection */
     switch (evt)
     {
     case ALT_DMA_EVENT_0:
@@ -815,14 +836,14 @@ ALT_STATUS_CODE alt_dma_program_DMASEV(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMASEV
+    /* Assemble DMASEV */
     buffer[0] = 0x34;
     buffer[1] = (uint8_t)(evt) << 3;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 2;
 
     return ALT_E_SUCCESS;
@@ -831,16 +852,17 @@ ALT_STATUS_CODE alt_dma_program_DMASEV(ALT_DMA_PROGRAM_t * pgm,
 ALT_STATUS_CODE alt_dma_program_DMAST(ALT_DMA_PROGRAM_t * pgm,
                                       ALT_DMA_PROGRAM_INST_MOD_t mod)
 {
-    // For information on DMAST, see PL330, section 4.3.16.
+    uint8_t bsx_mask = 0;
+    uint8_t * buffer;
+    /* For information on DMAST, see PL330, section 4.3.16. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 1) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify instruction modifier; construct bs, x mask value.
-    uint8_t bsx_mask = 0;
+    /* Verify instruction modifier; construct bs, x mask value. */
     switch (mod)
     {
     case ALT_DMA_PROGRAM_INST_MOD_NONE:
@@ -856,13 +878,13 @@ ALT_STATUS_CODE alt_dma_program_DMAST(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAST
+    /* Assemble DMAST */
     buffer[0] = 0x08 | bsx_mask;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 1;
 
     return ALT_E_SUCCESS;
@@ -871,16 +893,17 @@ ALT_STATUS_CODE alt_dma_program_DMAST(ALT_DMA_PROGRAM_t * pgm,
 ALT_STATUS_CODE alt_dma_program_DMASTP(ALT_DMA_PROGRAM_t * pgm,
                                        ALT_DMA_PROGRAM_INST_MOD_t mod, ALT_DMA_PERIPH_t periph)
 {
-    // For information on DMASTP, see PL330, section 4.3.17.
+    uint8_t * buffer;
+    uint8_t bs_mask = 0;
+    /* For information on DMASTP, see PL330, section 4.3.17. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 2) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify instruction modifier; construct bs mask value.
-    uint8_t bs_mask = 0;
+    /* Verify instruction modifier; construct bs mask value. */
     switch (mod)
     {
     case ALT_DMA_PROGRAM_INST_MOD_SINGLE:
@@ -893,20 +916,20 @@ ALT_STATUS_CODE alt_dma_program_DMASTP(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Verify valid peripheral identifier.
+    /* Verify valid peripheral identifier. */
     if (periph > ((1 << 5) - 1))
     {
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMASTP
+    /* Assemble DMASTP */
     buffer[0] = 0x29 | bs_mask;
     buffer[1] = (uint8_t)(periph) << 3;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 2;
 
     return ALT_E_SUCCESS;
@@ -914,21 +937,22 @@ ALT_STATUS_CODE alt_dma_program_DMASTP(ALT_DMA_PROGRAM_t * pgm,
 
 ALT_STATUS_CODE alt_dma_program_DMASTZ(ALT_DMA_PROGRAM_t * pgm)
 {
-    // For information on DMASTZ, see PL330, section 4.3.18.
+    uint8_t * buffer;
+    /* For information on DMASTZ, see PL330, section 4.3.18. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 1) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMASTZ
+    /* Assemble DMASTZ */
     buffer[0] = 0x0c;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 1;
 
     return ALT_E_SUCCESS;
@@ -937,15 +961,17 @@ ALT_STATUS_CODE alt_dma_program_DMASTZ(ALT_DMA_PROGRAM_t * pgm)
 ALT_STATUS_CODE alt_dma_program_DMAWFE(ALT_DMA_PROGRAM_t * pgm,
                                        ALT_DMA_EVENT_t evt, bool invalid)
 {
-    // For information on DMAWFE, see PL330, section 4.3.19.
+    uint8_t * buffer;
+    uint8_t i_mask = 0;
+    /* For information on DMAWFE, see PL330, section 4.3.19. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 2) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Validate evt selection
+    /* Validate evt selection */
     switch (evt)
     {
     case ALT_DMA_EVENT_0:
@@ -962,21 +988,20 @@ ALT_STATUS_CODE alt_dma_program_DMAWFE(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Construct i mask value
-    uint8_t i_mask = 0;
+    /* Construct i mask value */
     if (invalid)
     {
         i_mask = 0x2;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAWFE
+    /* Assemble DMAWFE */
     buffer[0] = 0x36;
     buffer[1] = ((uint8_t)(evt) << 3) | i_mask;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 2;
 
     return ALT_E_SUCCESS;
@@ -985,22 +1010,23 @@ ALT_STATUS_CODE alt_dma_program_DMAWFE(ALT_DMA_PROGRAM_t * pgm,
 ALT_STATUS_CODE alt_dma_program_DMAWFP(ALT_DMA_PROGRAM_t * pgm,
                                        ALT_DMA_PERIPH_t periph, ALT_DMA_PROGRAM_INST_MOD_t mod)
 {
-    // For information on DMAWFP, see PL330, section 4.3.20.
+    uint8_t * buffer;
+    uint8_t bsp_mask = 0;
+    /* For information on DMAWFP, see PL330, section 4.3.20. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 2) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Verify valid peripheral identifier.
+    /* Verify valid peripheral identifier. */
     if (periph > ((1 << 5) - 1))
     {
         return ALT_E_BAD_ARG;
     }
 
-    // Verify instruction modifier; construct bs, p mask value.
-    uint8_t bsp_mask = 0;
+    /* Verify instruction modifier; construct bs, p mask value. */
     switch (mod)
     {
     case ALT_DMA_PROGRAM_INST_MOD_SINGLE:
@@ -1016,14 +1042,14 @@ ALT_STATUS_CODE alt_dma_program_DMAWFP(ALT_DMA_PROGRAM_t * pgm,
         return ALT_E_BAD_ARG;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAWFP
+    /* Assemble DMAWFP */
     buffer[0] = 0x30 | bsp_mask;
     buffer[1] = (uint8_t)(periph) << 3;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 2;
 
     return ALT_E_SUCCESS;
@@ -1031,21 +1057,22 @@ ALT_STATUS_CODE alt_dma_program_DMAWFP(ALT_DMA_PROGRAM_t * pgm,
 
 ALT_STATUS_CODE alt_dma_program_DMAWMB(ALT_DMA_PROGRAM_t * pgm)
 {
-    // For information on DMAWMB, see PL330, section 4.3.21.
+    uint8_t * buffer;
+    /* For information on DMAWMB, see PL330, section 4.3.21. */
 
-    // Check for sufficient space in buffer
+    /* Check for sufficient space in buffer */
     if ((pgm->code_size + 1) > ALT_DMA_PROGRAM_PROVISION_BUFFER_SIZE)
     {
         return ALT_E_BUF_OVF;
     }
 
-    // Buffer of where to assemble the instruction.
-    uint8_t * buffer = pgm->program + pgm->buffer_start + pgm->code_size;
+    /* Buffer of where to assemble the instruction. */
+    buffer = pgm->program + pgm->buffer_start + pgm->code_size;
 
-    // Assemble DMAWMB
+    /* Assemble DMAWMB */
     buffer[0] = 0x13;
 
-    // Update the code size.
+    /* Update the code size. */
     pgm->code_size += 1;
 
     return ALT_E_SUCCESS;
