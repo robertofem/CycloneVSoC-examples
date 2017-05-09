@@ -11,6 +11,9 @@
 //-----------------------------------------------------------------//
 //-------------------------code from hwlib.h-----------------------//
 //-----------------------------------------------------------------//
+#define ALT_MIN(a, b) ((a) > (b) ? (b) : (a))
+#define ALT_MAX(a, b) ((a) > (b) ? (a) : (b))
+
 typedef int32_t             ALT_STATUS_CODE;
 
 /*! Definitions of status codes returned by the HWLIB. */

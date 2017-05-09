@@ -740,10 +740,10 @@ ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
     return ALT_E_SUCCESS;
 }
 
-/*ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_t * pgm)
+ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_t * pgm)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
-    uintptr_t pgmpa = 0;
+    uintptr_t pgmpa = (uintptr_t)(0xFFFF0010+16); //we send the hardware address already here
 
     // Validate channel /
     switch (channel)
@@ -782,14 +782,14 @@ ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
     }
 
     // Validate the program /
-
+/*
     if (status == ALT_E_SUCCESS)
     {
         status = alt_dma_program_validate(pgm);
     }
-
+*/
     // Sync the DMA program to RAM. //
-
+/*
     if (status == ALT_E_SUCCESS)
     {
         void * vaddr  = (void *)((uintptr_t)(pgm->program + pgm->buffer_start) & ~(ALT_CACHE_LINE_SIZE - 1));
@@ -798,11 +798,11 @@ ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
 
         //status = alt_cache_system_clean(vaddr, length);
     }
-
+*/
     
      // Get the PA of the program buffer.
      
-
+/*
     if (status == ALT_E_SUCCESS)
     {
         uint32_t dfsr;
@@ -816,7 +816,7 @@ ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
         }
     }
 
-    
+ */   
      // Execute the program
      
 
@@ -844,7 +844,7 @@ ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
     }
 
     return status;
-}*/
+}
 
 ALT_STATUS_CODE alt_dma_channel_kill(ALT_DMA_CHANNEL_t channel)
 {
@@ -1214,7 +1214,7 @@ ALT_STATUS_CODE alt_dma_channel_fault_status_get(ALT_DMA_CHANNEL_t channel,
     return ALT_E_SUCCESS;
 }*/
 
-static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * program
+static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * program,
 							uintptr_t segdstpa,
                                                         uintptr_t segsrcpa,
                                                         size_t segsize)
@@ -1523,6 +1523,8 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
         status = alt_dma_program_init(programv);
     }
 
+   
+    /*  
     if (size != 0)
     {
         ALT_MMU_VA_TO_PA_COALESCE_t coalesce_dst;
@@ -1555,7 +1557,8 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
                 return ALT_E_BAD_ARG;
             }
         }
-
+	
+	
         //
          // Attempt to coalesce and make the transfer.
         ///
@@ -1616,9 +1619,16 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
             {
                 //dprintf("DMA[M->M]: Transfering safe size = 0x%" PRIx32 ".\n", segsize);
 		dprintf("DMA[M->M]: Transfering safe size = 0x% .\n", segsize);
-
-                status = alt_dma_memory_to_memory_segment(program, segpa_dst, segpa_src, segsize);
-            }
+*/
+	
+                //status = alt_dma_memory_to_memory_segment(program, segpa_dst, segpa_src, segsize);
+                ////////-------program the transfer--------------------------///
+                //We did investigations in the baremetal programs and they transfer all at once always
+                //Even when transferring 2MB. Therefore we know the transfer can be done at once.
+                //If we comment all this code we delete the dependency with mmu files.
+                status = alt_dma_memory_to_memory_segment(programv, (uintptr_t) dst, (uintptr_t) src, size);
+                ///////------------------------------------------------------///
+ /*           }
 
             //
              // Update some bookkeeping.
@@ -1659,26 +1669,26 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
         }
 
     } // if (size != 0) //
-
+*/
     // Send event if requested. /
     if (send_evt)
     {
         if (status == ALT_E_SUCCESS)
         {
-            status = alt_dma_program_DMAWMB(program);
+            status = alt_dma_program_DMAWMB(programv);
         }
 
         if (status == ALT_E_SUCCESS)
         {
             dprintf("DMA[M->M]: Adding event ...\n");
-            status = alt_dma_program_DMASEV(program, evt);
+            status = alt_dma_program_DMASEV(programv, evt);
         }
     }
 
     // Now that everything is done, end the program. //
     if (status == ALT_E_SUCCESS)
     {
-        status = alt_dma_program_DMAEND(program);
+        status = alt_dma_program_DMAEND(programv);
     }
 
     // If there was a problem assembling the program, clean up the buffer and exit. //
@@ -1686,14 +1696,15 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
     {
         // Do not report the status for the clear operation. A failure should be
         // reported regardless of if the clear is successful. //
-        alt_dma_program_clear(program);
+	printk("Clear the program\n");
+        alt_dma_program_clear(programv);
         return status;
     }
 
     // Execute the program on the given channel. //
-    return alt_dma_channel_exec(channel, program);
+    return alt_dma_channel_exec(channel, programh);
 }
-*/
+
 
 /*static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * program,
                                                       uintptr_t segbufpa,

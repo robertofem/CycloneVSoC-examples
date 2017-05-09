@@ -95,6 +95,20 @@ static void init_src_dst(char char_val_src, char char_val_dst)
   }
 }
 
+static void print_dma_program()
+{
+    int i;
+    char* char_ptr = (char*) DMA_PROG_V;
+    for (i = 0; i < sizeof(ALT_DMA_PROGRAM_t); i++)
+    {
+        printk("%02X ",  ioread8(char_ptr)); // gives 12AB
+        if (i==5) printk(" code_size:");
+        if (i==7) printk(" ");
+        if (i==15) printk(" prog:");
+	char_ptr++;
+    }
+    printk("\n");
+}
 
 
 /** @brief The LKM initialization function
@@ -108,7 +122,9 @@ static int __init helloBBB_init(void){
    ALT_DMA_CHANNEL_STATE_t channel_state;
    ALT_DMA_CHANNEL_FAULT_t fault;
    static ALT_DMA_CHANNEL_t Dma_Channel; //dma channel to be used in transfers
-   static ALT_DMA_PROGRAM_t program;
+   //static ALT_DMA_PROGRAM_t program;
+   ALT_DMA_PROGRAM_t* program = (ALT_DMA_PROGRAM_t*) DMA_PROG_V;
+   int i;
   
    // printk(KERN_INFO "DMA: Hello %s from the BBB LKM!\n", name);
    printk(KERN_INFO "DMA LKM: Initializing module!!\n");
@@ -196,9 +212,12 @@ static int __init helloBBB_init(void){
    printk(KERN_INFO "Buffers initialized: ");
    print_src_dst();
    
+   print_dma_program();
+   
    status = alt_dma_memory_to_memory(
 	Dma_Channel, 
-	&program, 
+	(ALT_DMA_PROGRAM_t*) DMA_PROG_V, 
+	(ALT_DMA_PROGRAM_t*) DMA_PROG_H,
 	(void*)DMA_TRANSFER_DST_H, 
 	(void*)DMA_TRANSFER_SRC_H, 
 	DMA_TRANSFER_SIZE, 
@@ -216,14 +235,16 @@ static int __init helloBBB_init(void){
 	    if(channel_state == ALT_DMA_CHANNEL_STATE_FAULTING)
 	    {
 		alt_dma_channel_fault_status_get(Dma_Channel, &fault);
-		printk(KERN_INFO "ERROR: DMA CHannel Fault: %d\n\r", (int)fault);
+		printk(KERN_INFO "ERROR: DMA Channel Fault: %d\n\r", (int)fault);
 		status = ALT_E_ERROR;
 	    }
 	}
     }
-
+    
    printk(KERN_INFO "Buffers after transfer: ");
    print_src_dst();
+   
+   print_dma_program();
    
    printk(KERN_INFO "---TRANSFER END----\n\n ");
    //-------------------//

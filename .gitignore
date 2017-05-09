@@ -2,12 +2,13 @@
 
 #modules
 **.o 
-**.ko.mod
+**.mod
 **.mod.c
 **.cmd
 **-swp
 **symvers
 **.order
+**tmp_versions/**
 
 #baremetal
 **.axf** 
