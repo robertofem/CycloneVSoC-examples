@@ -743,7 +743,7 @@ ALT_STATUS_CODE alt_dma_channel_free(ALT_DMA_CHANNEL_t channel)
 ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_t * pgm)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
-    uintptr_t pgmpa = (uintptr_t)(0xFFFF0010+16); //we send the hardware address already here
+    uintptr_t pgmpa = (uintptr_t)(&(pgm->program[0])); //we send the hardware address already here
 
     // Validate channel /
     switch (channel)
@@ -828,7 +828,7 @@ ALT_STATUS_CODE alt_dma_channel_exec(ALT_DMA_CHANNEL_t channel, ALT_DMA_PROGRAM_
 
     if (status == ALT_E_SUCCESS)
     {
-        dprintf("DMA[exec]: program = 0x%x (PA).\n", pgmpa);
+        //dprintf("DMA[exec]: program = 0x%x (PA).\n", pgmpa);
 
         alt_write_word(ALT_DMA_DBGINST0_ADDR(ALT_DMASECURE_ADDR),
                        ALT_DMA_DBGINST0_INSTRUCTIONBYTE0_SET(0xa0) |
@@ -1245,7 +1245,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
         sizeleft -= aligncount;
 
         //dprintf("DMA[M->M][seg]: Total pre-alignment 1-byte burst size transfer(s): %" PRIu32 ".\n", aligncount);
-	dprintf("DMA[M->M][seg]: Total pre-alignment 1-byte burst size transfer(s): % .\n", aligncount);
+	//dprintf("DMA[M->M][seg]: Total pre-alignment 1-byte burst size transfer(s): % .\n", aligncount);
 	
 	
         // Program in the following parameters:
@@ -1295,7 +1295,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
     sizeleft &= 0x7;
 
     //dprintf("DMA[M->M][seg]: Total Main 8-byte burst size transfer(s): %" PRIu32 ".\n", burstcount);
-    dprintf("DMA[M->M][seg]: Total Main 8-byte burst size transfer(s): %.\n", burstcount);
+    dprintf("DMA[M->M][seg]: Total Main 8-byte burst size transfer(s): %u.\n", burstcount);
     
     // Determine how many 16 length bursts can be done //
 
@@ -1306,8 +1306,8 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
 
         //dprintf("DMA[M->M][seg]:   Number of 16 burst length 8-byte transfer(s): %" PRIu32 ".\n", length16burstcount);
         //dprintf("DMA[M->M][seg]:   Number of remaining 8-byte transfer(s):       %" PRIu32 ".\n", burstcount);
-	dprintf("DMA[M->M][seg]:   Number of 16 burst length 8-byte transfer(s): % .\n", length16burstcount);
-        dprintf("DMA[M->M][seg]:   Number of remaining 8-byte transfer(s):       % .\n", burstcount);
+	dprintf("DMA[M->M][seg]:   Number of 16 burst length 8-byte transfer(s): %u .\n", length16burstcount);
+        dprintf("DMA[M->M][seg]:   Number of remaining 8-byte transfer(s):       %u .\n", burstcount);
 	
 	
         // Program in the following parameters:

@@ -1,7 +1,7 @@
 #Name of the module
-obj-m := DMA_with_FPGA_module.o
+obj-m := DMA_PL330_basic.o
 #Files composing the module
-DMA_with_FPGA_module-objs := DMA_with_FPGA.o PL330-functions.o alt_dma.o  alt_dma_program.o
+DMA_PL330_basic-objs :=  DMA_PL330_LKM_basic.o alt_dma.o alt_dma_program.o 
 
 #guest architecture
 ARCH := arm
@@ -17,6 +17,5 @@ MAKEARCH := $(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE)
 all: modules
 modules:
 	$(MAKEARCH) -C $(ROOTDIR) M=${shell pwd} modules
-
 clean:
 	$(MAKEARCH) -C $(ROOTDIR) M=${shell pwd} clean
