@@ -1,0 +1,19 @@
+#Tue Aug 28 21:00:35 PDT 2012
+eclipse.preferences.version=1
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/SOCEDS_ROOT/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/SOCEDS_ROOT/operation=append
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/SOCEDS_ROOT/value=${ds5_install_path}/..
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/GNU_BAREMETAL_TOOLCHAIN/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/GNU_BAREMETAL_TOOLCHAIN/operation=append
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/GNU_BAREMETAL_TOOLCHAIN/value=${SOCEDS_ROOT}/host_tools/mentor/gnu/arm/baremetal/bin
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/CYGWIN/delimiter=;
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/CYGWIN/operation=append
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/CYGWIN/value=nodosfilewarning
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/CYGWIN_ROOT/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/CYGWIN_ROOT/operation=append
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/CYGWIN_ROOT/value=${SOCEDS_ROOT}/host_tools/cygwin
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/PATH/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/PATH/operation=append
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/PATH/value=${GNU_BAREMETAL_TOOLCHAIN}${PathDelimiter}${QUARTUS_ROOTDIR}/bin${PathDelimiter}${CYGWIN_ROOT}/bin${PathDelimiter}${PATH}
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/append=true
+environment/project/cdt.managedbuild.toolchain.gnu.base.677096465/appendContributed=true
