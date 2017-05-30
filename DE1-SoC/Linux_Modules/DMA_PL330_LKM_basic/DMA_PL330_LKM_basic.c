@@ -61,8 +61,23 @@ static void* cached_mem_v; 	//virtual address, to be used in module
 static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 #define CACHED_MEM_SIZE (2*1024*1024) //Size. Max using kmalloc in Angstrom and CycloneVSoC is 4MB
 
-//--------------VARIABLES TO DEFINE THE TRANSFER----------------//
-/*
+//--------------VARIABLES TO DEFINE THE TRANSFER-EXAMPLES----------------//
+//
+//IMPORTANT!!!!!
+//-The address of the DMA program + 16B must always be aligned to a 32B address.
+// This is because in DMA_PROG_V and DMA_PROG_H addresses we specify the location of an
+// struct containing the actual DMA microcode. The first 16B of this struct holds some
+// variables and the real microcode starts in Byte 16 of the struct. So in the end the
+// real microcode ends 16B after DMA_PROG_V and DMA_PROG_H. The 32B alignment of the
+// microcode is needed by the DMAC to fetch it.
+//-The source and destiny addresses must be aligned to a multiple of the transfer size.
+// If the transfer size is 32kB the the address of these buffers must be aligned to
+// 32kB.The allocation functions automatically do this for us but when using hardware
+// buffers like HPS-OCR or FPGA we must take care of this. In our case we aligned the
+// FPGA-OCR with the start of the HPS-FPGA bridge that is GB aligned so we ensure a
+// problem related to this arises.
+//
+
 //4B transfer from HPS OCR to HPS OCR. DMA microcode program in OCR.
 #define MESSAGE "4B transfer from HPS OCR to HPS OCR. DMA microcode program in HPS OCR.\n"
 #define DMA_TRANSFER_SIZE   4 //Size of DMA transfer in Bytes
@@ -72,22 +87,18 @@ static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 #define DMA_TRANSFER_SRC_H  HPS_OCR_HADDRESS //hardware address of the source buffer 
 #define DMA_TRANSFER_DST_H  (HPS_OCR_HADDRESS+8)//hardware address of the destiny buffer 
 #define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	    
-*/
 
-//64B transfer from HPS OCR to FPGA OCR. DMA microcode program in uncached Processor RAM.
+/*
+//64B transfer from HPS OCR to FPGA OCR. DMA microcode program in OCR.
 #define MESSAGE "64B transfer from HPS OCR to FPGA OCR. DMA microcode program in HPS OCR.\n"
 #define DMA_TRANSFER_SIZE   64 //Size of DMA transfer in Bytes
 #define DMA_TRANSFER_SRC_V  (hps_ocr_vaddress+1024) //virtual address of the source buffer
 #define DMA_TRANSFER_DST_V  (fpga_ocr_vaddress)//virtual address of the destiny buffer
-#define DMA_PROG_V	    (hps_ocr_vaddress+16+32)//virtual address of the DMAC microcode program
+#define DMA_PROG_V	    (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
 #define DMA_TRANSFER_SRC_H  (HPS_OCR_HADDRESS+1024) //hardware address of the source buffer
 #define DMA_TRANSFER_DST_H  (FPGA_OCR_HADDRESS)//hardware address of the destiny buffer 
-#define DMA_PROG_H	    (HPS_OCR_HADDRESS+16+32)//hardware address of the DMAC microcode program	    
-
-
-//EEEEEEEHHHHH: El programa +16 alineado a un direccion multiplo de 32B (16+32*0, 16+32*1, 16+32*2, etc.)
-//Las direcciones de src y dst pultiplo en una direccion multiplo del tamaño de la transferencia??? Investigar
-
+#define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	    
+*/
 /*
 //256B transfer from Uncached buffer in Processor RAM to FPGA OCR. DMA microcode program in OCR.
 #define MESSAGE "256B transfer from Uncached buffer in Processor RAM to FPGA. DMA microcode program in HPS OCR.\n"
@@ -139,6 +150,26 @@ static void init_src_dst(char char_val_src, char char_val_dst)
     char_ptr_scr++;
     char_ptr_dst++;
   }
+}
+
+static ALT_STATUS_CODE compare_src_dst()
+{
+  int i;
+  char* char_ptr_scr = (char*) DMA_TRANSFER_SRC_V;
+  char* char_ptr_dst= (char*) DMA_TRANSFER_DST_V;
+  ALT_STATUS_CODE error = ALT_E_SUCCESS;
+  
+  for (i=0; i<DMA_TRANSFER_SIZE; i++)
+  {
+    if ( ioread8(char_ptr_scr) != ioread8(char_ptr_dst))
+    {
+    	error = ALT_E_ERROR;
+	printk("i:%d, src:%u, dst%u\n", i, ioread8(char_ptr_scr), ioread8(char_ptr_dst));
+    }
+    char_ptr_scr++;
+    char_ptr_dst++;
+  }
+  return error;
 }
 
 static void print_dma_program()
@@ -389,6 +420,11 @@ static int __init DMA_PL330_LKM_init(void){
    print_src_dst();
    
    //print_dma_program();//used in debugging
+
+   //Compare destiny and source buffers
+   status = compare_src_dst();
+   if(status == ALT_E_SUCCESS) printk(KERN_INFO "Transfer was successful!\n");
+   else printk(KERN_INFO "ERROR during the transfer!\n");
    
    printk(KERN_INFO "---TRANSFER END----\n ");
    //-------------------//
