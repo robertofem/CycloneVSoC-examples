@@ -17,6 +17,7 @@ To control the cache behaviour there is the macro SWITCH_ON_CACHE.
 This example was programmed modifying the "HPS DMA Example" from Altera (File name: Altera-SoCFPGA-HardwareLib-DMA-CV-GNU.tar).
 Legup functions to configure cache in Cyclone V SoC defined in arm_cache.c were slightly modified. Thats why we created the files arm_cache_modified.h and arm_cache_modified.c. The modification is only in arm_cache.c: 
 * L1_NORMAL_111_11 constant was changed from its original value  0x00007c0e to 0x00017c0e. This change sets S bit in table  descriptors definyng normal memory region attributes, making  normal memory shareable (coherent) for ACP accesses.
+
 alt_dma_modified.c also contains modifications to the original alt_dma.c from hwlib. The changes are:
 * ALT_DMA_CCR_OPT_SC_DEFAULT and ALT_DMA_CCR_OPT_DC_DEFAULT so the DMA does cacheable accesses. 
 * Other change is the split of alt_dma_memory_to_memory() into 2 functions alt_dma_memory_to_memory_only_prepare_program() and alt_dma_channel_exec(). This way the program and its execution can run separately. The program can be prepared during initializations only once calling alt_dma_memory_to_memory_only_prepare_program() and transefer time is later reduced just calling alt_dma_channel_exec().
@@ -27,8 +28,8 @@ Compilation
 Open SoC EDS Command Shell, navigate to the folder of the example and type make.
 This programs was tested with Altera SoC EDS v16.1
 The compilation process generates two files:
-    * baremetalapp.bin: to load the baremetal program from u-boot
-    * baremetalapp.bin.img: to load the baremetal program from preloader
+* baremetalapp.bin: to load the baremetal program from u-boot
+* baremetalapp.bin.img: to load the baremetal program from preloader
     
 How to test
 -----------
