@@ -40,7 +40,7 @@
 MODULE_LICENSE("GPL");              ///< The license type -- this affects runtime behavior
 MODULE_AUTHOR("Roberto Fernandez (robertofem@gmail.com)");      ///< The author -- visible when you use modinfo
 MODULE_DESCRIPTION("PL330 DMA Controller basic driver.");  ///< The description -- see modinfo
-MODULE_VERSION("0.1");              ///< The version of the module
+MODULE_VERSION("1.0");              ///< The version of the module
 
 //---------VARIABLES AND CONSTANTS FOR BUFFERS-----------------//
 //Buffers

@@ -11,7 +11,8 @@
 **tmp_versions/**
 
 #baremetal
-**.axf** 
+**/Baremetal/**.axf** 
+**/Baremetal/**.o
 
 #Quartus II files
 **/FPGA_Hardware/**/.qsys_edit/**
