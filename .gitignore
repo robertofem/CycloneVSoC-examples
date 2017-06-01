@@ -1,4 +1,4 @@
-#Intermediate files in c compilation
+#Files after compilation not to be uploaded to the repository
 
 #modules
 **.o 
@@ -12,3 +12,24 @@
 
 #baremetal
 **.axf** 
+
+#Quartus II files
+**/FPGA_Hardware/**/.qsys_edit/**
+**/FPGA_Hardware/**/db/**
+**/FPGA_Hardware/**/incremental_db/**
+**/FPGA_Hardware/**/soc_system/**
+**/FPGA_Hardware/**/**/*.txt
+**/FPGA_Hardware/**/**/*.rpt
+**/FPGA_Hardware/**/**/*.csv
+**/FPGA_Hardware/**/**/*.done
+**/FPGA_Hardware/**/**/*.smsg
+**/FPGA_Hardware/**/**/*.summary
+**/FPGA_Hardware/**/**/*.pin
+**/FPGA_Hardware/**/**/*.jdi
+**/FPGA_Hardware/**/**/*.sopcinfo
+**/FPGA_Hardware/**/**/*.sld
+**/FPGA_Hardware/**/**/*.qws
+**/FPGA_Hardware/**/**/*.sof
+**/FPGA_Hardware/**/**/*.rbf
+**/FPGA_Hardware/**/**/*.cdf
+**/FPGA_Hardware/**/**/*.stp
