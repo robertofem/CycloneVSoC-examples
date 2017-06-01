@@ -53,6 +53,15 @@
 * 0x00007c0e to 0x00017c0e. This change sets S bit in table 
 * descriptors definyng normal memory region attributes, making 
 * normal memory shareable (coherent) for ACP accesses.
+* alt_dma_modified.c also contains modifications to the original 
+* alt_dma.c from hwlib. The changes are changes in macros 
+* ALT_DMA_CCR_OPT_SC_DEFAULT and ALT_DMA_CCR_OPT_DC_DEFAULT so the DMA
+* does cacheable accesses. Othe change is the split of  
+* alt_dma_memory_to_memory() into 2 functions 
+* alt_dma_memory_to_memory_only_prepare_program() and alt_dma_channel_exec().
+* This way the program and its execution can run separately. The program can
+* be prepare during initializations only once and its execution time is later 
+* reduced when doing the transfer. 
 ******************************************************************************/
 #ifndef soc_cv_av
     #define soc_cv_av
