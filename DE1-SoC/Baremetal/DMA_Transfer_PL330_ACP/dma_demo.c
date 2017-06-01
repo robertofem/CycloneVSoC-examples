@@ -61,7 +61,7 @@
 * alt_dma_memory_to_memory_only_prepare_program() and alt_dma_channel_exec().
 * This way the program and its execution can run separately. The program can
 * be prepare during initializations only once and its execution time is later 
-* reduced when doing the transfer. 
+* reduced when doing the transfer.
 ******************************************************************************/
 #ifndef soc_cv_av
     #define soc_cv_av
@@ -83,24 +83,33 @@
 #include "arm_cache_modified.h" //to use modified Legup cache config functions
 
 /******************MACROS TO CONTROL THE BEHAVIOUR OF THE EXAMPLE*************/
-#define USE_FPGA 
-#define SWITCH_ON_CACHE
+//#define USE_FPGA    //uncomment to copy to FPGA
+#define SWITCH_ON_CACHE //uncomment to switch on cache and use ACP
 
-#define DMA_TRANSFER_SIZE  32 //DMA transfer size in Bytes
-//when cache on add 0x8000000 to processor address to access through acp 
+#define DMA_TRANSFER_SIZE  4 //DMA transfer size in Bytes
+//when cache on add 0x8000000 to processor address to access processor RAM
+//through acp from L3 with DMAC
 #ifdef SWITCH_ON_CACHE //cache is on
-    #define DMA_TRANSFER_SRC ((uint8_t*)&Read_Buffer[0] + 0x80000000)
+    #define DMA_TRANSFER_SRC_DMAC   ((uint8_t*)&Read_Buffer[0] + 0x80000000) //_DMAC: address for DMAC
+    #define DMA_TRANSFER_SRC_UP     ((uint8_t*)&Read_Buffer[0]) //_UP: address for processor
     #ifdef USE_FPGA 
-        #define DMA_TRANSFER_DST ((uint8_t*)0xC000000) //beginning of HPS-FPGA bridge
+        #define DMA_TRANSFER_DST_DMAC   ((uint8_t*)0xC0000000) //beginning of HPS-FPGA bridge
+        #define DMA_TRANSFER_DST_UP     ((uint8_t*)0xC0000000)
     #else
-        #define DMA_TRANSFER_DST ((uint8_t*) &Write_Buffer[0] + 0x80000000)
+        #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) &Write_Buffer[0] + 0x80000000)
+        #define DMA_TRANSFER_DST_UP     ((uint8_t*) &Write_Buffer[0])
     #endif
-#else //cache is off
-     #define DMA_TRANSFER_SRC ((uint8_t*)&Read_Buffer[0])
+#else 
+    //cache is off. address to be used by DMAC are same as processor 
+    //so direct access  to RAM from L3(ACP not used)
+    #define DMA_TRANSFER_SRC_DMAC ((uint8_t*)&Read_Buffer[0])
+    #define DMA_TRANSFER_SRC_UP ((uint8_t*)&Read_Buffer[0])
     #ifdef USE_FPGA 
-        #define DMA_TRANSFER_DST ((uint8_t*)0xC0000000) //beginning of HPS-FPGA bridge
+        #define DMA_TRANSFER_DST_DMAC   ((uint8_t*)0xC0000000)
+        #define DMA_TRANSFER_DST_UP     ((uint8_t*)0xC0000000) 
     #else
-        #define DMA_TRANSFER_DST ((uint8_t*) &Write_Buffer[0])
+        #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) &Write_Buffer[0])
+        #define DMA_TRANSFER_DST_UP     ((uint8_t*) &Write_Buffer[0])
     #endif
 #endif
 
@@ -181,9 +190,7 @@ int main(void)
 	//To store the DMA microcode in HPS On-Chip RAM uncomment the next line
     ALT_DMA_PROGRAM_t* program_ptr = (ALT_DMA_PROGRAM_t*) 0xFFFF0000; 
 	uint8_t Read_Buffer[DMA_TRANSFER_SIZE]; //Source buffer for DMA transfer
-    #ifdef USE_FPGA
-    uint8_t* Write_Buffer = (uint8_t*) 0xC0000000;
-    #else
+    #ifndef USE_FPGA
     uint8_t Write_Buffer[DMA_TRANSFER_SIZE]; //Destiny buffer for DMA transfer
     #endif                                   //when #USE_FPGA is not defined
     
@@ -193,10 +200,10 @@ int main(void)
 	printf("INFO: Initializing data in transfer buffers\n\r");
 	for(int i = 0; i < DMA_TRANSFER_SIZE; i++)
 	{
-		Read_Buffer[i] = (uint8_t)rand();
-		Write_Buffer[i] = (uint8_t)rand();
+		DMA_TRANSFER_DST_UP[i] = (uint8_t)rand();
+		DMA_TRANSFER_SRC_UP[i] = (uint8_t)rand();
 	}
-    print_src_dst(Read_Buffer, Write_Buffer, DMA_TRANSFER_SIZE);
+    print_src_dst(DMA_TRANSFER_DST_UP, DMA_TRANSFER_SRC_UP, DMA_TRANSFER_SIZE);
     
     //--Allocate a DMA channel and do the transfer--//
     printf("INFO: Allocating DMA channel.\n\r");
@@ -210,9 +217,9 @@ int main(void)
     
     //--Copy source buffer to destination buffer--//
 	printf("INFO: Copying from 0x%08x to 0x%08x size = %d bytes.\n\r", 
-    (int)DMA_TRANSFER_SRC, (int)DMA_TRANSFER_DST, (int)DMA_TRANSFER_SIZE);
+    (int)DMA_TRANSFER_SRC_DMAC, (int)DMA_TRANSFER_DST_DMAC, (int)DMA_TRANSFER_SIZE);
 	status = alt_dma_memory_to_memory(Dma_Channel, program_ptr, 
-    DMA_TRANSFER_DST, DMA_TRANSFER_SRC, DMA_TRANSFER_SIZE, false, (ALT_DMA_EVENT_t)0);
+    DMA_TRANSFER_DST_DMAC, DMA_TRANSFER_SRC_DMAC, DMA_TRANSFER_SIZE, false, (ALT_DMA_EVENT_t)0);
 	// Wait for transfer to complete
 	if (status == ALT_E_SUCCESS)
 	{
@@ -231,8 +238,8 @@ int main(void)
 	}
     
     //-- Print and compare results--//
-    print_src_dst(Read_Buffer, Write_Buffer, DMA_TRANSFER_SIZE);
-	if(0  != memcmp(DMA_TRANSFER_SRC, DMA_TRANSFER_DST, DMA_TRANSFER_SIZE))
+    print_src_dst(DMA_TRANSFER_DST_UP, DMA_TRANSFER_SRC_UP, DMA_TRANSFER_SIZE);
+	if(0  != memcmp(DMA_TRANSFER_SRC_UP, DMA_TRANSFER_DST_UP, DMA_TRANSFER_SIZE))
 	{
         printf("INFO: DMA Transfer failed!\n\r");
 	}
