@@ -3,7 +3,7 @@
 * Author: Roberto Fernandez Molanes (robertofem@gmail.com)
 * University of Vigo
 *
-* 31 May 2016
+* 31 May 2017
 *
 * This is a complete example on moving data using the HPS DMAC PL330. 
 * This example also shows how to switch on the cache memories L1 and L2

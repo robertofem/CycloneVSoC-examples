@@ -31,7 +31,7 @@ Steps to build the SD card
 	*  "u-boot.img" in partition 1 as next step in the boot process when using U-boot in the boot process. In the current folder a preloader with these characteristics is provided in this folder with the name preloader-mkpimage_baremetal_watchdogOFF.bin. When generating the preloader specify:
 
 * Create U-boot (only needed when using u-boot during boot process): compile U-boot as explained in www.rocketboards.com. For more information visit the u-boot website: http://www.denx.de/wiki/U-Boot/WebHome. The output of the compilation is "u-boot.img." Save it in partition 1. We provide "u-boot.img" in this folder.
-* Create U-boot script (only needed when using u-boot during boot process): First create a u-boot script in human readable form describing the U-boot console instructions that should be executed by the u-boot. We do this in a file named u-boot.script. We configure the FPGA with a file named "soc_system.rbf", enable bridges between FPGA and HPS, copy the baremetal app described in a file called "baremetalapp.bin" and the jump the processor to the address where the baremetal app starts. This script file is compiled into a u-boot.src (visit www. rocketboards.com) and copied in partition 1. We provide both u-boot.src and u-boot.script in this folder. Copy this file in partition 1.
+* Create U-boot script (only needed when using u-boot during boot process): First create a u-boot script in human readable form describing the U-boot console instructions that should be executed by the u-boot. We do this in a file named u-boot.script. We configure the FPGA with a file named "soc_system.rbf", enable bridges between FPGA and HPS, copy the baremetal app described in a file called "baremetalapp.bin" and the jump the processor to the address where the baremetal app starts. This script file is compiled into a u-boot.src (visit www. rocketboards.com) and copied in partition 1. We provide both u-boot.src and u-boot.script in this folder.
 * Create FPGA bitstream (only needed when using u-boot during boot process): The typical Quartus compilation outputs a .sof file with the FPGA hardware. To load it from the SD card we first need to convert the .sof file into .rbf file. This is done in Quartus->File->Convert Programming Files. The output should be called soc_system.rbf" to match the name used u-boot script for the FPGA configuration file so the u-boot can find it.
 * Copy "baremetalapp.bin.img" or "baremetalapp.bin" to the partition 1, depending on the boot process selected (with preloader or with u-boot).
 
@@ -40,4 +40,6 @@ How to run
 * Put the SD card in the board.
 * Set the MSEL switches:
 	* into MSEL[5:0]="000000" position when using u-boot so the FPGA can be configured from SD card.
-	* into MSEL[5:0]="110010" position when using preloader so the FPGA can be configured EQCP device or Quartus programmer.
+	* into MSEL[5:0]="110010" position when using only preloader so the FPGA can be configured EPCQ device or Quartus programmer.
+* Connect the board USB UART into the computer and Open a Serial Terminal session (using Putty or other program) at 115200bauds.
+* Switch on the board.

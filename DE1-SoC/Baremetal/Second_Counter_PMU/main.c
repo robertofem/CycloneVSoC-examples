@@ -1,6 +1,18 @@
+/******************************************************************************
+*
+* Author: Roberto Fernandez Molanes (robertofem@gmail.com)
+* University of Vigo
+*
+* 2 June 2017
+*
+* Second Counter implemented with Performance Monitoring Unit (PMU)
+******************************************************************************/
+
 #include <stdio.h>
 #include "pmu.h"
+
 int __auto_semihosting;
+
 int main(void)
 {
     printf("Hello World!!\r\n");
