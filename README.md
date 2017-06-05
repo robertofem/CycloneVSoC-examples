@@ -7,7 +7,9 @@ DE1-SoC
 Contains examples for the Terasic´s DE1-SoC board. Most of them are easily ported to other boards using CycloneV-SoC chips because they do not interact with the hardware in the board. The folder contains:
 
 * Baremetal: Stand-alone projects without Operating System.
-	* Basic_Transfer_DMA_PL330: It transfers a buffer from processors RAM to other buffer in RAM or to a memory in FPGA. It uses the HPS PL330 DMAC and the ALtera´s hwlib library to control it.
+	* Build_Baremetal_SD: This brief tutorial explains how to build a SD card to run the baremetal examples provided in this repository.
+    * Basic_Transfer_DMA_PL330: This is a complete example on moving data using the HPS Direct Memory Access Controller (DMAC) PL330. This example also shows how to switch on the cache memories L1 and L2 and how to configure the ACP port to access cache memories from L3.
+    * This example uses a counter in the Performance Monitoring Unit (PMU) timer to measure seconds and build a second counter.
 
 * FPGA_Hardware: Quartus projects describing the FPGA hardware needed in some of the examples.
 	* FPGA_OCR_256K: this hardware project includes a 256kB On-Chip memory in the FPGA, implemented using 10Mb memory blocks. This memory is hanging at the beginning of the address space of the HPS-to-FPGA bridge.
