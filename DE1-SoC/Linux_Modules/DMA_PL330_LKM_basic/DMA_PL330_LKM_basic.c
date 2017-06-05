@@ -77,7 +77,7 @@ static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 // FPGA-OCR with the start of the HPS-FPGA bridge that is GB aligned so we ensure a
 // problem related to this arises.
 //
-
+/*
 //4B transfer from HPS OCR to HPS OCR. DMA microcode program in OCR.
 #define MESSAGE "4B transfer from HPS OCR to HPS OCR. DMA microcode program in HPS OCR.\n"
 #define DMA_TRANSFER_SIZE   4 //Size of DMA transfer in Bytes
@@ -87,7 +87,7 @@ static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 #define DMA_TRANSFER_SRC_H  HPS_OCR_HADDRESS //hardware address of the source buffer 
 #define DMA_TRANSFER_DST_H  (HPS_OCR_HADDRESS+8)//hardware address of the destiny buffer 
 #define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	    
-
+*/
 /*
 //64B transfer from HPS OCR to FPGA OCR. DMA microcode program in OCR.
 #define MESSAGE "64B transfer from HPS OCR to FPGA OCR. DMA microcode program in HPS OCR.\n"
@@ -100,13 +100,25 @@ static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 #define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	    
 */
 /*
-//256B transfer from Uncached buffer in Processor RAM to FPGA OCR. DMA microcode program in OCR.
+//256B transfer from Uncached buffer in Processor RAM to FPGA OCR.  DMA microcode program in OCR.
 #define MESSAGE "256B transfer from Uncached buffer in Processor RAM to FPGA. DMA microcode program in HPS OCR.\n"
 #define DMA_TRANSFER_SIZE   (256) //Size of DMA transfer in Bytes
 #define DMA_TRANSFER_SRC_V  (non_cached_mem_v)  //virtual address of the source buffer
 #define DMA_TRANSFER_DST_V  fpga_ocr_vaddress //virtual address of the destiny buffer
 #define DMA_PROG_V	    (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
 #define DMA_TRANSFER_SRC_H  non_cached_mem_h//hardware address of the source buffer
+#define DMA_TRANSFER_DST_H  FPGA_OCR_HADDRESS//hardware address of the destiny buffer 
+#define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	    
+*/
+/*
+//32B transfer from Cached buffer in Processor RAM to FPGA OCR using ACP.  DMA microcode program in OCR.
+//To use ACP the hardware address of a buffer in processors RAM must be added 0x80000000
+#define MESSAGE "32B transfer from Cached buffer in Processor RAM to FPGA using ACP. DMA microcode program in HPS OCR.\n"
+#define DMA_TRANSFER_SIZE   (32) //Size of DMA transfer in Bytes
+#define DMA_TRANSFER_SRC_V  (cached_mem_v)  //virtual address of the source buffer
+#define DMA_TRANSFER_DST_V  fpga_ocr_vaddress //virtual address of the destiny buffer
+#define DMA_PROG_V	    (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
+#define DMA_TRANSFER_SRC_H  (cached_mem_h+0x80000000)//hardware address of the source buffer
 #define DMA_TRANSFER_DST_H  FPGA_OCR_HADDRESS//hardware address of the destiny buffer 
 #define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	    
 */
@@ -377,7 +389,7 @@ static int __init DMA_PL330_LKM_init(void){
    init_src_dst(0,0);
    printk(KERN_INFO "Buffers after reset: \n");
    print_src_dst();
-   init_src_dst(2,25);
+   init_src_dst(3,25);
    printk(KERN_INFO "Buffers initialized: \n");
    print_src_dst();
    
