@@ -1,29 +1,12 @@
 /**
- * @file    DMA_PL330_LKM_basic.c
+ * @file    DMA_PL330_LKM.c
  * @author  Roberto Fernandez-Molanes
- * @date    10 April 2017
+ * @date    5 Junio 2017
  * @version 0.1
- * @brief  A basic version of a module that does transfers using the HPS DMA Controller 
+ * @brief  Module to control HPS DMA Controller PL330 from application.
  * PL330. 
  * 
- * In this version only module init and exit functions are implemented. First in 
- * the init function some buffers are mapped using iomap, namely: a 256kB memory in the 
- * FPGA  and  the 64kB in the HPS On-chip RAM. Iomap provides a mapping between 
- * hardware addresses and the virtual addresses used inside the module so this
- * hardware elements can be accessed from within the module code. Later a non cached 
- * buffer in processor memory is allocated using dma_alloc_coherent that provides a
- * DMAable physically contiguous non-cached portion of processor memory. A cached 
- * physically  contiguous cached buffer is allocated with kmalloc(). This buffer can
- * be used in DMA only if the DMAC accesses through ACP accesses coherently to memory. 
- * This example is provided using the HPS on-chip RAM as source and destiny for the 
- * transfers and to store the DMA program. The other buffers are left as example so the 
- * reader can play with the location of buffers and move data from FPGA to processor, 
- * OCR to processor, etc. After memory regions preparation the PL330 is initialized and 
- * a DMA channel is allocated. After that a DMA transfer is done calling to 
- * alt_dma_memory_to_memory() to perform the transfer. 
- * 
- * In the exit function all the mapping and allocation performed in init function is
- * undone to left the OS as it was before the init.
+ * Do the description
  * 
 */
 #include <linux/init.h>             // Macros used to mark up functions e.g., __init __exit
@@ -32,6 +15,7 @@
 #include <asm/io.h>		    // For ioremap and ioread32 and iowrite32
 #include <linux/dma-mapping.h>	    // To use dma_alloc_coherent
 #include <linux/slab.h>		    // To use kmalloc 
+#include <linux/kobject.h>	    // Using kobjects for the sysfs bindings
 
 #include "hwlib_socal_linux.h"
 #include "alt_dma.h"
@@ -39,8 +23,8 @@
 
 MODULE_LICENSE("GPL");              ///< The license type -- this affects runtime behavior
 MODULE_AUTHOR("Roberto Fernandez (robertofem@gmail.com)");      ///< The author -- visible when you use modinfo
-MODULE_DESCRIPTION("PL330 DMA Controller basic driver.");  ///< The description -- see modinfo
-MODULE_VERSION("0.1");              ///< The version of the module
+MODULE_DESCRIPTION("PL330 DMA Controller driver for communication between application and FPGA.");  ///< The description -- see modinfo
+MODULE_VERSION("1.0");              ///< The version of the module
 
 //---------VARIABLES AND CONSTANTS FOR BUFFERS-----------------//
 //Buffers
@@ -61,8 +45,12 @@ static void* cached_mem_v; 	//virtual address, to be used in module
 static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 #define CACHED_MEM_SIZE (2*1024*1024) //Size. Max using kmalloc in Angstrom and CycloneVSoC is 4MB
 
-//--------------VARIABLES TO DEFINE THE TRANSFER-EXAMPLES----------------//
-//
+//---------VARIABLES TO EXPORT USING SYSFS-----------------//
+static void* dma_buff_h = (void*) FPGA_OCR_HADDRESS; //hardware address to use in write and read from application
+static int use_acp = 0; //to use acp (add 0x80000000) when accessing processors RAM
+static int prepare_microcode_in_open = 0;//microcode program is prepared when opening char driver
+
+//-------------VARIABLES TO DO DMA TRANSFER----------------//
 //IMPORTANT!!!!!
 //-The address of the DMA program + 16B must always be aligned to a 32B address.
 // This is because in DMA_PROG_V and DMA_PROG_H addresses we specify the location of an
@@ -76,42 +64,16 @@ static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 // buffers like HPS-OCR or FPGA we must take care of this. In our case we aligned the
 // FPGA-OCR with the start of the HPS-FPGA bridge that is GB aligned so we ensure a
 // problem related to this arises.
-//
-
-//4B transfer from HPS OCR to HPS OCR. DMA microcode program in OCR.
-#define MESSAGE "4B transfer from HPS OCR to HPS OCR. DMA microcode program in HPS OCR.\n"
-#define DMA_TRANSFER_SIZE   4 //Size of DMA transfer in Bytes
-#define DMA_TRANSFER_SRC_V  hps_ocr_vaddress //virtual address of the source buffer
-#define DMA_TRANSFER_DST_V  (hps_ocr_vaddress+8)//virtual address of the destiny buffer
-#define DMA_PROG_V	    (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
-#define DMA_TRANSFER_SRC_H  HPS_OCR_HADDRESS //hardware address of the source buffer 
-#define DMA_TRANSFER_DST_H  (HPS_OCR_HADDRESS+8)//hardware address of the destiny buffer 
-#define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	    
+static size_t dma_transfer_size; //Size of DMA transfer in Bytes
+static void* dma_transfer_src_v;//virtual address of the source buffer
+static void* dma_transfer_dst_v;//virtual address of the destiny buffer
+static void* dma_transfer_src_h;//hardware address of the source buffer 
+static void* dma_transfer_dst_h;//hardware address of the destiny buffer 
+#define DMA_PROG_V (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
+#define DMA_PROG_H (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program
 
 /*
-//64B transfer from HPS OCR to FPGA OCR. DMA microcode program in OCR.
-#define MESSAGE "64B transfer from HPS OCR to FPGA OCR. DMA microcode program in HPS OCR.\n"
-#define DMA_TRANSFER_SIZE   64 //Size of DMA transfer in Bytes
-#define DMA_TRANSFER_SRC_V  (hps_ocr_vaddress+1024) //virtual address of the source buffer
-#define DMA_TRANSFER_DST_V  (fpga_ocr_vaddress)//virtual address of the destiny buffer
-#define DMA_PROG_V	    (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
-#define DMA_TRANSFER_SRC_H  (HPS_OCR_HADDRESS+1024) //hardware address of the source buffer
-#define DMA_TRANSFER_DST_H  (FPGA_OCR_HADDRESS)//hardware address of the destiny buffer 
-#define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	    
-*/
-/*
-//256B transfer from Uncached buffer in Processor RAM to FPGA OCR. DMA microcode program in OCR.
-#define MESSAGE "256B transfer from Uncached buffer in Processor RAM to FPGA. DMA microcode program in HPS OCR.\n"
-#define DMA_TRANSFER_SIZE   (256) //Size of DMA transfer in Bytes
-#define DMA_TRANSFER_SRC_V  (non_cached_mem_v)  //virtual address of the source buffer
-#define DMA_TRANSFER_DST_V  fpga_ocr_vaddress //virtual address of the destiny buffer
-#define DMA_PROG_V	    (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
-#define DMA_TRANSFER_SRC_H  non_cached_mem_h//hardware address of the source buffer
-#define DMA_TRANSFER_DST_H  FPGA_OCR_HADDRESS//hardware address of the destiny buffer 
-#define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	    
-*/
-
-//---------------------Extra functions-------------------------//
+//--------------------------Extra functions definition------------------------------//
 static void print_src_dst()
 {
   int i;
@@ -187,7 +149,7 @@ static void print_dma_program()
     }
     printk("\n");
 }
-
+*/
 ALT_STATUS_CODE PL330_init(void)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
@@ -272,6 +234,65 @@ ALT_STATUS_CODE  PL330_uninit(void)
     return status;
 }
 
+static ssize_t dma_buff_h_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                   const char *buf, size_t count){
+  sscanf(buf, "%du", &dma_buff_h);
+  return count;
+}
+
+static ssize_t dma_buff_h_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf){
+   return sprintf(buf, "%d\n", dma_buff_h);
+}
+
+static ssize_t use_acp_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                   const char *buf, size_t count){
+  sscanf(buf, "%du", &use_acp);
+  return count;
+}
+
+static ssize_t use_acp_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf){
+   return sprintf(buf, "%d\n", use_acp);
+}
+
+static ssize_t prepare_microcode_in_open_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                   const char *buf, size_t count){
+  sscanf(buf, "%du", &prepare_microcode_in_open);
+  return count;
+}
+
+static ssize_t prepare_microcode_in_open_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf){
+   return sprintf(buf, "%d\n", prepare_microcode_in_open);
+}
+
+/**  Use these helper macros to define the name and access levels of the kobj_attributes
+ *  The kobj_attribute has an attribute attr (name and mode), show and store function pointers
+ */
+static struct kobj_attribute dma_buff_h_attr = __ATTR(dma_buff_h, 0666, dma_buff_h_show, dma_buff_h_store);
+static struct kobj_attribute use_acp_attr = __ATTR(use_acp, 0666, use_acp_show, use_acp_store);
+static struct kobj_attribute prepare_microcode_in_open_attr = __ATTR(prepare_microcode_in_open, 0666, 
+  prepare_microcode_in_open_show, prepare_microcode_in_open_store);
+
+/**  The pl330_lkm_attrs[] is an array of attributes that is used to create the attribute group below.
+ *  The attr property of the kobj_attribute is used to extract the attribute struct
+ */
+static struct attribute *pl330_lkm_attrs[] = {
+      &dma_buff_h_attr.attr,                  ///< The number of button presses
+      &use_acp_attr.attr,                  ///< Is the LED on or off?
+      &prepare_microcode_in_open_attr.attr, ///< Time of the last button press in HH:MM:SS:NNNNNNNNN
+      NULL,
+};
+ 
+/**  The attribute group uses the attribute array and a name, which is exposed on sysfs -- in this
+ *  case it is gpio115, which is automatically defined in the ebbButton_init() function below
+ *  using the custom kernel parameter that can be passed when the module is loaded.
+ */
+static struct attribute_group attr_group = {
+      .name  = "PL330_LKM_ATTRS",  
+      .attrs = pl330_lkm_attrs,    ///< The attributes array defined just above
+};
+ 
+static struct kobject *pl330_lkm_kobj;
+
 //-----------------LKM init and exit functions----------------//
 /** @brief The LKM initialization function
  *  The static keyword restricts the visibility of the function to within this C file. The __init
@@ -286,6 +307,7 @@ static int __init DMA_PL330_LKM_init(void){
    static ALT_DMA_CHANNEL_t Dma_Channel; //dma channel to be used in transfers
    ALT_DMA_PROGRAM_t* program = (ALT_DMA_PROGRAM_t*) DMA_PROG_V;
    int i;
+   int result = 0;
   
    printk(KERN_INFO "DMA LKM: Initializing module!!\n");
    
@@ -369,6 +391,21 @@ static int __init DMA_PL330_LKM_init(void){
    //get the physical address of this buffer
    cached_mem_h = virt_to_phys((volatile void*) cached_mem_v);
    
+   // create the kobject sysfs entry at /sys/dma_pl330
+   pl330_lkm_kobj = kobject_create_and_add("dma_pl330", kernel_kobj->parent); // kernel_kobj points to /sys/kernel
+   if(!pl330_lkm_kobj){
+      printk(KERN_INFO "DMA LKM:failed to create kobject mapping\n");
+      goto error_kobject_mapping;
+   }
+   // add the attributes to /sys/dma_pl330/ 
+   result = sysfs_create_group(pl330_lkm_kobj, &attr_group);
+   if(result) {
+      printk(KERN_INFO "DMA LKM:failed to create sysfs group\n");
+      goto error_kobject_group;
+   }
+   
+   
+  /* 
    //-----DMA TRANSFER------//
    printk(KERN_INFO "\n---TRANSFER----\n ");
    printk(KERN_INFO MESSAGE);printk("\n");
@@ -377,7 +414,7 @@ static int __init DMA_PL330_LKM_init(void){
    init_src_dst(0,0);
    printk(KERN_INFO "Buffers after reset: \n");
    print_src_dst();
-   init_src_dst(2,25);
+   init_src_dst(3,25);
    printk(KERN_INFO "Buffers initialized: \n");
    print_src_dst();
    
@@ -428,12 +465,15 @@ static int __init DMA_PL330_LKM_init(void){
    
    printk(KERN_INFO "---TRANSFER END----\n ");
    //-------------------//
-   
+   */
+  
    //End of module init
    printk(KERN_INFO "DMA LKM: Module initialization successful!!\n");
    return 0;
-   
-error_dma_transfer:
+
+error_kobject_group:
+  kobject_put(pl330_lkm_kobj);   
+error_kobject_mapping:
   kfree(cached_mem_v);
 error_kmalloc:
   dma_free_coherent(NULL, (NON_CACHED_MEM_SIZE), non_cached_mem_v, non_cached_mem_h);
@@ -452,6 +492,7 @@ error_PL330_init:
  */
 static void __exit DMA_PL330_LKM_exit(void){
    printk(KERN_INFO "DMA LKM: Exiting module!!\n");
+   kobject_put(pl330_lkm_kobj); 
    kfree(cached_mem_v);
    dma_free_coherent(NULL, (NON_CACHED_MEM_SIZE), non_cached_mem_v, non_cached_mem_h);
    iounmap(hps_ocr_vaddress);

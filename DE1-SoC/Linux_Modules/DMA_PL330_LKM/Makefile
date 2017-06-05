@@ -1,7 +1,7 @@
 #Name of the module
-obj-m := DMA_PL330_basic.o
+obj-m := DMA_PL330.o
 #Files composing the module
-DMA_PL330_basic-objs :=  DMA_PL330_LKM_basic.o alt_dma.o alt_dma_program.o 
+DMA_PL330-objs :=  DMA_PL330_LKM.o alt_dma.o alt_dma_program.o 
 
 #guest architecture
 ARCH := arm
