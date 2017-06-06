@@ -62,18 +62,18 @@ static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 // buffers like HPS-OCR or FPGA we must take care of this. In our case we aligned the
 // FPGA-OCR with the start of the HPS-FPGA bridge that is GB aligned so we ensure a
 // problem related to this arises.
-static size_t dma_transfer_size; //Size of DMA transfer in Bytes
-static void* dma_transfer_src_v;//virtual address of the source buffer
-static void* dma_transfer_dst_v;//virtual address of the destiny buffer
-static void* dma_transfer_src_h;//hardware address of the source buffer 
-static void* dma_transfer_dst_h;//hardware address of the destiny buffer 
-#define DMA_PROG_V (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
-#define DMA_PROG_H (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program
+#define DMA_PROG_WR_V (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
+#define DMA_PROG_WR_H (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program
+#define DMA_PROG_RD_V (hps_ocr_vaddress+256+16)//virtual address of the DMAC microcode program
+#define DMA_PROG_RD_H (HPS_OCR_HADDRESS+256+16)//hardware address of the DMAC microcode program
+static ALT_DMA_CHANNEL_t Dma_Channel; //dma channel to be used in transfers
 
 //---------VARIABLES TO EXPORT USING SYSFS-----------------//
-static void* dma_buff_padd = (void*) FPGA_OCR_HADDRESS; //physical address of buff to use in write and read from application
 static int use_acp = 0; //to use acp (add 0x80000000) when accessing processors RAM
 static int prepare_microcode_in_open = 0;//microcode program is prepared when opening char driver
+//when prepare_microcode_in_open the following vars are used to prepare DMA microcodes in open() func
+static void* dma_buff_padd = (void*) FPGA_OCR_HADDRESS; //physical address of buff to use in write and read from application
+static int dma_transfer_size = 0; //transfer size in Bytes of the DMA transaction
 
 //------VARIABLES TO IMPLEMENT THE CHAR DEVICE DRIVER INTERFACE--------//
 #define  DEVICE_NAME "dma_pl330"    ///< The device will appear at /dev/dma_ch0 using this value
@@ -216,6 +216,16 @@ static ssize_t prepare_microcode_in_open_show(struct kobject *kobj, struct kobj_
    return sprintf(buf, "%d\n", prepare_microcode_in_open);
 }
 
+static ssize_t dma_transfer_size_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                   const char *buf, size_t count){
+  sscanf(buf, "%du", &dma_transfer_size);
+  return count;
+}
+
+static ssize_t dma_transfer_size_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf){
+   return sprintf(buf, "%d\n", dma_transfer_size);
+}
+
 /**  Use these helper macros to define the name and access levels of the kobj_attributes
  *  The kobj_attribute has an attribute attr (name and mode), show and store function pointers
  */
@@ -223,6 +233,8 @@ static struct kobj_attribute dma_buff_padd_attr = __ATTR(dma_buff_padd, 0666, dm
 static struct kobj_attribute use_acp_attr = __ATTR(use_acp, 0666, use_acp_show, use_acp_store);
 static struct kobj_attribute prepare_microcode_in_open_attr = __ATTR(prepare_microcode_in_open, 0666, 
   prepare_microcode_in_open_show, prepare_microcode_in_open_store);
+static struct kobj_attribute dma_transfer_size_attr = __ATTR(dma_transfer_size, 0666, 
+  dma_transfer_size_show, dma_transfer_size_store);
 
 /**  The pl330_lkm_attrs[] is an array of attributes that is used to create the attribute group below.
  *  The attr property of the kobj_attribute is used to extract the attribute struct
@@ -247,14 +259,58 @@ static struct kobject *pl330_lkm_kobj;
 
 
 //-----------------LKM CHAR DEVICE DRIVER INTERFACE FUNCTIONS---------------//
+
 /** @brief The device open function that is called each time the device is opened
  *  This will only increment the numberOpens counter in this case.
  *  @param inodep A pointer to an inode object (defined in linux/fs.h)
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
 static int dev_open(struct inode *inodep, struct file *filep){
+   void* dma_transfer_src_h;//hardware address of the source buffer 
+   void* dma_transfer_dst_h;//hardware address of the destiny buffer 
+   ALT_STATUS_CODE status;
+
    numberOpens++;
-   printk(KERN_INFO "DMA_ch0: Device has been opened %d time(s)\n", numberOpens);
+   
+   //A good module would get a resource de device cannot be open a second time before closing it
+   
+   if (prepare_microcode_in_open == 1)
+   {
+      //Prepare program for writes (WR)
+      dma_transfer_dst_h = dma_buff_padd; 
+      if (use_acp == 0) //not use use_acp
+	dma_transfer_src_h = (void*) non_cached_mem_h;
+      else //use acp
+	dma_transfer_src_h = (void*)((char*)cached_mem_h + 0x80000000);
+      
+      status = alt_dma_memory_to_memory_only_prepare_program(
+	Dma_Channel, 
+	(ALT_DMA_PROGRAM_t*) DMA_PROG_WR_V, 
+	(ALT_DMA_PROGRAM_t*) DMA_PROG_WR_H,
+	dma_transfer_dst_h,
+	dma_transfer_src_h, 
+	(size_t) dma_transfer_size, 
+	false, 
+	(ALT_DMA_EVENT_t)0);
+      
+      //Prepare program for reads (RD)
+      dma_transfer_src_h = dma_buff_padd; 
+      if (use_acp == 0) //not use use_acp
+	dma_transfer_dst_h = (void*) non_cached_mem_h;
+      else //use acp
+	dma_transfer_dst_h = (void*)((char*)cached_mem_h + 0x80000000);
+      
+      status = alt_dma_memory_to_memory_only_prepare_program(
+	Dma_Channel, 
+	(ALT_DMA_PROGRAM_t*) DMA_PROG_RD_V, 
+	(ALT_DMA_PROGRAM_t*) DMA_PROG_RD_H,
+	dma_transfer_dst_h,
+	dma_transfer_src_h, 
+	(size_t) dma_transfer_size, 
+	false, 
+	(ALT_DMA_EVENT_t)0);
+   }
+   
    return 0;
 }
  
@@ -267,7 +323,74 @@ static int dev_open(struct inode *inodep, struct file *filep){
  *  @param offset The offset if required
  */
 static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
-  printk(KERN_INFO "DMA_ch0: Entered read function\n");
+  ALT_STATUS_CODE status;
+  ALT_DMA_CHANNEL_STATE_t channel_state;
+  ALT_DMA_CHANNEL_FAULT_t fault;
+  int error_count = 0;
+  void* dma_transfer_src_h;//hardware address of the source buffer 
+  void* dma_transfer_dst_h;//hardware address of the destiny buffer 
+  
+  //Copy data from hardware buffer (FPGA) to the application memory
+  if (prepare_microcode_in_open == 1)
+  {
+    //execute the program prepared in the open
+    status = alt_dma_channel_exec(Dma_Channel, (ALT_DMA_PROGRAM_t*) DMA_PROG_RD_H);
+  }
+  else
+  {
+    //generate and execute a new program using the len as size 
+
+    //Prepare program for reads (RD)
+    dma_transfer_src_h = dma_buff_padd; 
+    if (use_acp == 0) //not use use_acp
+      dma_transfer_dst_h = (void*)non_cached_mem_h;
+    else //use acp
+      dma_transfer_dst_h = (void*)((char*)cached_mem_h + 0x80000000);
+    
+    status = alt_dma_memory_to_memory(
+	Dma_Channel, 
+	(ALT_DMA_PROGRAM_t*) DMA_PROG_RD_V, 
+	(ALT_DMA_PROGRAM_t*) DMA_PROG_RD_H,
+	dma_transfer_dst_h,
+	dma_transfer_src_h, 
+	len, 
+	false, 
+	(ALT_DMA_EVENT_t)0);
+  }
+  
+  //Wait for the transfer to be finished
+  channel_state = ALT_DMA_CHANNEL_STATE_EXECUTING;
+   
+  if (status == ALT_E_SUCCESS)
+  {
+    while((status == ALT_E_SUCCESS) && (channel_state != ALT_DMA_CHANNEL_STATE_STOPPED))
+      {
+	status = alt_dma_channel_state_get(Dma_Channel, &channel_state);
+	if(channel_state == ALT_DMA_CHANNEL_STATE_FAULTING)
+	{
+	  alt_dma_channel_fault_status_get(Dma_Channel, &fault);
+	  printk(KERN_INFO "DMA LKM: ERROR! DMA Channel Fault: %d\n", (int)fault);
+	  return ALT_E_ERROR;
+	}
+      }
+   }
+   else
+   {
+     printk(KERN_INFO "DMA LKM: ERROR! DMA Transfer failed!\n");
+     return ALT_E_ERROR;
+   }
+   
+   //Copy the software buffer into user (application) space
+   if (use_acp == 0) //not use use_acp
+      error_count = copy_to_user(buffer, non_cached_mem_v, len);
+   else //use acp
+      error_count = copy_to_user(buffer, cached_mem_v, len);
+   
+   if (error_count!=0){ // if true then have success
+      printk(KERN_INFO "DMA LKM: Failed to send %d characters to the user in read function\n", error_count);
+      return -EFAULT;  // Failed -- return a bad address message (i.e. -14)
+   }
+    
   return 0;
 }
  
@@ -280,14 +403,82 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
  *  @param offset The offset if required
  */
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
-  printk(KERN_INFO "DMA_ch0: Entered write function\n");
+  ALT_STATUS_CODE status;
+  ALT_DMA_CHANNEL_STATE_t channel_state;
+  ALT_DMA_CHANNEL_FAULT_t fault;
+  int error_count = 0;
+  void* dma_transfer_src_h;//hardware address of the source buffer 
+  void* dma_transfer_dst_h;//hardware address of the destiny buffer 
+  
+  //Copy data from user (application) space to a DMAble buffer
+   if (use_acp == 0) //not use use_acp
+      error_count = copy_from_user (non_cached_mem_v, buffer, len);
+   else //use acp
+      error_count = copy_from_user(cached_mem_v, buffer, len);
+  
+   if (error_count!=0){ // if true then have success
+      printk(KERN_INFO "DMA LKM: Failed to copy %d characters from the user in write function\n", error_count);
+      return -EFAULT;  // Failed -- return a bad address message (i.e. -14)
+   }
+  
+  
+  //Copy data from hardware buffer (FPGA) to the application memory
+  if (prepare_microcode_in_open == 1)
+  {
+    //execute the program prepared in the open
+    status = alt_dma_channel_exec(Dma_Channel, (ALT_DMA_PROGRAM_t*) DMA_PROG_WR_H);
+  }
+  else
+  {
+    //generate and execute a new program using the len as size 
+
+    //Prepare program for writes (WR)
+    dma_transfer_dst_h = dma_buff_padd; 
+    if (use_acp == 0) //not use use_acp
+      dma_transfer_src_h = (void*) non_cached_mem_h;
+    else //use acp
+      dma_transfer_src_h = (void*)((char*)cached_mem_h + 0x80000000);
+    
+    status = alt_dma_memory_to_memory(
+	Dma_Channel, 
+	(ALT_DMA_PROGRAM_t*) DMA_PROG_WR_V, 
+	(ALT_DMA_PROGRAM_t*) DMA_PROG_WR_H,
+	dma_transfer_dst_h,
+	dma_transfer_src_h, 
+	len, 
+	false, 
+	(ALT_DMA_EVENT_t)0);
+  }
+  
+  //Wait for the transfer to be finished
+  channel_state = ALT_DMA_CHANNEL_STATE_EXECUTING;
+   
+  if (status == ALT_E_SUCCESS)
+  {
+    while((status == ALT_E_SUCCESS) && (channel_state != ALT_DMA_CHANNEL_STATE_STOPPED))
+      {
+	status = alt_dma_channel_state_get(Dma_Channel, &channel_state);
+	if(channel_state == ALT_DMA_CHANNEL_STATE_FAULTING)
+	{
+	  alt_dma_channel_fault_status_get(Dma_Channel, &fault);
+	  printk(KERN_INFO "DMA LKM: ERROR! DMA Channel Fault: %d\n", (int)fault);
+	  return ALT_E_ERROR;
+	}
+      }
+   }
+   else
+   {
+     printk(KERN_INFO "DMA LKM: ERROR! DMA Transfer failed!\n");
+     return ALT_E_ERROR;
+   }
+  
   return 0;
 }
 /** @brief The device release function that is called whenever the device is closed/released by
  *  the userspace program
  */
 static int dev_release(struct inode *inodep, struct file *filep){
-   printk(KERN_INFO "DMA_ch0:: Device successfully closed\n");
+   //in a decent driver unlock here the driver so the resource is free
    return 0;
 }
 
@@ -300,10 +491,6 @@ static int dev_release(struct inode *inodep, struct file *filep){
  */
 static int __init DMA_PL330_LKM_init(void){
    ALT_STATUS_CODE status;
-   ALT_DMA_CHANNEL_STATE_t channel_state;
-   ALT_DMA_CHANNEL_FAULT_t fault;
-   static ALT_DMA_CHANNEL_t Dma_Channel; //dma channel to be used in transfers
-   ALT_DMA_PROGRAM_t* program = (ALT_DMA_PROGRAM_t*) DMA_PROG_V;
    int i;
    int result = 0;
   
@@ -432,68 +619,6 @@ static int __init DMA_PL330_LKM_init(void){
    printk(KERN_INFO "DMA LKM: device successfully created in node: /dev/\n");
    printk(KERN_INFO DEVICE_NAME);
    printk(KERN_INFO "\n");
-
-  /* 
-   //-----DMA TRANSFER------//
-   printk(KERN_INFO "\n---TRANSFER----\n ");
-   printk(KERN_INFO MESSAGE);printk("\n");
-   printk( "Buffers initial state: \n");
-   print_src_dst();
-   init_src_dst(0,0);
-   printk(KERN_INFO "Buffers after reset: \n");
-   print_src_dst();
-   init_src_dst(3,25);
-   printk(KERN_INFO "Buffers initialized: \n");
-   print_src_dst();
-   
-   //print_dma_program();//used in debugging
-   
-   status = alt_dma_memory_to_memory(
-	Dma_Channel, 
-	(ALT_DMA_PROGRAM_t*) DMA_PROG_V, 
-	(ALT_DMA_PROGRAM_t*) DMA_PROG_H,
-	(void*)DMA_TRANSFER_DST_H, 
-	(void*)DMA_TRANSFER_SRC_H, 
-	DMA_TRANSFER_SIZE, 
-	false, 
-	(ALT_DMA_EVENT_t)0);
-   printk(KERN_INFO "DMA Transfer in progress\n");
-   
-   printk(KERN_INFO "INFO: Waiting for DMA transfer to complete.\n");
-   channel_state = ALT_DMA_CHANNEL_STATE_EXECUTING;
-   
-   if (status == ALT_E_SUCCESS)
-   {
-      while((status == ALT_E_SUCCESS) && (channel_state != ALT_DMA_CHANNEL_STATE_STOPPED))
-      {
-	  status = alt_dma_channel_state_get(Dma_Channel, &channel_state);
-	  if(channel_state == ALT_DMA_CHANNEL_STATE_FAULTING)
-	  {
-	    alt_dma_channel_fault_status_get(Dma_Channel, &fault);
-	    printk(KERN_INFO "ERROR: DMA Channel Fault: %d\n", (int)fault);
-	    status = ALT_E_ERROR;
-	  }
-      }
-   }
-   else
-   {
-     printk(KERN_INFO "ERROR: DMA Transfer failed!\n");
-     goto error_dma_transfer;
-   }
-        
-   printk(KERN_INFO "Buffers after transfer:\n");
-   print_src_dst();
-   
-   //print_dma_program();//used in debugging
-
-   //Compare destiny and source buffers
-   status = compare_src_dst();
-   if(status == ALT_E_SUCCESS) printk(KERN_INFO "Transfer was successful!\n");
-   else printk(KERN_INFO "ERROR during the transfer!\n");
-   
-   printk(KERN_INFO "---TRANSFER END----\n ");
-   //-------------------//
-   */
   
    //End of module init
    printk(KERN_INFO "DMA LKM: Module initialization successful!!\n");

@@ -821,6 +821,54 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
                                          ALT_DMA_EVENT_t evt);
 
 /*!
+ * Prepares a program to asynchronously copy the specified memory from the
+ * given source address to the given destination address.
+ * calling this function and alt_dma_channel_exec() later is the same
+ * as callin alt_dma_memory_to_memory()
+ *
+ * Overlapping memory regions are not supported.
+ *
+ * \param       channel
+ *              The DMA channel thread to use for the transfer.
+ *
+ * \param       program
+ *              An allocated DMA program buffer to use for the life of the
+ *              transfer.
+ *
+ * \param       dest
+ *              The destination memory address to copy to.
+ *
+ * \param       src
+ *              The source memory address to copy from.
+ *
+ * \param       size
+ *              The size of the transfer in bytes.
+ *
+ * \param       send_evt
+ *              If set to true, the DMA engine will be instructed to send an
+ *              event upon completion or fault.
+ *
+ * \param       evt
+ *              If send_evt is true, the event specified will be sent.
+ *              Otherwise the parameter is ignored.
+ *
+ * \retval      ALT_E_SUCCESS   The operation was successful.
+ * \retval      ALT_E_ERROR     The operation failed.
+ * \retval      ALT_E_BAD_ARG   The given channel or event identifier (if
+ *                              used) is invalid, or the memory regions
+ *                              specified are overlapping.
+ */
+
+ALT_STATUS_CODE alt_dma_memory_to_memory_only_prepare_program(ALT_DMA_CHANNEL_t channel,
+                                         ALT_DMA_PROGRAM_t * programv, //virtual address of DMAC microcode program (to be used in kernel space)
+					 ALT_DMA_PROGRAM_t * programh, //hardware address, to be used by the DMAC to find the program
+                                         void * dest,
+                                         const void * src,
+                                         size_t size,
+                                         bool send_evt,
+                                         ALT_DMA_EVENT_t evt);
+
+/*!
  * Uses the DMA engine to asynchronously zero out the specified memory buffer.
  *
  * \param       channel

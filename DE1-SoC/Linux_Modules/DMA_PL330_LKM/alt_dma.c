@@ -93,7 +93,8 @@
  *
  * Macros which have a channel parameter does no validation.
  * */
-
+//--------------------------------------------------------------//
+//MODIFICATIONS TO ORIGINAL ALT_DMA.C FROM HWLIB
 //--------------------------------------------------------------//
 //In Linux Module we need virtual addresses for the component
 //We make it visible here with extern keyword. We do iomap in PL330-functions.CAUTION
@@ -116,6 +117,12 @@ static void* sysmgr_vaddress;
 #define ALT_DMASECURE_ADDR	pl330_vaddress 
 #define ALT_RSTMGR_ADDR		rstmgr_vaddress 
 #define ALT_SYSMGR_ADDR 	sysmgr_vaddress
+//--------------------------------------------------------------//
+//1. The fuction alt_dma_memory_to_memory_only_prepare_program() is added to the 
+//file. This function is the same as alt_dma_memory_to_memory without calling 
+//alt_dma_channel_exec in the last line of the function. This permits to separate 
+//preparation and execution of the DMA program, saving time in case the program
+//can be prepared before the transfer is to be done.
 //--------------------------------------------------------------//
 
 //#if defined(soc_a10)
@@ -1705,6 +1712,209 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
     return alt_dma_channel_exec(channel, programh);
 }
 
+ALT_STATUS_CODE alt_dma_memory_to_memory_only_prepare_program(ALT_DMA_CHANNEL_t channel,
+                                         ALT_DMA_PROGRAM_t * programv, //virtual address of DMAC microcode program (to be used in kernel space)
+					 ALT_DMA_PROGRAM_t * programh, //hardware address, to be used by the DMAC to find the program
+                                         void * dst,
+                                         const void * src,
+                                         size_t size,
+                                         bool send_evt,
+                                         ALT_DMA_EVENT_t evt)
+{
+    ALT_STATUS_CODE status = ALT_E_SUCCESS;
+
+    // If the size is zero, and no event is requested, just return success.//
+    if ((size == 0) && (send_evt == false))
+    {
+        return ALT_E_SUCCESS;
+    }
+
+    if (status == ALT_E_SUCCESS)
+    {
+        status = alt_dma_program_init(programv);
+    }
+
+   
+    /*  
+    if (size != 0)
+    {
+        ALT_MMU_VA_TO_PA_COALESCE_t coalesce_dst;
+        ALT_MMU_VA_TO_PA_COALESCE_t coalesce_src;
+        uintptr_t segpa_dst   = 0;
+        uintptr_t segpa_src   = 0;
+        uint32_t  segsize_dst = 0;
+        uint32_t  segsize_src = 0;
+
+        dprintf("DMA[M->M]: dst  = %p.\n",   dst);
+        dprintf("DMA[M->M]: src  = %p.\n",   src);
+        dprintf("DMA[M->M]: size = 0x%x.\n", size);
+
+        // Detect if memory regions overshoots the address space.
+         // This error checking is handled by the coalescing API. //
+
+        // Detect if memory regions overlaps. //
+	
+        if ((uintptr_t)dst > (uintptr_t)src)
+        {
+            if ((uintptr_t)src + size - 1 > (uintptr_t)dst)
+            {
+                return ALT_E_BAD_ARG;
+            }
+        }
+        else
+        {
+            if ((uintptr_t)dst + size - 1 > (uintptr_t)src)
+            {
+                return ALT_E_BAD_ARG;
+            }
+        }
+	
+	
+        //
+         // Attempt to coalesce and make the transfer.
+        ///
+
+        if (status == ALT_E_SUCCESS)
+        {
+            status = alt_mmu_va_to_pa_coalesce_begin(&coalesce_dst, dst, size);
+        }
+
+        if (status == ALT_E_SUCCESS)
+        {
+            status = alt_mmu_va_to_pa_coalesce_begin(&coalesce_src, src, size);
+        }
+	
+        while (size)
+        {
+            uint32_t segsize;
+            if (status != ALT_E_SUCCESS)
+            {
+                break;
+            }
+
+            ///
+             // If any of dst or src segments has been completed (or not started), determine its
+             // next segment.
+             //
+
+            if ((status == ALT_E_SUCCESS) && (segsize_dst == 0))
+            {
+                status = alt_mmu_va_to_pa_coalesce_next(&coalesce_dst, &segpa_dst, &segsize_dst);
+
+                //dprintf("DMA[M->M]: Next dst segment: PA = 0x%x, size = 0x%" PRIx32 ".\n", segpa_dst, segsize_dst);
+		dprintf("DMA[M->M]: Next dst segment: PA = 0x%x, size = 0x% .\n", segpa_dst, segsize_dst);
+	      
+	    }
+
+            if ((status == ALT_E_SUCCESS) && (segsize_src == 0))
+            {
+                status = alt_mmu_va_to_pa_coalesce_next(&coalesce_src, &segpa_src, &segsize_src);
+
+                //dprintf("DMA[M->M]: Next src segment: PA = 0x%x, size = 0x%" PRIx32 ".\n", segpa_src, segsize_src);
+		dprintf("DMA[M->M]: Next src segment: PA = 0x%x, size = 0x% .\n", segpa_src, segsize_src);
+            }
+
+            //
+             //Determine the largest segment to safely transfer next.
+             ///
+
+            // This is the largest segment that can safely be transfered considering both dst and
+             // src segmentation. Typically dst or src or both segment(s) will complete.//
+            segsize = ALT_MIN(segsize_dst, segsize_src);
+
+            
+             // Transfer the largest safe segment.
+             
+
+            if (status == ALT_E_SUCCESS)
+            {
+                //dprintf("DMA[M->M]: Transfering safe size = 0x%" PRIx32 ".\n", segsize);
+		dprintf("DMA[M->M]: Transfering safe size = 0x% .\n", segsize);
+*/
+	
+                //status = alt_dma_memory_to_memory_segment(program, segpa_dst, segpa_src, segsize);
+                ////////-------program the transfer--------------------------///
+                //We did investigations in the baremetal programs and they transfer all at once always
+                //Even when transferring 2MB. Therefore we know the transfer can be done at once.
+                //If we comment all this code we delete the dependency with mmu files.
+                status = alt_dma_memory_to_memory_segment(programv, (uintptr_t) dst, (uintptr_t) src, size);
+                ///////------------------------------------------------------///
+ /*           }
+
+            //
+             // Update some bookkeeping.
+             ///
+
+            segsize_dst -= segsize;
+            segsize_src -= segsize;
+
+            if (segsize_dst)
+            {
+                segpa_dst += segsize;
+
+                //dprintf("DMA[M->M]: Updated dst segment: PA = 0x%x, size = 0x%" PRIx32 ".\n", segpa_dst, segsize_dst);
+		dprintf("DMA[M->M]: Updated dst segment: PA = 0x%x, size = 0x% .\n", segpa_dst, segsize_dst);
+            }
+
+            if (segsize_src)
+            {
+                segpa_src += segsize;
+
+                //dprintf("DMA[M->M]: Updated src segment: PA = 0x%x, size = 0x%" PRIx32 ".\n", segpa_src, segsize_src);
+		dprintf("DMA[M->M]: Updated src segment: PA = 0x%x, size = 0x% .\n", segpa_src, segsize_src);
+            }
+
+            // Use ALT_MIN() to assuredly prevent infinite loop. If either the dst or src has not yet
+             // completed, coalesce_end() will catch that logical error. /
+            size -= ALT_MIN(segsize, size);
+        }
+
+        if (status == ALT_E_SUCCESS)
+        {
+            status = alt_mmu_va_to_pa_coalesce_end(&coalesce_dst);
+        }
+
+        if (status == ALT_E_SUCCESS)
+        {
+            status = alt_mmu_va_to_pa_coalesce_end(&coalesce_src);
+        }
+
+    } // if (size != 0) //
+*/
+    // Send event if requested. /
+    if (send_evt)
+    {
+        if (status == ALT_E_SUCCESS)
+        {
+            status = alt_dma_program_DMAWMB(programv);
+        }
+
+        if (status == ALT_E_SUCCESS)
+        {
+            dprintf("DMA[M->M]: Adding event ...\n");
+            status = alt_dma_program_DMASEV(programv, evt);
+        }
+    }
+
+    // Now that everything is done, end the program. //
+    if (status == ALT_E_SUCCESS)
+    {
+        status = alt_dma_program_DMAEND(programv);
+    }
+
+    // If there was a problem assembling the program, clean up the buffer and exit. //
+    if (status != ALT_E_SUCCESS)
+    {
+        // Do not report the status for the clear operation. A failure should be
+        // reported regardless of if the clear is successful. //
+	printk("Clear the program\n");
+        alt_dma_program_clear(programv);
+        return status;
+    }
+
+    // Dont execute the program, just leave the application
+    return ALT_E_SUCCESS;
+}
 
 /*static ALT_STATUS_CODE alt_dma_zero_to_memory_segment(ALT_DMA_PROGRAM_t * program,
                                                       uintptr_t segbufpa,
