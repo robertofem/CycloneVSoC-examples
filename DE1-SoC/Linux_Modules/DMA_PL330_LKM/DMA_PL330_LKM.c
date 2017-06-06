@@ -16,6 +16,9 @@
 #include <linux/dma-mapping.h>	    // To use dma_alloc_coherent
 #include <linux/slab.h>		    // To use kmalloc 
 #include <linux/kobject.h>	    // Using kobjects for the sysfs bindings
+#include <linux/device.h>           // Header to support the kernel Driver Model
+#include <linux/fs.h>             // Header for the Linux file system support
+#include <asm/uaccess.h>          // Required for the copy to user function
 
 #include "hwlib_socal_linux.h"
 #include "alt_dma.h"
@@ -45,11 +48,6 @@ static void* cached_mem_v; 	//virtual address, to be used in module
 static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 #define CACHED_MEM_SIZE (2*1024*1024) //Size. Max using kmalloc in Angstrom and CycloneVSoC is 4MB
 
-//---------VARIABLES TO EXPORT USING SYSFS-----------------//
-static void* dma_buff_h = (void*) FPGA_OCR_HADDRESS; //hardware address to use in write and read from application
-static int use_acp = 0; //to use acp (add 0x80000000) when accessing processors RAM
-static int prepare_microcode_in_open = 0;//microcode program is prepared when opening char driver
-
 //-------------VARIABLES TO DO DMA TRANSFER----------------//
 //IMPORTANT!!!!!
 //-The address of the DMA program + 16B must always be aligned to a 32B address.
@@ -72,84 +70,33 @@ static void* dma_transfer_dst_h;//hardware address of the destiny buffer
 #define DMA_PROG_V (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
 #define DMA_PROG_H (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program
 
-/*
-//--------------------------Extra functions definition------------------------------//
-static void print_src_dst()
-{
-  int i;
-  char* char_ptr_scr = (char*) DMA_TRANSFER_SRC_V;
-  char* char_ptr_dst= (char*) DMA_TRANSFER_DST_V;
-  
-  printk( "Source=[");
-  for (i=0; i<DMA_TRANSFER_SIZE; i++)
-  {
-    printk( "%u", ioread8(char_ptr_scr));
-    char_ptr_scr++;
-    if (i<(DMA_TRANSFER_SIZE-1)) printk(",");
-  }
-  printk("]\n");
-  
-  printk( "Destiny=[");
-  for (i=0; i<DMA_TRANSFER_SIZE; i++)
-  {
-    printk("%u", ioread8(char_ptr_dst));
-    char_ptr_dst++;
-    if (i<(DMA_TRANSFER_SIZE-1)) printk(",");
-  }
-  printk( "]\n");
-}
+//---------VARIABLES TO EXPORT USING SYSFS-----------------//
+static void* dma_buff_padd = (void*) FPGA_OCR_HADDRESS; //physical address of buff to use in write and read from application
+static int use_acp = 0; //to use acp (add 0x80000000) when accessing processors RAM
+static int prepare_microcode_in_open = 0;//microcode program is prepared when opening char driver
 
-static void init_src_dst(char char_val_src, char char_val_dst)
+//------VARIABLES TO IMPLEMENT THE CHAR DEVICE DRIVER INTERFACE--------//
+#define  DEVICE_NAME "dma_pl330"    ///< The device will appear at /dev/dma_ch0 using this value
+#define  CLASS_NAME  "dma_class"        ///< The device class -- this is a character device driver
+static int    majorNumber;                  ///< Stores the device number -- determined automatically
+static int    numberOpens = 0;              ///< Counts the number of times the device is opened
+static struct class*  dma_Class  = NULL; ///< The device-driver class struct pointer
+static struct device* dma_Device = NULL; ///< The device-driver device struct pointer
+//The prototype functions for the character driver -- must come before the struct definition
+static int     dev_open(struct inode *, struct file *);
+static int     dev_release(struct inode *, struct file *);
+static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
+static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
+//available operations on char device driver: open, read, write and close
+static struct file_operations fops =
 {
-  int i;
-  char* char_ptr_scr = (char*) DMA_TRANSFER_SRC_V;
-  char* char_ptr_dst= (char*) DMA_TRANSFER_DST_V;
-  
-  for (i=0; i<DMA_TRANSFER_SIZE; i++)
-  {
-    iowrite8(char_val_src,char_ptr_scr);
-    iowrite8(char_val_dst,char_ptr_dst);
-    char_ptr_scr++;
-    char_ptr_dst++;
-  }
-}
+   .open = dev_open,
+   .read = dev_read,
+   .write = dev_write,
+   .release = dev_release,
+};
 
-static ALT_STATUS_CODE compare_src_dst()
-{
-  int i;
-  char* char_ptr_scr = (char*) DMA_TRANSFER_SRC_V;
-  char* char_ptr_dst= (char*) DMA_TRANSFER_DST_V;
-  ALT_STATUS_CODE error = ALT_E_SUCCESS;
-  
-  for (i=0; i<DMA_TRANSFER_SIZE; i++)
-  {
-    if ( ioread8(char_ptr_scr) != ioread8(char_ptr_dst))
-    {
-    	error = ALT_E_ERROR;
-	printk("i:%d, src:%u, dst%u\n", i, ioread8(char_ptr_scr), ioread8(char_ptr_dst));
-    }
-    char_ptr_scr++;
-    char_ptr_dst++;
-  }
-  return error;
-}
-
-static void print_dma_program()
-{
-    int i;
-    char* char_ptr = (char*) DMA_PROG_V;
-    for (i = 0; i < sizeof(ALT_DMA_PROGRAM_t); i++)
-    {
-        
-	printk("%02X ",  ioread8(char_ptr)); // gives 12AB
-        if (i==5) printk(" code_size:");
-        if (i==7) printk(" ");
-        if (i==15) printk(" prog:");
-	char_ptr++;
-    }
-    printk("\n");
-}
-*/
+//-----------------FUNCTIONS TO INITIALIZE DMA-------------------//
 ALT_STATUS_CODE PL330_init(void)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
@@ -234,14 +181,19 @@ ALT_STATUS_CODE  PL330_uninit(void)
     return status;
 }
 
-static ssize_t dma_buff_h_store(struct kobject *kobj, struct kobj_attribute *attr,
+
+//--------------FUNCTIONS AND STRUCTS TO EXPORT SOME VARIABLE WITH SYSFS---------//
+static ssize_t dma_buff_padd_store(struct kobject *kobj, struct kobj_attribute *attr,
                                    const char *buf, size_t count){
-  sscanf(buf, "%du", &dma_buff_h);
+  unsigned int temp;
+  sscanf(buf, "%u", &temp);
+  dma_buff_padd = (void*) temp;
   return count;
 }
 
-static ssize_t dma_buff_h_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf){
-   return sprintf(buf, "%d\n", dma_buff_h);
+static ssize_t dma_buff_padd_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf){
+  unsigned int temp = (unsigned int) dma_buff_padd;
+  return sprintf(buf, "%u\n", temp);
 }
 
 static ssize_t use_acp_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -267,7 +219,7 @@ static ssize_t prepare_microcode_in_open_show(struct kobject *kobj, struct kobj_
 /**  Use these helper macros to define the name and access levels of the kobj_attributes
  *  The kobj_attribute has an attribute attr (name and mode), show and store function pointers
  */
-static struct kobj_attribute dma_buff_h_attr = __ATTR(dma_buff_h, 0666, dma_buff_h_show, dma_buff_h_store);
+static struct kobj_attribute dma_buff_padd_attr = __ATTR(dma_buff_padd, 0666, dma_buff_padd_show, dma_buff_padd_store);
 static struct kobj_attribute use_acp_attr = __ATTR(use_acp, 0666, use_acp_show, use_acp_store);
 static struct kobj_attribute prepare_microcode_in_open_attr = __ATTR(prepare_microcode_in_open, 0666, 
   prepare_microcode_in_open_show, prepare_microcode_in_open_store);
@@ -276,7 +228,7 @@ static struct kobj_attribute prepare_microcode_in_open_attr = __ATTR(prepare_mic
  *  The attr property of the kobj_attribute is used to extract the attribute struct
  */
 static struct attribute *pl330_lkm_attrs[] = {
-      &dma_buff_h_attr.attr,                  ///< The number of button presses
+      &dma_buff_padd_attr.attr,                  ///< The number of button presses
       &use_acp_attr.attr,                  ///< Is the LED on or off?
       &prepare_microcode_in_open_attr.attr, ///< Time of the last button press in HH:MM:SS:NNNNNNNNN
       NULL,
@@ -287,13 +239,59 @@ static struct attribute *pl330_lkm_attrs[] = {
  *  using the custom kernel parameter that can be passed when the module is loaded.
  */
 static struct attribute_group attr_group = {
-      .name  = "PL330_LKM_ATTRS",  
+      .name  = "pl330_lkm_attrs",  
       .attrs = pl330_lkm_attrs,    ///< The attributes array defined just above
 };
  
 static struct kobject *pl330_lkm_kobj;
 
-//-----------------LKM init and exit functions----------------//
+
+//-----------------LKM CHAR DEVICE DRIVER INTERFACE FUNCTIONS---------------//
+/** @brief The device open function that is called each time the device is opened
+ *  This will only increment the numberOpens counter in this case.
+ *  @param inodep A pointer to an inode object (defined in linux/fs.h)
+ *  @param filep A pointer to a file object (defined in linux/fs.h)
+ */
+static int dev_open(struct inode *inodep, struct file *filep){
+   numberOpens++;
+   printk(KERN_INFO "DMA_ch0: Device has been opened %d time(s)\n", numberOpens);
+   return 0;
+}
+ 
+/** @brief This function is called whenever device is being read from user space i.e. data is
+ *  being sent from the device to the user. In this case is uses the copy_to_user() function to
+ *  send the buffer string to the user and captures any errors.
+ *  @param filep A pointer to a file object (defined in linux/fs.h)
+ *  @param buffer The pointer to the buffer to which this function writes the data
+ *  @param len The length of the b
+ *  @param offset The offset if required
+ */
+static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
+  printk(KERN_INFO "DMA_ch0: Entered read function\n");
+  return 0;
+}
+ 
+/** @brief This function is called whenever the device is being written to from user space i.e.
+ *  data is sent to the device from the user. The data is copied to the message[] array in this
+ *  LKM using the sprintf() function along with the length of the string.
+ *  @param filep A pointer to a file object
+ *  @param buffer The buffer to that contains the string to write to the device
+ *  @param len The length of the array of data that is being passed in the const char buffer
+ *  @param offset The offset if required
+ */
+static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
+  printk(KERN_INFO "DMA_ch0: Entered write function\n");
+  return 0;
+}
+/** @brief The device release function that is called whenever the device is closed/released by
+ *  the userspace program
+ */
+static int dev_release(struct inode *inodep, struct file *filep){
+   printk(KERN_INFO "DMA_ch0:: Device successfully closed\n");
+   return 0;
+}
+
+//------------------------LKM init and exit functions-----------------------//
 /** @brief The LKM initialization function
  *  The static keyword restricts the visibility of the function to within this C file. The __init
  *  macro means that for a built-in driver (not a LKM) the function is only used at initialization
@@ -358,7 +356,7 @@ static int __init DMA_PL330_LKM_init(void){
       printk(KERN_INFO "DMA LKM: HPS OCR ioremap success\n");
     }
     
-   //Allocate uncached buffer
+   //--Allocate uncached buffer--//
    //The dma_alloc_coherent() function allocates non-cached physically
    //contiguous memory. Accesses to the memory by the CPU are the same 
    //as a cache miss when the cache is used. The CPU does not have to 
@@ -378,7 +376,7 @@ static int __init DMA_PL330_LKM_init(void){
       printk(KERN_INFO "DMA LKM: allocation of non-cached buffer successful\n");
    }
 
-   //Allocate cached buffer
+   //--Allocate cached buffer--//
    //kmalloc() function allocates cached memory which is 
    //physically contiguous. Use kmalloc with ACP transactions
    cached_mem_v = kmalloc(CACHED_MEM_SIZE, (GFP_DMA | GFP_ATOMIC));
@@ -391,20 +389,50 @@ static int __init DMA_PL330_LKM_init(void){
    //get the physical address of this buffer
    cached_mem_h = virt_to_phys((volatile void*) cached_mem_v);
    
+   //--export some variables using sysfs--//
    // create the kobject sysfs entry at /sys/dma_pl330
    pl330_lkm_kobj = kobject_create_and_add("dma_pl330", kernel_kobj->parent); // kernel_kobj points to /sys/kernel
    if(!pl330_lkm_kobj){
       printk(KERN_INFO "DMA LKM:failed to create kobject mapping\n");
       goto error_kobject_mapping;
+   }else{
+      printk(KERN_INFO "DMA LKM: kobject creation successful\n");
    }
-   // add the attributes to /sys/dma_pl330/ 
+   // add the attributes to /sys/dma_pl330/pl330_lkm_attrs 
    result = sysfs_create_group(pl330_lkm_kobj, &attr_group);
    if(result) {
       printk(KERN_INFO "DMA LKM:failed to create sysfs group\n");
       goto error_kobject_group;
+   }else{
+      printk(KERN_INFO "DMA LKM: sysfs creation successfull\n");
    }
    
-   
+   //--create the char device interface--//
+   // Try to dynamically allocate a major number for the device -- more difficult but worth it
+   majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
+   if (majorNumber<0){
+      printk(KERN_INFO "DMA LKM: failed to register a major number\n");
+      goto error_kobject_group;
+   }
+   printk(KERN_INFO "DMA LKM: char device registered correctly with major number %d\n", majorNumber);
+   // Register the device class
+   dma_Class = class_create(THIS_MODULE, CLASS_NAME);
+   if (IS_ERR(dma_Class)){                // Check for error and clean up if there is
+      printk(KERN_INFO "DMA LKM: Failed to register device class\n");
+      goto error_create_dev_class;
+   }
+   printk(KERN_INFO "DMA LKM: char device class registered correctly\n");
+   // Register the device driver
+   dma_Device = device_create(dma_Class, NULL, MKDEV(majorNumber, 0), NULL, DEVICE_NAME);
+   if (IS_ERR(dma_Device)){               // Clean up if there is an error
+      
+      printk(KERN_INFO "DMA LKM: Failed to create the device\n");
+      goto error_create_dev;
+   }
+   printk(KERN_INFO "DMA LKM: device successfully created in node: /dev/\n");
+   printk(KERN_INFO DEVICE_NAME);
+   printk(KERN_INFO "\n");
+
   /* 
    //-----DMA TRANSFER------//
    printk(KERN_INFO "\n---TRANSFER----\n ");
@@ -470,7 +498,11 @@ static int __init DMA_PL330_LKM_init(void){
    //End of module init
    printk(KERN_INFO "DMA LKM: Module initialization successful!!\n");
    return 0;
-
+   
+error_create_dev:  
+   class_destroy(dma_Class); 
+error_create_dev_class:
+   unregister_chrdev(majorNumber, DEVICE_NAME);
 error_kobject_group:
   kobject_put(pl330_lkm_kobj);   
 error_kobject_mapping:
@@ -491,7 +523,13 @@ error_PL330_init:
  *  We clean-up memory allocation and mappings here.
  */
 static void __exit DMA_PL330_LKM_exit(void){
+   printk(KERN_INFO "Sysfs values: dma_buff_p:%x, use_acp:%d, prepare_microcode_in_open:%d\n", dma_buff_padd, use_acp, prepare_microcode_in_open);
    printk(KERN_INFO "DMA LKM: Exiting module!!\n");
+   //Undo what init did
+   device_destroy(dma_Class, MKDEV(majorNumber, 0));     // remove the device
+   class_unregister(dma_Class);                          // unregister the device class
+   class_destroy(dma_Class);                             // remove the device class
+   unregister_chrdev(majorNumber, DEVICE_NAME);             // unregister the major number
    kobject_put(pl330_lkm_kobj); 
    kfree(cached_mem_v);
    dma_free_coherent(NULL, (NON_CACHED_MEM_SIZE), non_cached_mem_v, non_cached_mem_h);
@@ -506,3 +544,83 @@ static void __exit DMA_PL330_LKM_exit(void){
  */
 module_init(DMA_PL330_LKM_init);
 module_exit(DMA_PL330_LKM_exit);
+
+
+/*
+//--------------------------Extra functions definition------------------------------//
+static void print_src_dst()
+{
+  int i;
+  char* char_ptr_scr = (char*) DMA_TRANSFER_SRC_V;
+  char* char_ptr_dst= (char*) DMA_TRANSFER_DST_V;
+  
+  printk( "Source=[");
+  for (i=0; i<DMA_TRANSFER_SIZE; i++)
+  {
+    printk( "%u", ioread8(char_ptr_scr));
+    char_ptr_scr++;
+    if (i<(DMA_TRANSFER_SIZE-1)) printk(",");
+  }
+  printk("]\n");
+  
+  printk( "Destiny=[");
+  for (i=0; i<DMA_TRANSFER_SIZE; i++)
+  {
+    printk("%u", ioread8(char_ptr_dst));
+    char_ptr_dst++;
+    if (i<(DMA_TRANSFER_SIZE-1)) printk(",");
+  }
+  printk( "]\n");
+}
+
+static void init_src_dst(char char_val_src, char char_val_dst)
+{
+  int i;
+  char* char_ptr_scr = (char*) DMA_TRANSFER_SRC_V;
+  char* char_ptr_dst= (char*) DMA_TRANSFER_DST_V;
+  
+  for (i=0; i<DMA_TRANSFER_SIZE; i++)
+  {
+    iowrite8(char_val_src,char_ptr_scr);
+    iowrite8(char_val_dst,char_ptr_dst);
+    char_ptr_scr++;
+    char_ptr_dst++;
+  }
+}
+
+static ALT_STATUS_CODE compare_src_dst()
+{
+  int i;
+  char* char_ptr_scr = (char*) DMA_TRANSFER_SRC_V;
+  char* char_ptr_dst= (char*) DMA_TRANSFER_DST_V;
+  ALT_STATUS_CODE error = ALT_E_SUCCESS;
+  
+  for (i=0; i<DMA_TRANSFER_SIZE; i++)
+  {
+    if ( ioread8(char_ptr_scr) != ioread8(char_ptr_dst))
+    {
+    	error = ALT_E_ERROR;
+	printk("i:%d, src:%u, dst%u\n", i, ioread8(char_ptr_scr), ioread8(char_ptr_dst));
+    }
+    char_ptr_scr++;
+    char_ptr_dst++;
+  }
+  return error;
+}
+
+static void print_dma_program()
+{
+    int i;
+    char* char_ptr = (char*) DMA_PROG_V;
+    for (i = 0; i < sizeof(ALT_DMA_PROGRAM_t); i++)
+    {
+        
+	printk("%02X ",  ioread8(char_ptr)); // gives 12AB
+        if (i==5) printk(" code_size:");
+        if (i==7) printk(" ");
+        if (i==15) printk(" prog:");
+	char_ptr++;
+    }
+    printk("\n");
+}
+*/
