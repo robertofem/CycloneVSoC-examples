@@ -659,7 +659,7 @@ static void __exit DMA_PL330_LKM_exit(void){
    kobject_put(pl330_lkm_kobj); 
    kfree(cached_mem_v);
    dma_free_coherent(NULL, (NON_CACHED_MEM_SIZE), non_cached_mem_v, non_cached_mem_h);
-   iounmap(hps_ocr_vaddress);
+   iounmap(hps_ocr_vaddress);         
    iounmap(fpga_ocr_vaddress);
    PL330_uninit();
 }
