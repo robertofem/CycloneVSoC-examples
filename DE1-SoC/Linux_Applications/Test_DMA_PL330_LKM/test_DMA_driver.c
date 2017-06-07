@@ -7,131 +7,166 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include<errno.h>
+#include <errno.h>
+#include <stdint.h>
+
 //#include <math.h>
 
-#include "configuration.h"
+//#include "hwlib/hwlib.h"
+//#include "hwlib/soc_cv_av/socal/socal.h"
+//#include "hwlib/soc_cv_av/socal/hps.h"
 
-#include "hwlib/hwlib.h"
-#include "hwlib/soc_cv_av/socal/socal.h"
-#include "hwlib/soc_cv_av/socal/hps.h"
+//#include <time.h>
 
-#include <time.h>
+//Constants to do mmap and get access to FPGA peripherals
+#define HPS_FPGA_BRIDGE_BASE 0xC0000000
+#define HW_REGS_BASE ( HPS_FPGA_BRIDGE_BASE )
+#define HW_REGS_SPAN ( 0x04000000 )
+#define HW_REGS_MASK ( HW_REGS_SPAN - 1 )
+#define ON_CHIP_MEMORY_BASE 0   //addres of FPGA On-Chip RAM relative to HPS-FPGA bridge
+
+//MACROS TO CONTROL THE TRANSFER
+#define DMA_TRANSFER_SIZE 	32
+#define USE_ACP			0  //0 do not use acp, 1 use acp
+//physical address of the buffer used when reading and writing using dma driver
+//in this case we set 0xC0000000, the beginning of the HPS-FPGA BRIDGE
+//In this address there should be a memory with enough space to do the DMA transfer
+#define DMA_BUFF_PADD	(HPS_FPGA_BRIDGE_BASE + ON_CHIP_MEMORY_BASE)
+#define PREPARE_MICROCODE_WHEN_OPEN 0 //0 prepare microcode when write or read
+//1 prepare microcode when open. It saves microcode preparation time later when calling rean and write
+
+
+void printbuff(char* buff, int size)
+{
+  int i;
+  printf("[");
+  for (i=0; i<size; i++)
+  {
+    printf("%u",buff[i]);
+    if (i<(size-1)) printf(",");
+  }
+  printf("]");
+  printf("\n");
+}
 
 int main() {
+  int i;
+    
+  //---------GENERATE ADRESSES TO ACCESS FPGA MEMORY FROM PROCESSOR----------//
+  // map the address space for the LED registers into user space so we can interact with them.
+  // we'll actually map in the entire CSR span of the HPS since we want to access various registers within that span
+  void *virtual_base;
+  int fd;
+  if( ( fd = open( "/dev/mem", ( O_RDWR | O_SYNC ) ) ) == -1 ) {
+	  printf( "ERROR: could not open \"/dev/mem\"...\n" );
+	  return( 1 );
+  }
 
-	#ifdef ON_CHIP_RAM_ON_LIGHTWEIGHT
-	  printf("TESTING ON_CHIP_RAM_ON_LIGHTWEIGHT\n");
-	  printf("Size of uint32_soc is %d\n", sizeof(uint32_soc));
-	#endif //ON_CHIP_RAM_ON_LIGHTWEIGHT
-	#ifdef ON_CHIP_RAM_ON_HFBRIDGE32
-	  printf("TESTING ON_CHIP_RAM_ON_HFBRIDGE32\n");
-	  printf("Size of uint32_soc is %d\n", sizeof(uint32_soc));
-	#endif //ON_CHIP_RAM_ON_HFBRIDGE32
-	#ifdef ON_CHIP_RAM_ON_HFBRIDGE64
-	  printf("TESTING ON_CHIP_RAM_ON_HFBRIDGE64\n");
-	  printf("Size of uint64_soc is %d\n", sizeof(uint64_soc));
-	#endif //ON_CHIP_RAM_ON_HFBRIDGE64
-	#ifdef ON_CHIP_RAM_ON_HFBRIDGE128
-	  printf("TESTING ON_CHIP_RAM_ON_HFBRIDGE128\n");
-	  printf("Size of uint128_t is %d\n", sizeof(uint128_soc));
-	#endif //ON_CHIP_RAM_ON_HFBRIDGE128
+  virtual_base = mmap( NULL, HW_REGS_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, HW_REGS_BASE );
 
-	int error;
-	int i;
-	  
-	//---------GENERATE ADRESSES TO ACCESS FPGA MEMORY FROM PROCESSOR----------//
-	// map the address space for the LED registers into user space so we can interact with them.
-	// we'll actually map in the entire CSR span of the HPS since we want to access various registers within that span
-	void *virtual_base;
-	int fd;
-	if( ( fd = open( "/dev/mem", ( O_RDWR | O_SYNC ) ) ) == -1 ) {
-		printf( "ERROR: could not open \"/dev/mem\"...\n" );
-		return( 1 );
-	}
+  if( virtual_base == MAP_FAILED ) {
+	  printf( "ERROR: mmap() failed...\n" );
+	  close( fd );
+	  return( 1 );
+  }
 
-	virtual_base = mmap( NULL, MMAP_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, MMAP_BASE );
+  //virtual address of the FPGA buffer
+  void *on_chip_RAM_addr_void = virtual_base + ( ( unsigned long  )(ON_CHIP_MEMORY_BASE) & ( unsigned long)( HW_REGS_MASK ) );
+  uint8_t* on_chip_RAM_addr = (uint8_t *) on_chip_RAM_addr_void;
 
-	if( virtual_base == MAP_FAILED ) {
-		printf( "ERROR: mmap() failed...\n" );
-		close( fd );
-		return( 1 );
-	}
+  //---------CHECK IF THE FPGA OCR IS ACCESSIBLE AND RESET IT-------//
+  //Check the on-chip RAM memory in the FPGA
+  uint8_t* ocr_ptr = on_chip_RAM_addr;
+  for (i=0; i<DMA_TRANSFER_SIZE; i++)
+  {
+    *ocr_ptr = (uint8_t) i;
+    if (*ocr_ptr != (uint8_t)i)
+    {
+      printf ("Error when checking On-Chip RAM in Byte %d\n", i);
+      return 0;
+    }
+    ocr_ptr++;
+  }
+  printf("Check On-Chip RAM OK\n");
+  
 
-	void *on_chip_RAM_addr_void = virtual_base + ( ( unsigned long  )( BRIDGE_ADRESS_MAP_START +  ON_CHIP_MEMORY_BASE) & ( unsigned long)( MMAP_MASK ) );
-	UINT_SOC* on_chip_RAM_addr = (UINT_SOC *) on_chip_RAM_addr_void;
+  //Reset all memory
+  ocr_ptr = on_chip_RAM_addr;
+  for (i=0; i<DMA_TRANSFER_SIZE; i++)
+  {
+    *ocr_ptr = 0;
+    if (*ocr_ptr != 0)
+    {
+      printf ("Error when resetting On-Chip RAM in Byte %d\n", i);
+      return 0;
+    }
+    ocr_ptr++;
+  }
+  printf("Reset On-Chip RAM OK\n");
+ 
+  //-------------MAKE SOME TRANSFERS USING DMA DRIVER------------//
+  //Configure the driver through sysfs
+  int f_sysfs;
+  char d[9];
+  
+  sprintf(d, "%u", (uint32_t) DMA_BUFF_PADD);
+  f_sysfs = open("/sys/dma_pl330/pl330_lkm_attrs/dma_buff_padd", O_WRONLY);
+  if (f_sysfs < 0){
+    printf("Failed to open sysfs for dma_buff_padd.\n");
+    return errno;
+  }
+  write (f_sysfs, &d, 9);
+  close(f_sysfs);	
+  
+  sprintf(d, "%d", (int) USE_ACP);
+  f_sysfs = open("/sys/dma_pl330/pl330_lkm_attrs/use_acp", O_WRONLY);
+  if (f_sysfs < 0){
+    printf("Failed to open sysfs for use_acp.\n");
+    return errno;
+  }
+  write (f_sysfs, &d, 9);
+  close(f_sysfs);
+  
+  sprintf(d, "%d", (int) PREPARE_MICROCODE_WHEN_OPEN);
+  f_sysfs = open("/sys/dma_pl330/pl330_lkm_attrs/prepare_microcode_in_open", O_WRONLY);
+  if (f_sysfs < 0){
+    printf("Failed to open sysfs for prepare_microcode_in_open.\n");
+    return errno;
+  }
+  write (f_sysfs, &d,9);
+  close(f_sysfs);
+  
+  sprintf(d, "%d", (int) DMA_TRANSFER_SIZE);
+  f_sysfs = open("/sys/dma_pl330/pl330_lkm_attrs/dma_transfer_size", O_WRONLY);
+  if (f_sysfs < 0){
+    printf("Failed to open sysfs for dma_transfer_size.\n");
+    return errno;
+  }
+  write (f_sysfs, &d, 9);
+  close(f_sysfs);
+  
+  //Fill uP buffer and show uP and FPGA buffers
+  char buffer[DMA_TRANSFER_SIZE];
+  for (i=0; i<DMA_TRANSFER_SIZE;i++) buffer[i] = 2;
+  printf("uP   buff before WR = "); printbuff(buffer, DMA_TRANSFER_SIZE);
+  printf("FPGA buff before WR = "); printbuff(DMA_BUFF_PADD, DMA_TRANSFER_SIZE);
+	printf("Copy uP buff to FPGA buff \n");
 
-
-	//---------CHECK IF THE FPGA OCR IS ACCESSIBLE AND RESET IT-------//
-	//Check the on-chip RAM memory in the FPGA
-	UINT_SOC* ocr_ptr = on_chip_RAM_addr;
-	error = 0;
-	for (i=0; i<MEMORY_SIZE_IN_WORDS; i++)
-	{
-		*ocr_ptr = (UINT_SOC)i;
-		if (*ocr_ptr != (UINT_SOC)i) error = 1;
-		ocr_ptr++;
-	}
-
-	if (error == 0) printf("Check On-Chip RAM OK\n");
-	else
-	{
-		printf ("Error when checking On-Chip RAM\n");
-		return 1;
-	}
-
-	//Reset all memory
-	ocr_ptr = on_chip_RAM_addr;
-	error = 0;
-	for (i=0; i<MEMORY_SIZE_IN_WORDS; i++)
-	{
-		*ocr_ptr = 0;
-		if (*ocr_ptr != 0) error = 1;
-		ocr_ptr++;
-	}
-	if (error == 0) printf("Reset On-Chip RAM OK\n");
-	else
-	{
-		printf ("Error when resetting On-Chip RAM\n");
-		return 0;
-	}
-
-	//-------------MAKE A TRANSFER USING DMA DRIVER------------//
-	//Change value of sysfs entries
-	int f_sysfs;	
-  	char d[7] = "320021";
-  	f_sysfs = open("/sys/dma_pl330/pl330_lkm_attrs/dma_buff_padd", O_WRONLY);
-	if (f_sysfs < 0){
-	  printf("Failed to open sysfs.\n");
-	  return errno;
-	}
-	else
-	{
-	  printf("Open sysfs correct.\n");
-	}
-  	write (f_sysfs, &d, 6);
-  	close(f_sysfs);	
-	
-	/*
-	//Open read, write and close
-	#define BUFF_LEN 4
-	char buffer[BUFF_LEN];
-	for (i=0; i<BUFF_LEN;i++) buffer[i] = i;
-	
-	int f=open("/dev/dma_ch0",O_RDWR);
-	if (f < 0){
-	  perror("Failed to open the device...");
-	  return errno;
-	}
-	
-	int ret = write(f, buffer, BUFF_LEN);
+  //Write uP fuffer to FPGA
+  int f=open("/dev/dma_pl330",O_RDWR);
+  if (f < 0){
+    perror("Failed to open /dev/dma_pl330 on write...");
+    return errno;
+  }
+	int ret = write(f, buffer, DMA_TRANSFER_SIZE);
 	if (ret < 0){
 	  perror("Failed to write the message to the device.");
 	  return errno;
 	}
-	
 	close(f);
-	*/
+	
+  printf("uP   buff before WR = "); printbuff(buffer, DMA_TRANSFER_SIZE);
+  printf("FPGA buff before WR = "); printbuff(DMA_BUFF_PADD, DMA_TRANSFER_SIZE);
 	
 	/*
 	
@@ -152,7 +187,7 @@ int main() {
 */
 
 	// ------clean up our memory mapping and exit -------//
-	if( munmap( virtual_base, MMAP_SPAN ) != 0 ) {
+	if( munmap( virtual_base, HW_REGS_SPAN ) != 0 ) {
 		printf( "ERROR: munmap() failed...\n" );
 		close( fd );
 		return( 1 );

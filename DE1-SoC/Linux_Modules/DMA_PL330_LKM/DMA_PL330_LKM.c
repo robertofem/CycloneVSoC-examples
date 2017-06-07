@@ -240,9 +240,10 @@ static struct kobj_attribute dma_transfer_size_attr = __ATTR(dma_transfer_size, 
  *  The attr property of the kobj_attribute is used to extract the attribute struct
  */
 static struct attribute *pl330_lkm_attrs[] = {
-      &dma_buff_padd_attr.attr,                  ///< The number of button presses
-      &use_acp_attr.attr,                  ///< Is the LED on or off?
-      &prepare_microcode_in_open_attr.attr, ///< Time of the last button press in HH:MM:SS:NNNNNNNNN
+      &dma_buff_padd_attr.attr,                  
+      &use_acp_attr.attr,                  
+      &prepare_microcode_in_open_attr.attr, 
+      &dma_transfer_size_attr.attr, 
       NULL,
 };
  
@@ -616,9 +617,9 @@ static int __init DMA_PL330_LKM_init(void){
       printk(KERN_INFO "DMA LKM: Failed to create the device\n");
       goto error_create_dev;
    }
-   printk(KERN_INFO "DMA LKM: device successfully created in node: /dev/\n");
-   printk(KERN_INFO DEVICE_NAME);
-   printk(KERN_INFO "\n");
+   printk(KERN_INFO "DMA LKM: device successfully created in node: /dev/%s\n", DEVICE_NAME);
+   //printk(KERN_INFO DEVICE_NAME);
+   //printk(KERN_INFO "\n");
   
    //End of module init
    printk(KERN_INFO "DMA LKM: Module initialization successful!!\n");
