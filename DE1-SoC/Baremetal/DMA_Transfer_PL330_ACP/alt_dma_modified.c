@@ -1522,12 +1522,12 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
 }
 
 ALT_STATUS_CODE alt_dma_memory_to_memory_only_prepare_program(	ALT_DMA_CHANNEL_t channel,
-																ALT_DMA_PROGRAM_t * program,
-																void * dst,
-																const void * src,
-																size_t size,
-																bool send_evt,
-																ALT_DMA_EVENT_t evt)
+								ALT_DMA_PROGRAM_t * program,
+								void * dst,
+								const void * src,
+								size_t size,
+								bool send_evt,
+								ALT_DMA_EVENT_t evt)
 {
     // If the size is zero, and no event is requested, just return success.
     if ((size == 0) && (send_evt == false))

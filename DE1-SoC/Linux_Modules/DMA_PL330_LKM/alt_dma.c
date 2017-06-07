@@ -81,8 +81,9 @@
 //#else
   //#define dprintf  null_printf
 //#endif
-#define dprintf printk
 
+//UNCOMMENT TO ACTIVATE PRINTS - provides info about how dma prog is generated
+//#define dprintf printk
 
 /*
  * SoCAL stand in for DMA Controller registers
@@ -373,7 +374,7 @@ ALT_STATUS_CODE alt_dma_iomap()
     sysmgr_vaddress = ioremap(SYSMGR_HADDRESS, SYSMGR_HSIZE);
     if (sysmgr_vaddress == NULL) 
     {
-      printk(KERN_INFO "DMA: error doing RSTMGR ioremap\n");
+      printk(KERN_INFO "DMA: error doing SYSMGR ioremap\n");
       goto error_SYSMGR_ioremap;
     }
     else
@@ -1355,7 +1356,7 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
             length16burstcount -= loopcount;
 
             //dprintf("DMA[M->M][seg]:   Looping %" PRIu32 "x 16 burst length 8-byte transfer(s).\n", loopcount);
-	    dprintf("DMA[M->M][seg]:   Looping % x 16 burst length 8-byte transfer(s).\n", loopcount);
+	    dprintf("DMA[M->M][seg]:   Looping %x 16 burst length 8-byte transfer(s).\n", loopcount);
 	    
             if ((status == ALT_E_SUCCESS) && (loopcount > 1))
             {

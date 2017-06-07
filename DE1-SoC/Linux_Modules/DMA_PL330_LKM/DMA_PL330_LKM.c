@@ -99,59 +99,59 @@ static struct file_operations fops =
 //-----------------FUNCTIONS TO INITIALIZE DMA-------------------//
 ALT_STATUS_CODE PL330_init(void)
 {
-    ALT_STATUS_CODE status = ALT_E_SUCCESS;
-    int i;
-    ALT_DMA_CFG_t dma_config;  
-    
-    //-----IOMAP DMA to be able to access from kernel space------//
-    status = alt_dma_iomap();
-    if(status == ALT_E_SUCCESS)
-    {
-       printk(KERN_INFO "DMA: iomap process success\n");
-    }else{
-       printk(KERN_INFO "DMA: iomap process failed\n");
-       goto error_iomap;
-    }
-    
-    //-----Uninit DMA------//
-    status = alt_dma_uninit();
-    if(status == ALT_E_SUCCESS)
-    {
-       printk(KERN_INFO "DMA: DMAC uninit success\n");
-    }else{
-       printk(KERN_INFO "DMA: DMAC uninit failed\n");
-       goto error_uninit;
-    }
+  int i;
+  ALT_STATUS_CODE status = ALT_E_SUCCESS;
+  ALT_DMA_CFG_t dma_config;  
+  
+  //-----IOMAP DMA to be able to access from kernel space------//
+  status = alt_dma_iomap();
+  if(status == ALT_E_SUCCESS)
+  {
+     printk(KERN_INFO "DMA: iomap process success\n");
+  }else{
+     printk(KERN_INFO "DMA: iomap process failed\n");
+     goto error_iomap;
+  }
+  
+  //-----Uninit DMA------//
+  status = alt_dma_uninit();
+  if(status == ALT_E_SUCCESS)
+  {
+     printk(KERN_INFO "DMA: DMAC uninit success\n");
+  }else{
+     printk(KERN_INFO "DMA: DMAC uninit failed\n");
+     goto error_uninit;
+  }
 
-    //-------Configure everything as defaults.----//    
-    dma_config.manager_sec = ALT_DMA_SECURITY_DEFAULT;
-    for (i = 0; i < 8; ++i)
-    {
-        dma_config.irq_sec[i] = ALT_DMA_SECURITY_DEFAULT;
-    }
-    for (i = 0; i < 32; ++i)
-    {
-        dma_config.periph_sec[i] = ALT_DMA_SECURITY_DEFAULT;
-    }
-    for (i = 0; i < 4; ++i)
-    {
-       dma_config.periph_mux[i] = ALT_DMA_PERIPH_MUX_DEFAULT;
-    }
+  //-------Configure everything as defaults.----//    
+  dma_config.manager_sec = ALT_DMA_SECURITY_DEFAULT;
+  for (i = 0; i < 8; ++i)
+  {
+      dma_config.irq_sec[i] = ALT_DMA_SECURITY_DEFAULT;
+  }
+  for (i = 0; i < 32; ++i)
+  {
+      dma_config.periph_sec[i] = ALT_DMA_SECURITY_DEFAULT;
+  }
+  for (i = 0; i < 4; ++i)
+  {
+     dma_config.periph_mux[i] = ALT_DMA_PERIPH_MUX_DEFAULT;
+  }
 
-    //------Initialize DMAC--------//
-    status = alt_dma_init(&dma_config);
-    if(status == ALT_E_SUCCESS)
-    {
-       printk(KERN_INFO "DMA: DMAC init success\n");
-    }else{
-       printk(KERN_INFO "DMA: DMAC init failed\n");
-       goto error_uninit;
-    }
-    
-    return ALT_E_SUCCESS;
- error_uninit:
+  //------Initialize DMAC--------//
+  status = alt_dma_init(&dma_config);
+  if(status == ALT_E_SUCCESS)
+  {
+     printk(KERN_INFO "DMA: DMAC init success\n");
+  }else{
+     printk(KERN_INFO "DMA: DMAC init failed\n");
+     goto error_uninit;
+  }
+  
+  return ALT_E_SUCCESS;
+error_uninit:
      alt_dma_iounmap();
- error_iomap:  
+error_iomap:  
     return ALT_E_ERROR;
 }
 
@@ -492,7 +492,6 @@ static int dev_release(struct inode *inodep, struct file *filep){
  */
 static int __init DMA_PL330_LKM_init(void){
    ALT_STATUS_CODE status;
-   int i;
    int result = 0;
   
    printk(KERN_INFO "DMA LKM: Initializing module!!\n");
@@ -649,7 +648,8 @@ error_PL330_init:
  *  We clean-up memory allocation and mappings here.
  */
 static void __exit DMA_PL330_LKM_exit(void){
-   printk(KERN_INFO "Sysfs values: dma_buff_p:%x, use_acp:%d, prepare_microcode_in_open:%d\n", dma_buff_padd, use_acp, prepare_microcode_in_open);
+   printk(KERN_INFO "Sysfs values: dma_buff_p:%x, use_acp:%d, prepare_microcode_in_open:%d, dma_transfer_size:%d\n", 
+    (unsigned int) dma_buff_padd, use_acp, prepare_microcode_in_open, dma_transfer_size);
    printk(KERN_INFO "DMA LKM: Exiting module!!\n");
    //Undo what init did
    device_destroy(dma_Class, MKDEV(majorNumber, 0));     // remove the device

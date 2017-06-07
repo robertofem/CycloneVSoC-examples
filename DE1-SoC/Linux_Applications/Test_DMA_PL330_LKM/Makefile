@@ -1,5 +1,5 @@
 #
-TARGET = test_DMA_driver
+TARGET = test_DMA_PL330_LKM
 
 #
 CROSS_COMPILE := ~/angstrom-socfpga/build/tmp-angstrom_v2013_12-eglibc/sysroots/x86_64-linux/usr/bin/armv7ahf-vfp-neon-angstrom-linux-gnueabi/arm-angstrom-linux-gnueabi-
@@ -10,7 +10,7 @@ ARCH= arm
 
 build: $(TARGET)
 
-$(TARGET): test_DMA_driver.o
+$(TARGET): test_DMA_PL330_LKM.o
 	$(CC) $(LDFLAGS)   $^ -o $@
 
 %.o : %.c
