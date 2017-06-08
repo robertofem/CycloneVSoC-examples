@@ -83,7 +83,7 @@
 //#endif
 
 //UNCOMMENT TO ACTIVATE PRINTS - provides info about how dma prog is generated
-//#define dprintf printk
+#define dprintf printk
 
 /*
  * SoCAL stand in for DMA Controller registers
@@ -1303,8 +1303,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
     sizeleft &= 0x7;
 
     //dprintf("DMA[M->M][seg]: Total Main 8-byte burst size transfer(s): %" PRIu32 ".\n", burstcount);
+    #ifdef PRINT_K
     dprintf("DMA[M->M][seg]: Total Main 8-byte burst size transfer(s): %u.\n", burstcount);
-    
+    #endif
     // Determine how many 16 length bursts can be done //
 
     if (burstcount >> 4)
@@ -1314,9 +1315,10 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
 
         //dprintf("DMA[M->M][seg]:   Number of 16 burst length 8-byte transfer(s): %" PRIu32 ".\n", length16burstcount);
         //dprintf("DMA[M->M][seg]:   Number of remaining 8-byte transfer(s):       %" PRIu32 ".\n", burstcount);
-	dprintf("DMA[M->M][seg]:   Number of 16 burst length 8-byte transfer(s): %u .\n", length16burstcount);
+	#ifdef PRINT_K
+    dprintf("DMA[M->M][seg]:   Number of 16 burst length 8-byte transfer(s): %u .\n", length16burstcount);
         dprintf("DMA[M->M][seg]:   Number of remaining 8-byte transfer(s):       %u .\n", burstcount);
-	
+	#endif
 	
         // Program in the following parameters:
         //  - SS64  : Source      burst size of 8-byte
@@ -1356,8 +1358,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
             length16burstcount -= loopcount;
 
             //dprintf("DMA[M->M][seg]:   Looping %" PRIu32 "x 16 burst length 8-byte transfer(s).\n", loopcount);
-	    dprintf("DMA[M->M][seg]:   Looping %x 16 burst length 8-byte transfer(s).\n", loopcount);
-	    
+	    #ifdef PRINT_K
+        dprintf("DMA[M->M][seg]:   Looping %x 16 burst length 8-byte transfer(s).\n", loopcount);
+	    #endif
             if ((status == ALT_E_SUCCESS) && (loopcount > 1))
             {
                 status = alt_dma_program_DMALP(program, loopcount);
@@ -1431,9 +1434,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
             // This is determined by how many remaining data is in the MFIFO after
             // the burst(s) have completed. //
             int correctcount = (segdstpa + (8 - (segsrcpa & 0x7))) & 0x7;
-
+            #ifdef PRINT_K
             dprintf("DMA[M->M][seg]: Total correction 1-byte burst size transfer(s): %u.\n", correctcount);
-
+            #endif
             // Program in the following parameters:
             //  - SS8   : Source      burst size of 1-byte
             //  - DS8   : Destination burst size of 1-byte
@@ -1468,8 +1471,9 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
 
     if (sizeleft)
     {
+        #ifdef PRINT_K
         dprintf("DMA[M->M][seg]: Total post 1-byte burst size transfer(s): %u.\n", sizeleft);
-
+        #endif
         // Program in the following parameters:
         //  - SS8   : Source      burst size of 1-byte)
         //  - DS8   : Destination burst size of 1-byte)
@@ -1688,7 +1692,9 @@ ALT_STATUS_CODE alt_dma_memory_to_memory(ALT_DMA_CHANNEL_t channel,
 
         if (status == ALT_E_SUCCESS)
         {
+            #ifdef PRINT_K
             dprintf("DMA[M->M]: Adding event ...\n");
+            #endif
             status = alt_dma_program_DMASEV(programv, evt);
         }
     }
@@ -1892,8 +1898,10 @@ ALT_STATUS_CODE alt_dma_memory_to_memory_only_prepare_program(ALT_DMA_CHANNEL_t 
 
         if (status == ALT_E_SUCCESS)
         {
+            #ifdef PRINT_K
             dprintf("DMA[M->M]: Adding event ...\n");
             status = alt_dma_program_DMASEV(programv, evt);
+            #endif
         }
     }
 

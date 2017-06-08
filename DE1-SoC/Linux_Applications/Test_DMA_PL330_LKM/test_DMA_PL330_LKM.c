@@ -1,6 +1,3 @@
-//#include <time.h>
-//#include <librt.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,14 +6,6 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <stdint.h>
-
-//#include <math.h>
-
-//#include "hwlib/hwlib.h"
-//#include "hwlib/soc_cv_av/socal/socal.h"
-//#include "hwlib/soc_cv_av/socal/hps.h"
-
-//#include <time.h>
 
 //Constants to do mmap and get access to FPGA peripherals
 #define HPS_FPGA_BRIDGE_BASE 0xC0000000
