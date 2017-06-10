@@ -16,7 +16,7 @@
 
 //MACROS TO CONTROL THE TRANSFER
 #define DMA_TRANSFER_SIZE 	32
-#define USE_ACP			0  //0 do not use acp, 1 use acp
+#define USE_ACP			1  //0 do not use acp, 1 use acp
 //DMA_BUFF_PADD:
 //physical address of the buffer used when reading and writing using dma driver
 //in this case we set 0xC0000000, the beginning of the HPS-FPGA BRIDGE

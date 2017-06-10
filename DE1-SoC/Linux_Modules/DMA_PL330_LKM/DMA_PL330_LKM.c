@@ -349,14 +349,14 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
       dma_transfer_dst_h = (void*)((char*)cached_mem_h + 0x80000000);
     
     status = alt_dma_memory_to_memory(
-	Dma_Channel, 
-	(ALT_DMA_PROGRAM_t*) DMA_PROG_RD_V, 
-	(ALT_DMA_PROGRAM_t*) DMA_PROG_RD_H,
-	dma_transfer_dst_h,
-	dma_transfer_src_h, 
-	len, 
-	false, 
-	(ALT_DMA_EVENT_t)0);
+  	Dma_Channel, 
+  	(ALT_DMA_PROGRAM_t*) DMA_PROG_RD_V, 
+  	(ALT_DMA_PROGRAM_t*) DMA_PROG_RD_H,
+  	dma_transfer_dst_h,
+  	dma_transfer_src_h, 
+  	len, 
+  	false, 
+  	(ALT_DMA_EVENT_t)0);
   }
   
   //Wait for the transfer to be finished
@@ -413,7 +413,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
   
   //Copy data from user (application) space to a DMAble buffer
    if (use_acp == 0) //not use use_acp
-      error_count = copy_from_user (non_cached_mem_v, buffer, len);
+      error_count = copy_from_user(non_cached_mem_v, buffer, len);
    else //use acp
       error_count = copy_from_user(cached_mem_v, buffer, len);
   
@@ -441,14 +441,14 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
       dma_transfer_src_h = (void*)((char*)cached_mem_h + 0x80000000);
     
     status = alt_dma_memory_to_memory(
-	Dma_Channel, 
-	(ALT_DMA_PROGRAM_t*) DMA_PROG_WR_V, 
-	(ALT_DMA_PROGRAM_t*) DMA_PROG_WR_H,
-	dma_transfer_dst_h,
-	dma_transfer_src_h, 
-	len, 
-	false, 
-	(ALT_DMA_EVENT_t)0);
+    	Dma_Channel, 
+    	(ALT_DMA_PROGRAM_t*) DMA_PROG_WR_V, 
+    	(ALT_DMA_PROGRAM_t*) DMA_PROG_WR_H,
+    	dma_transfer_dst_h,
+    	dma_transfer_src_h, 
+    	len, 
+    	false, 
+    	(ALT_DMA_EVENT_t)0);
   }
   
   //Wait for the transfer to be finished
@@ -493,7 +493,7 @@ static int dev_release(struct inode *inodep, struct file *filep){
 static int __init DMA_PL330_LKM_init(void){
    ALT_STATUS_CODE status;
    int result = 0;
-  
+
    printk(KERN_INFO "DMA LKM: Initializing module!!\n");
    
    //--Initialize DMA Controller--//

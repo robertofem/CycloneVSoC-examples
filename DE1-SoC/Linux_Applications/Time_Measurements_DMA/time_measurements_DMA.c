@@ -20,7 +20,7 @@
 #define ON_CHIP_MEMORY_BASE 0 //FPGA On-Chip RAM address relative to H2F bridge
 
 //Constants for the time experiments
-#define REP_TESTS 100 //repetitions of each time experiment
+#define REP_TESTS 1 //repetitions of each time experiment
 #define CLK_REP_TESTS 1000 //repetitions to get clock statistics
 #define ON_CHIP_MEMORY_SPAN 262144 //FPGA On-Chip RAM size in Bytes
 //DMA_BUFF_PADD: Physical address of the FPGA On-Chip RAM
@@ -163,7 +163,8 @@ int main() {
   printf("\nConfig. DMA_PL330 module using sysfs entries in /sys/dma_pl330\n");
   sprintf(d, "%u", (uint32_t) DMA_BUFF_PADD);
   f_sysfs = open("/sys/dma_pl330/pl330_lkm_attrs/dma_buff_padd", O_WRONLY);
-  if (f_sysfs < 0){
+  if (f_sysfs < 0)
+  {
     printf("Failed to open sysfs for dma_buff_padd.\n");
     return errno;
   }
@@ -178,29 +179,30 @@ int main() {
       case 0:
         use_acp = 0;
         prepare_microcode_in_open = 0;
-        printf("--DO NOT USE ACP, DO NOT PREPARE DMAC MICROCODE IN OPEN--\n");
+        printf("\n--USE ACP, DO NOT REPARE DMAC MICROCODE IN OPEN--\n");
         break;
       case 1:
-        use_acp = 1;
-        prepare_microcode_in_open = 0;
-        printf("--USE ACP, DO NOT PREPARE DMAC MICROCODE IN OPEN--\n");
-        break;
-      case 2:
         use_acp = 0;
         prepare_microcode_in_open = 1;
-        printf("--DO NOT USE ACP, PREPARE DMAC MICROCODE IN OPEN--\n");
+        printf("\n--DO NOT USE ACP, PREPARE DMAC MICROCODE IN OPEN--\n");
+        break;
+      case 2:
+        use_acp = 1;
+        prepare_microcode_in_open = 0;
+        printf("\n--USE ACP, DO NOT PREPARE DMAC MICROCODE IN OPEN--\n");
         break;
       case 3:
         use_acp = 1;
         prepare_microcode_in_open = 1;
-        printf("--USE ACP, PREPARE DMAC MICROCODE IN OPEN--\n");
+        printf("\n--USE ACP, PREPARE DMAC MICROCODE IN OPEN--\n");
       break;
     }
 
     //Apply configuration to driver
     sprintf(d, "%d", (int) use_acp);
     f_sysfs = open("/sys/dma_pl330/pl330_lkm_attrs/use_acp", O_WRONLY);
-    if (f_sysfs < 0){
+    if (f_sysfs < 0)
+    {
       printf("Failed to open sysfs for use_acp.\n");
       return errno;
     }
@@ -210,7 +212,8 @@ int main() {
     sprintf(d, "%d", (int) prepare_microcode_in_open);
     f_sysfs = open("/sys/dma_pl330/pl330_lkm_attrs/prepare_microcode_in_open", 
       O_WRONLY);
-    if (f_sysfs < 0){
+    if (f_sysfs < 0)
+    {
       printf("Failed to open sysfs for prepare_microcode_in_open.\n");
       return errno;
     }
@@ -223,19 +226,7 @@ int main() {
 
     for(i=0; i<number_of_data_sizes; i++)//for each data size
     {
-      //configure the data size for the driver (only applies when microcode
-      //is generated in open)
-      sprintf(d, "%d", (int) data_size[i]);
-      f_sysfs = open("/sys/dma_pl330/pl330_lkm_attrs/dma_transfer_size",
-        O_WRONLY);
-      if (f_sysfs < 0){
-        printf("Failed to open sysfs for dma_transfer_size.\n");
-        return errno;
-      }
-      write (f_sysfs, &d, 14);
-      close(f_sysfs);
-
-      //reset variables for statistics
+            //reset variables for statistics
       reset_cumulative(&total_dma_wr,&min_dma_wr,&max_dma_wr, &variance_dma_wr);
       reset_cumulative(&total_dma_rd,&min_dma_rd,&max_dma_rd, &variance_dma_rd);
 
@@ -250,6 +241,18 @@ int main() {
         data_in_one_operation = data_size[i];
         operation_loops = 1;
       }   
+
+      //configure the data size for the driver (only applies when microcode
+      //is generated in open)
+      sprintf(d, "%d", (int) data_in_one_operation);
+      f_sysfs = open("/sys/dma_pl330/pl330_lkm_attrs/dma_transfer_size",
+        O_WRONLY);
+      if (f_sysfs < 0){
+        printf("Failed to open sysfs for dma_transfer_size.\n");
+        return errno;
+      }
+      write (f_sysfs, &d, 14);
+      close(f_sysfs);
 
       //Open DMA driver to write and read from it
       f=open("/dev/dma_pl330",O_RDWR);
@@ -268,7 +271,9 @@ int main() {
           printf("ERROR when calling malloc: Out of memory\n");
           return 1;
         }
-          
+
+        //fill uP memory with some data
+        for(j=0; j<data_size[i]; j++) data[j] = i+1;          
 
         //--WRITE DATA TO FPGA ON-CHIP RAM
         pmu_counter_reset();
@@ -290,6 +295,9 @@ int main() {
       
         //check the content of the data just read
         // Compare results
+        if (l==0){
+        printf("buff uP   WR="); printbuff((char*) &(data[0]), 8);
+        printf("buff FPGA WR="); printbuff((char*) on_chip_RAM_vaddr_void, 8);}
         if(0  != memcmp(&(data[0]), on_chip_RAM_vaddr_void, 
           data_in_one_operation))
         {
@@ -317,6 +325,9 @@ int main() {
       
         //check the content of the data just read
         // Compare results
+        if (l>=2){
+        printf("buff uP   RD="); printbuff((char*) &(data[0]), 8);
+        printf("buff FPGA RD="); printbuff((char*) on_chip_RAM_vaddr_void, 8);}
         if(0  != memcmp(&(data[0]), on_chip_RAM_vaddr_void, 
           data_in_one_operation))
         {
@@ -337,13 +348,16 @@ int main() {
   
   
 	// --------------clean up our memory mapping and exit -----------------//
-	if( munmap( virtual_base, HW_REGS_SPAN ) != 0 ) {
+	if( munmap( virtual_base, HW_REGS_SPAN ) != 0 ) 
+  {
 		printf( "ERROR: munmap() failed...\n" );
 		close( fd );
 		return( 1 );
 	}
 
 	close( fd );
+
+  printf("All tests were successful!! End...\n");
 
 	return( 0 );
 }
