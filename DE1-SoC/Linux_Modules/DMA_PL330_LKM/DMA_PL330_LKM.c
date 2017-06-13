@@ -612,7 +612,7 @@ static int __init DMA_PL330_LKM_init(void){
       printk(KERN_INFO "DMA LKM: sysfs creation successfull\n");
    }
    
-   //--create the char device interface--//
+   //--Create the char device driver interface--//
    // Try to dynamically allocate a major number for the device -- more difficult but worth it
    majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
    if (majorNumber<0){
@@ -638,32 +638,44 @@ static int __init DMA_PL330_LKM_init(void){
    //printk(KERN_INFO DEVICE_NAME);
    //printk(KERN_INFO "\n"); 
 
-
   //--ACP configuration--//
   //Do ioremap to be able to acess hw regs from inside the module
   alt_acpidmap_iomap();
-  print_acpidmap_regs();
+  //print_acpidmap_regs();
+  result = 1;
   //Set output ID3 for dynamic reads and ID4 for dynamic writes
   status = alt_acp_id_map_dynamic_read_set(ALT_ACP_ID_OUT_DYNAM_ID_3);
+  if (status!=ALT_E_SUCCESS) result = 0;
   status = alt_acp_id_map_dynamic_write_set(ALT_ACP_ID_OUT_DYNAM_ID_4);
+  if (status!=ALT_E_SUCCESS) result = 0;
   //Configure the page and user write sideband signal options that are applied 
   //to all write transactions that have their input IDs dynamically mapped.
   status = alt_acp_id_map_dynamic_read_options_set(ALT_ACP_ID_MAP_PAGE_0, ARUSER);
+  if (status!=ALT_E_SUCCESS) result = 0;
   status = alt_acp_id_map_dynamic_write_options_set(ALT_ACP_ID_MAP_PAGE_0, AWUSER);
-  print_acpidmap_regs();
+  if (status!=ALT_E_SUCCESS) result = 0;
+  //print_acpidmap_regs();
+  if (result==1)
+    printk(KERN_INFO "DMA LKM: ACP ID Mapper successfully configured.\n");
+  else
+    printk(KERN_INFO 
+      "DMA LKM: Some ERROR configuring ACP ID Mapper. ACP access may fail.\n");
 
   //--Enable PMU from user space setting PMUSERENR.EN bit--//
-  asm volatile("mrc p15, 0, %[value], c9, c14, 0":[value]"+r" (var));//read PMUSERENR
+  //read PMUSERENR
+  asm volatile("mrc p15, 0, %[value], c9, c14, 0":[value]"+r" (var));
   //pr_info("PMU User Enable register=%d\n", var);//print PMUSERENR
+  //Set PMUSERENR.EN 
   var = 1;
-  asm volatile("mcr p15, 0, %[value], c9, c14, 0"::[value]"r" (var));//Set PMUSERENR.EN 
+  asm volatile("mcr p15, 0, %[value], c9, c14, 0"::[value]"r" (var));
+  //read PMUSERENR
   var = 2;
-  asm volatile("mrc p15, 0, %[value], c9, c14, 0":[value]"+r" (var));//read PMUSERENR
+  asm volatile("mrc p15, 0, %[value], c9, c14, 0":[value]"+r" (var));
   //pr_info("PMU User Enable register=%d\n", var);//print PMUSERENR
   if (var == 1)
-    printk(KERN_INFO "DMA LKM: PMU access from user space was correctly enabled.");
+    printk(KERN_INFO "DMA LKM: PMU access from user space was correctly enabled.\n");
   else
-    printk(KERN_INFO "DMA LKM: Error when enablin PMU access from user space .");
+    printk(KERN_INFO "DMA LKM: Error when enablin PMU access from user space .\n");
 
   //--End of module init--//
   printk(KERN_INFO "DMA LKM: Module initialization successful!!\n");
