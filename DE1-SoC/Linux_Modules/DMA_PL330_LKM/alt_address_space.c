@@ -75,7 +75,12 @@ ALT_STATUS_CODE alt_acpidmap_iomap()
     return ALT_E_SUCCESS;
 }
 
-#ifndef soc_a10
+ALT_STATUS_CODE alt_acpidmap_iounmap()
+{
+  iounmap(altidmap_vaddress); //iounmap the RSTMGR
+  printk(KERN_INFO "ACP ID MAPPER: iounmap success.\n");
+  return ALT_E_SUCCESS;
+}
 
 void print_acpidmap_regs()
 {
@@ -86,6 +91,8 @@ void print_acpidmap_regs()
 
   printk("Acp config regs: VID3RD_S=%#x, VID4WR_S=%#x, DYNRD=%#x, DYNWR=%#x\n\r", *VID3RD_S, *VID4WR_S, *DYNRD, *DYNWR);
 }
+
+#ifndef soc_a10
 
 /******************************************************************************/
 /*ALT_STATUS_CODE alt_addr_space_remap(ALT_ADDR_SPACE_MPU_ATTR_t mpu_attr,
