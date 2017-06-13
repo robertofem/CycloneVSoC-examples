@@ -229,6 +229,72 @@ typedef int32_t             ALT_STATUS_CODE;
 /* The upper bound address range of the ALT_SYSMGR_DMA component. */
 #define ALT_SYSMGR_DMA_UB_ADDR     ALT_CAST(void *, ((ALT_CAST(char *, ALT_SYSMGR_DMA_ADDR) + 0x8) - 1))
 
+
+/*
+ * Component Instance : acpidmap
+ * 
+ * Instance acpidmap of component ALT_ACPIDMAP.
+ * 
+ * 
+ */
+/* The address of the ALT_ACPIDMAP_VID2RD register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID2RD_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID2RD_OFST))
+/* The address of the ALT_ACPIDMAP_VID2WR register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID2WR_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID2WR_OFST))
+/* The address of the ALT_ACPIDMAP_VID3RD register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID3RD_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID3RD_OFST))
+/* The address of the ALT_ACPIDMAP_VID3WR register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID3WR_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID3WR_OFST))
+/* The address of the ALT_ACPIDMAP_VID4RD register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID4RD_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID4RD_OFST))
+/* The address of the ALT_ACPIDMAP_VID4WR register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID4WR_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID4WR_OFST))
+/* The address of the ALT_ACPIDMAP_VID5RD register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID5RD_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID5RD_OFST))
+/* The address of the ALT_ACPIDMAP_VID5WR register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID5WR_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID5WR_OFST))
+/* The address of the ALT_ACPIDMAP_VID6RD register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID6RD_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID6RD_OFST))
+/* The address of the ALT_ACPIDMAP_VID6WR register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID6WR_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID6WR_OFST))
+/* The address of the ALT_ACPIDMAP_DYNRD register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_DYNRD_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_DYNRD_OFST))
+/* The address of the ALT_ACPIDMAP_DYNWR register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_DYNWR_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_DYNWR_OFST))
+/* The address of the ALT_ACPIDMAP_VID2RD_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID2RD_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID2RD_S_OFST))
+/* The address of the ALT_ACPIDMAP_VID2WR_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID2WR_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID2WR_S_OFST))
+/* The address of the ALT_ACPIDMAP_VID3RD_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID3RD_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID3RD_S_OFST))
+/* The address of the ALT_ACPIDMAP_VID3WR_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID3WR_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID3WR_S_OFST))
+/* The address of the ALT_ACPIDMAP_VID4RD_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID4RD_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID4RD_S_OFST))
+/* The address of the ALT_ACPIDMAP_VID4WR_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID4WR_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID4WR_S_OFST))
+/* The address of the ALT_ACPIDMAP_VID5RD_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID5RD_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID5RD_S_OFST))
+/* The address of the ALT_ACPIDMAP_VID5WR_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID5WR_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID5WR_S_OFST))
+/* The address of the ALT_ACPIDMAP_VID6RD_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID6RD_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID6RD_S_OFST))
+/* The address of the ALT_ACPIDMAP_VID6WR_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_VID6WR_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_VID6WR_S_OFST))
+/* The address of the ALT_ACPIDMAP_DYNRD_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_DYNRD_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_DYNRD_S_OFST))
+/* The address of the ALT_ACPIDMAP_DYNWR_S register for the ALT_ACPIDMAP instance. */
+#define ALT_ACPIDMAP_DYNWR_S_ADDR  ALT_CAST(void *, (ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + ALT_ACPIDMAP_DYNWR_S_OFST))
+/* The base address byte offset for the start of the ALT_ACPIDMAP component. */
+//#define ALT_ACPIDMAP_OFST        0xff707000
+/* The start address of the ALT_ACPIDMAP component. */
+//#define ALT_ACPIDMAP_ADDR        ALT_CAST(void *, (ALT_CAST(char *, ALT_HPS_ADDR) + ALT_ACPIDMAP_OFST))
+/* The lower bound address range of the ALT_ACPIDMAP component. */
+#define ALT_ACPIDMAP_LB_ADDR     ALT_ACPIDMAP_ADDR
+/* The upper bound address range of the ALT_ACPIDMAP component. */
+#define ALT_ACPIDMAP_UB_ADDR     ALT_CAST(void *, ((ALT_CAST(char *, ALT_ACPIDMAP_ADDR) + 0x1000) - 1))
+
+
 //-----------------------------------------------------------------//
 //----------code from socal/alt_sysmgr.h (for cyclone V)-----------//
 //-----------------------------------------------------------------//

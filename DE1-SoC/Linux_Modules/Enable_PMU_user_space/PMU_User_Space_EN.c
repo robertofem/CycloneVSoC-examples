@@ -38,7 +38,6 @@ static int mod_init(void)
 	//asm volatile ("mov    %[value], r3":[value]"+r" (var)); //read (var int)	
 
 	//Enable PMU from user space setting PMUSERENR.EN bit
-	
 	asm volatile("mrc p15, 0, %[value], c9, c14, 0":[value]"+r" (var));//read PMUSERENR
 	pr_info("PMU User Enable register=%d\n", var);//print PMUSERENR
 	

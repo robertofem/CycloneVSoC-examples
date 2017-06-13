@@ -524,4 +524,3 @@ ALT_STATUS_CODE alt_acp_id_map_write_options_get(const uint32_t output_id,
 }
 
 #endif
-

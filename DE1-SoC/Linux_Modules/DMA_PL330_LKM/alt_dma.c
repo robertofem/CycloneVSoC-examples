@@ -124,6 +124,19 @@ static void* sysmgr_vaddress;
 //alt_dma_channel_exec in the last line of the function. This permits to separate 
 //preparation and execution of the DMA program, saving time in case the program
 //can be prepared before the transfer is to be done.
+
+//2.Define some macros
+#define ALT_DMA_RC_ON 0x00003800 //This define sets the ARCACHE and AWCACHE bits
+#define ALT_DMA_WC_ON 0x0E000000 //of CCR0 register of DMAC. It makes channel 0 of
+                        //DMAC to do cacheable accesses to L3 with its AXI master
+//
+//3.Change macros in some functions.  
+// ALT_DMA_CCR_OPT_SC_DEFAULT was changed by ALT_DMA_RC_ON and 
+// ALT_DMA_CCR_OPT_DC_DEFAULT was changed by ALT_DMA_WC_ON in all places of 
+// alt_dma_memory_to_memory_segment() where they appeared. 
+// alt_dma_memory_to_memory_segment() is used inside 
+// alt_dma_memory_to_memory_only_prepare_program() and inside
+// alt_dma_memory_to_memory() to prepare DMAC program in memory.
 //--------------------------------------------------------------//
 
 //#if defined(soc_a10)
@@ -1272,12 +1285,14 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
                                               | ALT_DMA_CCR_OPT_SS8
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
-                                              | ALT_DMA_CCR_OPT_SC(7)
+                                              //| ALT_DMA_CCR_OPT_SC(7)
+                                              | ALT_DMA_RC_ON
                                               | ((aligncount - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DS8
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
-                                              | ALT_DMA_CCR_OPT_DC(7)
+                                              //| ALT_DMA_CCR_OPT_DC(7)
+                                              | ALT_DMA_WC_ON
                                               | ALT_DMA_CCR_OPT_ES_DEFAULT
                                             )
                 );
@@ -1336,12 +1351,14 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
                                               | ALT_DMA_CCR_OPT_SS64
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
-                                              | ALT_DMA_CCR_OPT_SC(7)
+                                              //| ALT_DMA_CCR_OPT_SC(7)
+                                              | ALT_DMA_RC_ON
                                               | ALT_DMA_CCR_OPT_DB16
                                               | ALT_DMA_CCR_OPT_DS64
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
-                                              | ALT_DMA_CCR_OPT_DC(7)
+                                             // | ALT_DMA_CCR_OPT_DC(7)
+                                              | ALT_DMA_WC_ON
                                               | ALT_DMA_CCR_OPT_ES_DEFAULT
                                             )
                 );
@@ -1403,12 +1420,14 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
                                               | ALT_DMA_CCR_OPT_SS64
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
-                                              | ALT_DMA_CCR_OPT_SC(7)
+                                              //| ALT_DMA_CCR_OPT_SC(7)
+                                              | ALT_DMA_RC_ON
                                               | ((burstcount - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DS64
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
-                                              | ALT_DMA_CCR_OPT_DC(7)
+                                              //| ALT_DMA_CCR_OPT_DC(7)
+                                              | ALT_DMA_WC_ON
                                               | ALT_DMA_CCR_OPT_ES_DEFAULT
                                             )
                 );
@@ -1451,12 +1470,14 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
                                               | ALT_DMA_CCR_OPT_SS8
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
-                                              | ALT_DMA_CCR_OPT_SC(7)
+                                              //| ALT_DMA_CCR_OPT_SC(7)
+                                              | ALT_DMA_RC_ON
                                               | ((correctcount - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DS8
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
-                                              | ALT_DMA_CCR_OPT_DC(7)
+                                              //| ALT_DMA_CCR_OPT_DC(7)
+                                              | ALT_DMA_WC_ON
                                               | ALT_DMA_CCR_OPT_ES_DEFAULT
                                             )
                 );
@@ -1490,12 +1511,14 @@ static ALT_STATUS_CODE alt_dma_memory_to_memory_segment(ALT_DMA_PROGRAM_t * prog
                                               | ALT_DMA_CCR_OPT_SS8
                                               | ALT_DMA_CCR_OPT_SA_DEFAULT
                                               | ALT_DMA_CCR_OPT_SP_DEFAULT
-                                              | ALT_DMA_CCR_OPT_SC(7)
+                                              //| ALT_DMA_CCR_OPT_SC(7)
+                                              | ALT_DMA_RC_ON
                                               | ((sizeleft - 1) << 18) // DB //
                                               | ALT_DMA_CCR_OPT_DS8
                                               | ALT_DMA_CCR_OPT_DA_DEFAULT
                                               | ALT_DMA_CCR_OPT_DP_DEFAULT
-                                              | ALT_DMA_CCR_OPT_DC(7)
+                                              //| ALT_DMA_CCR_OPT_DC(7)
+                                              | ALT_DMA_WC_ON
                                               | ALT_DMA_CCR_OPT_ES_DEFAULT
                                             )
                 );
