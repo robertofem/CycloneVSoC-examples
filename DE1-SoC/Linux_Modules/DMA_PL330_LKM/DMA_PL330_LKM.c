@@ -660,6 +660,7 @@ static int __init DMA_PL330_LKM_init(void){
   else
     printk(KERN_INFO 
       "DMA LKM: Some ERROR configuring ACP ID Mapper. ACP access may fail.\n");
+  alt_acpidmap_iounmap();
 
   //--Enable PMU from user space setting PMUSERENR.EN bit--//
   //read PMUSERENR
