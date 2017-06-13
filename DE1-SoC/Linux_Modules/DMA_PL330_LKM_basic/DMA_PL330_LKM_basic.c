@@ -36,6 +36,7 @@
 #include "hwlib_socal_linux.h"
 #include "alt_dma.h"
 #include "alt_dma_common.h"
+#include "alt_address_space.h" //ACP configuration
 
 MODULE_LICENSE("GPL");              ///< The license type -- this affects runtime behavior
 MODULE_AUTHOR("Roberto Fernandez (robertofem@gmail.com)");      ///< The author -- visible when you use modinfo
@@ -77,7 +78,7 @@ static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 // FPGA-OCR with the start of the HPS-FPGA bridge that is GB aligned so we ensure a
 // problem related to this arises.
 //
-/*
+
 //4B transfer from HPS OCR to HPS OCR. DMA microcode program in OCR.
 #define MESSAGE "4B transfer from HPS OCR to HPS OCR. DMA microcode program in HPS OCR.\n"
 #define DMA_TRANSFER_SIZE   4 //Size of DMA transfer in Bytes
@@ -87,7 +88,7 @@ static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 #define DMA_TRANSFER_SRC_H  HPS_OCR_HADDRESS //hardware address of the source buffer 
 #define DMA_TRANSFER_DST_H  (HPS_OCR_HADDRESS+8)//hardware address of the destiny buffer 
 #define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	    
-*/
+
 /*
 //64B transfer from HPS OCR to FPGA OCR. DMA microcode program in OCR.
 #define MESSAGE "64B transfer from HPS OCR to FPGA OCR. DMA microcode program in HPS OCR.\n"
@@ -298,6 +299,9 @@ static int __init DMA_PL330_LKM_init(void){
    static ALT_DMA_CHANNEL_t Dma_Channel; //dma channel to be used in transfers
    ALT_DMA_PROGRAM_t* program = (ALT_DMA_PROGRAM_t*) DMA_PROG_V;
    int i;
+   int result = 0;
+   const uint32_t ARUSER = 0b11111; //acpidmap:coherent cacheable reads
+   const uint32_t AWUSER = 0b11111; //acpidmap:coherent cacheable writes
   
    printk(KERN_INFO "DMA LKM: Initializing module!!\n");
    
@@ -380,7 +384,31 @@ static int __init DMA_PL330_LKM_init(void){
    }
    //get the physical address of this buffer
    cached_mem_h = virt_to_phys((volatile void*) cached_mem_v);
-   
+
+  //--ACP configuration--//
+  //Do ioremap to be able to acess hw regs from inside the module
+  alt_acpidmap_iomap();
+  //print_acpidmap_regs();
+  result = 1;
+  //Set output ID3 for dynamic reads and ID4 for dynamic writes
+  status = alt_acp_id_map_dynamic_read_set(ALT_ACP_ID_OUT_DYNAM_ID_3);
+  if (status!=ALT_E_SUCCESS) result = 0;
+  status = alt_acp_id_map_dynamic_write_set(ALT_ACP_ID_OUT_DYNAM_ID_4);
+  if (status!=ALT_E_SUCCESS) result = 0;
+  //Configure the page and user write sideband signal options that are applied 
+  //to all write transactions that have their input IDs dynamically mapped.
+  status = alt_acp_id_map_dynamic_read_options_set(ALT_ACP_ID_MAP_PAGE_0, ARUSER);
+  if (status!=ALT_E_SUCCESS) result = 0;
+  status = alt_acp_id_map_dynamic_write_options_set(ALT_ACP_ID_MAP_PAGE_0, AWUSER);
+  if (status!=ALT_E_SUCCESS) result = 0;
+  //print_acpidmap_regs();
+  if (result==1)
+    printk(KERN_INFO "DMA LKM: ACP ID Mapper successfully configured.\n");
+  else
+    printk(KERN_INFO 
+      "DMA LKM: Some ERROR configuring ACP ID Mapper. ACP access may fail.\n");
+  alt_acpidmap_iounmap();
+
    //-----DMA TRANSFER------//
    printk(KERN_INFO "\n---TRANSFER----\n ");
    printk(KERN_INFO MESSAGE);printk("\n");
