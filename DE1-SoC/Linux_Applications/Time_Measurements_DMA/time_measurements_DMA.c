@@ -20,7 +20,7 @@
 #define ON_CHIP_MEMORY_BASE 0 //FPGA On-Chip RAM address relative to H2F bridge
 
 //Constants for the time experiments
-#define REP_TESTS 1 //repetitions of each time experiment
+#define REP_TESTS 100 //repetitions of each time experiment
 #define CLK_REP_TESTS 1000 //repetitions to get clock statistics
 #define ON_CHIP_MEMORY_SPAN 262144 //FPGA On-Chip RAM size in Bytes
 //DMA_BUFF_PADD: Physical address of the FPGA On-Chip RAM
@@ -176,26 +176,25 @@ int main() {
     //Select configuration
     switch(k)
     {
-      
       case 0:
-        use_acp = 1;
-        prepare_microcode_in_open = 0;
-        printf("\n--USE ACP, DO NOT PREPARE DMAC MICROCODE IN OPEN--\n");
-        break;
-      case 1:
-        use_acp = 1;
-        prepare_microcode_in_open = 1;
-        printf("\n--USE ACP, PREPARE DMAC MICROCODE IN OPEN--\n");
-        break;
-      case 2:
         use_acp = 0;
         prepare_microcode_in_open = 0;
         printf("\n--DO NOT USE ACP, DO NOT REPARE DMAC MICROCODE IN OPEN--\n");
         break;
-      case 3:
+      case 1:
         use_acp = 0;
         prepare_microcode_in_open = 1;
         printf("\n--DO NOT USE ACP, PREPARE DMAC MICROCODE IN OPEN--\n");
+        break;
+      case 2:
+        use_acp = 1;
+        prepare_microcode_in_open = 0;
+        printf("\n--USE ACP, DO NOT PREPARE DMAC MICROCODE IN OPEN--\n");
+        break;
+      case 3:
+        use_acp = 1;
+        prepare_microcode_in_open = 1;
+        printf("\n--USE ACP, PREPARE DMAC MICROCODE IN OPEN--\n");
         break;
     }
 
@@ -299,8 +298,6 @@ int main() {
         if(0  != memcmp(&(data[0]), on_chip_RAM_vaddr_void, 
           data_in_one_operation))
         {
-          //printf("buff uP   WR="); printbuff((char*) &(data[0]), data_in_one_operation);
-          //printf("buff FPGA WR="); printbuff((char*) on_chip_RAM_vaddr_void, data_in_one_operation);
           printf("DMA src and dst have different data on WR!!\n");return 1;
         }
 
