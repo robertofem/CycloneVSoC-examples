@@ -33,10 +33,6 @@ MODULE_VERSION("1.0");              ///< The version of the module
 
 //---------VARIABLES AND CONSTANTS FOR BUFFERS-----------------//
 //Buffers
-//FPGA On-CHip RAM
-#define FPGA_OCR_HADDRESS 0xC0000000 //Hardware address
-#define FPGA_OCR_SIZE	  0x40000    //Size in bytes=256KB
-static void* fpga_ocr_vaddress;       //virtual address
 //HPS On-Chip RAM
 #define HPS_OCR_HADDRESS 0xFFFF0000 //Hardware address 
 #define HPS_OCR_SIZE	 0x10000    //Size in bytes=64kB
@@ -74,7 +70,7 @@ static ALT_DMA_CHANNEL_t Dma_Channel; //dma channel to be used in transfers
 static int use_acp = 0; //to use acp (add 0x80000000) when accessing processors RAM
 static int prepare_microcode_in_open = 0;//microcode program is prepared when opening char driver
 //when prepare_microcode_in_open the following vars are used to prepare DMA microcodes in open() func
-static void* dma_buff_padd = (void*) FPGA_OCR_HADDRESS; //physical address of buff to use in write and read from application
+static void* dma_buff_padd = (void*) 0xC0000000;//physical address of buff to use in write and read from application
 static int dma_transfer_size = 0; //transfer size in Bytes of the DMA transaction
 
 //------VARIABLES TO IMPLEMENT THE CHAR DEVICE DRIVER INTERFACE--------//
@@ -521,7 +517,7 @@ static int __init DMA_PL330_LKM_init(void){
        printk(KERN_INFO "DMA LKM: DMAC init was successful\n");
    }else{
        printk(KERN_INFO "DMA LKM: DMAC init failed\n");
-       goto error_PL330_init;
+       goto error_HPS_ioremap;
    }
    
    //--Allocate DMA Channel--//
@@ -532,21 +528,8 @@ static int __init DMA_PL330_LKM_init(void){
    }
    else{
        printk(KERN_INFO "DMA LKM: DMA channel allocation failed.\n");
-       goto error_PL330_init;
+       goto error_HPS_ioremap;
   }
-     
-   //--ioremap FPGA memory--//
-   //To ioremap the memory in the FPGA so we can access from kernel space
-    fpga_ocr_vaddress = ioremap(FPGA_OCR_HADDRESS, FPGA_OCR_SIZE);
-    if (fpga_ocr_vaddress == NULL) 
-    {
-      printk(KERN_INFO "DMA LKM: error doing FPGA OCR ioremap\n");
-      goto error_PL330_init;
-    }
-    else
-    {
-      printk(KERN_INFO "DMA LKM: DMAC FPGA OCR ioremap success\n");
-    }
     
     //--ioremap HPS On-Chip memory--//
    //To ioremap the OCM in the HPS so we can access from kernel space
@@ -695,8 +678,6 @@ error_kmalloc:
 error_dma_alloc_coherent:  
    iounmap(hps_ocr_vaddress);
 error_HPS_ioremap:
-   iounmap(fpga_ocr_vaddress);
-error_PL330_init:
    return 0;
 }
 
@@ -718,7 +699,6 @@ static void __exit DMA_PL330_LKM_exit(void){
    kfree(cached_mem_v);
    dma_free_coherent(NULL, (NON_CACHED_MEM_SIZE), non_cached_mem_v, non_cached_mem_h);
    iounmap(hps_ocr_vaddress);         
-   iounmap(fpga_ocr_vaddress);
    PL330_uninit();
 }
 
