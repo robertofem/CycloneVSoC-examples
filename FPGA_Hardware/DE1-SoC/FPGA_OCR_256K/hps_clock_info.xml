@@ -1,0 +1,487 @@
+<BoardInfo>
+<DTAppend name="clocks" type="node" parentlabel="hps_0_clkmgr" newlabel="clocks" />
+
+<DTAppend name="sdram_pll" type="node" parentlabel="clocks" newlabel="sdram_pll" />
+<DTAppend name="#address-cells" type="number" parentlabel="sdram_pll" val="1" />
+<DTAppend name="#size-cells" type="number" parentlabel="sdram_pll" val="0" />
+<DTAppend name="#clock-cells" type="number" parentlabel="sdram_pll" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="sdram_pll" val="altr,socfpga-pll-clock" />
+
+<DTAppend name="ddr_dqs_clk" type="node" parentlabel="sdram_pll" newlabel="ddr_dqs_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="ddr_dqs_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="ddr_dqs_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="ddr_dqs_clk" val="sdram_pll" />
+<DTAppend name="reg" type="hex" parentlabel="ddr_dqs_clk" val="0xc8" />
+
+<DTAppend name="ddr_2x_dqs_clk" type="node" parentlabel="sdram_pll" newlabel="ddr_2x_dqs_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="ddr_2x_dqs_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="ddr_2x_dqs_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="ddr_2x_dqs_clk" val="sdram_pll" />
+<DTAppend name="reg" type="hex" parentlabel="ddr_2x_dqs_clk" val="0xcc" />
+<DTAppend name="reg" type="hex" parentlabel="sdram_pll" val="0xc0" />
+
+<DTAppend name="ddr_dq_clk" type="node" parentlabel="sdram_pll" newlabel="ddr_dq_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="ddr_dq_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="ddr_dq_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="ddr_dq_clk" val="sdram_pll" />
+<DTAppend name="reg" type="hex" parentlabel="ddr_dq_clk" val="0xd0" />
+<DTAppend name="clocks" type="phandle" parentlabel="sdram_pll" val="osc1" />
+
+<DTAppend name="s2f_usr2_clk" type="node" parentlabel="sdram_pll" newlabel="s2f_usr2_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="s2f_usr2_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="s2f_usr2_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="s2f_usr2_clk" val="sdram_pll" />
+<DTAppend name="reg" type="hex" parentlabel="s2f_usr2_clk" val="0xd4" />
+
+<DTAppend name="periph_pll" type="node" parentlabel="clocks" newlabel="periph_pll" />
+<DTAppend name="#address-cells" type="number" parentlabel="periph_pll" val="1" />
+<DTAppend name="#size-cells" type="number" parentlabel="periph_pll" val="0" />
+<DTAppend name="#clock-cells" type="number" parentlabel="periph_pll" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="periph_pll" val="altr,socfpga-pll-clock" />
+
+<DTAppend name="per_nand_mmc_clk" type="node" parentlabel="periph_pll" newlabel="per_nand_mmc_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="per_nand_mmc_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="per_nand_mmc_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="per_nand_mmc_clk" val="periph_pll" />
+<DTAppend name="reg" type="hex" parentlabel="per_nand_mmc_clk" val="0x94" />
+
+<DTAppend name="per_base_clk" type="node" parentlabel="periph_pll" newlabel="per_base_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="per_base_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="per_base_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="per_base_clk" val="periph_pll" />
+<DTAppend name="reg" type="hex" parentlabel="per_base_clk" val="0x98" />
+
+<DTAppend name="per_qspi_clk" type="node" parentlabel="periph_pll" newlabel="per_qspi_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="per_qspi_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="per_qspi_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="per_qspi_clk" val="periph_pll" />
+<DTAppend name="reg" type="hex" parentlabel="per_qspi_clk" val="0x90" />
+
+<DTAppend name="s2f_usr1_clk" type="node" parentlabel="periph_pll" newlabel="s2f_usr1_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="s2f_usr1_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="s2f_usr1_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="s2f_usr1_clk" val="periph_pll" />
+<DTAppend name="reg" type="hex" parentlabel="s2f_usr1_clk" val="0x9c" />
+
+<DTAppend name="emac0_clk" type="node" parentlabel="periph_pll" newlabel="emac0_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="emac0_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="emac0_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="emac0_clk" val="periph_pll" />
+<DTAppend name="reg" type="hex" parentlabel="emac0_clk" val="0x88" />
+
+<DTAppend name="emac1_clk" type="node" parentlabel="periph_pll" newlabel="emac1_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="emac1_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="emac1_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="emac1_clk" val="periph_pll" />
+<DTAppend name="reg" type="hex" parentlabel="emac1_clk" val="0x8c" />
+<DTAppend name="reg" type="hex" parentlabel="periph_pll" val="0x80" />
+<DTAppend name="clocks" type="phandle" parentlabel="periph_pll" val="osc1" />
+<DTAppend name="#size-cells" type="number" parentlabel="clocks" val="0" />
+<DTAppend name="#address-cells" type="number" parentlabel="clocks" val="1" />
+
+<DTAppend name="main_pll" type="node" parentlabel="clocks" newlabel="main_pll" />
+<DTAppend name="#address-cells" type="number" parentlabel="main_pll" val="1" />
+<DTAppend name="#size-cells" type="number" parentlabel="main_pll" val="0" />
+<DTAppend name="#clock-cells" type="number" parentlabel="main_pll" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="main_pll" val="altr,socfpga-pll-clock" />
+
+<DTAppend name="cfg_s2f_usr0_clk" type="node" parentlabel="main_pll" newlabel="cfg_s2f_usr0_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="cfg_s2f_usr0_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="cfg_s2f_usr0_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="cfg_s2f_usr0_clk" val="main_pll" />
+<DTAppend name="reg" type="hex" parentlabel="cfg_s2f_usr0_clk" val="0x5c" />
+
+<DTAppend name="main_qspi_clk" type="node" parentlabel="main_pll" newlabel="main_qspi_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="main_qspi_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="main_qspi_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="main_qspi_clk" val="main_pll" />
+<DTAppend name="reg" type="hex" parentlabel="main_qspi_clk" val="0x54" />
+
+<DTAppend name="dbg_base_clk" type="node" parentlabel="main_pll" newlabel="dbg_base_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="dbg_base_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="dbg_base_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="dbg_base_clk" val="main_pll" />
+<DTAppend name="fixed-divider" type="number" parentlabel="dbg_base_clk" val="4" />
+<DTAppend name="reg" type="hex" parentlabel="dbg_base_clk" val="0x50" />
+
+<DTAppend name="mpuclk" type="node" parentlabel="main_pll" newlabel="mpuclk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="mpuclk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="mpuclk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="mpuclk" val="main_pll" />
+<DTAppend name="fixed-divider" type="number" parentlabel="mpuclk" val="2" />
+<DTAppend name="reg" type="hex" parentlabel="mpuclk" val="0x48" />
+<DTAppend name="reg" type="hex" parentlabel="main_pll" val="0x40" />
+
+<DTAppend name="mainclk" type="node" parentlabel="main_pll" newlabel="mainclk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="mainclk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="mainclk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="mainclk" val="main_pll" />
+<DTAppend name="fixed-divider" type="number" parentlabel="mainclk" val="4" />
+<DTAppend name="reg" type="hex" parentlabel="mainclk" val="0x4c" />
+<DTAppend name="clocks" type="phandle" parentlabel="main_pll" val="osc1" />
+
+<DTAppend name="main_nand_sdmmc_clk" type="node" parentlabel="main_pll" newlabel="main_nand_sdmmc_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="main_nand_sdmmc_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="main_nand_sdmmc_clk" val="altr,socfpga-perip-clk" />
+<DTAppend name="clocks" type="phandle" parentlabel="main_nand_sdmmc_clk" val="main_pll" />
+<DTAppend name="reg" type="hex" parentlabel="main_nand_sdmmc_clk" val="0x58" />
+<DTAppend name="osc1" type="node" parentlabel="clocks" newlabel="osc1" />
+<DTAppend name="#clock-cells" type="number" parentlabel="osc1" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="osc1" val="fixed-clock" />
+<DTAppend name="clock-frequency" type="number" parentlabel="osc1" val="25000000" />
+<DTAppend name="f2s_periph_ref_clk" type="node" parentlabel="clocks" newlabel="f2s_periph_ref_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="f2s_periph_ref_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="f2s_periph_ref_clk" val="fixed-clock" />
+<DTAppend name="clock-frequency" type="number" parentlabel="f2s_periph_ref_clk" val="10000000" />
+<DTAppend name="usb_mp_clk" type="node" parentlabel="clocks" newlabel="usb_mp_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="usb_mp_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="usb_mp_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="usb_mp_clk" >
+<val type="phandle">per_base_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="usb_mp_clk" >
+<val type="hex">160</val>
+<val type="number">2</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="usb_mp_clk" >
+<val type="hex">164</val>
+<val type="number">0</val>
+<val type="number">3</val>
+</DTAppend>
+
+<DTAppend name="nand_clk" type="node" parentlabel="clocks" newlabel="nand_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="nand_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="nand_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="nand_clk" >
+<val type="phandle">f2s_periph_ref_clk</val>
+<val type="phandle">main_nand_sdmmc_clk</val>
+<val type="phandle">per_nand_mmc_clk</val>
+</DTAppend>
+<DTAppend name="fixed-divider" parentlabel="nand_clk" type="number" val="4"/>
+<DTAppend name="clk-gate" parentlabel="nand_clk" >
+<val type="hex">160</val>
+<val type="number">10</val>
+</DTAppend>
+
+<DTAppend name="dbg_timer_clk" type="node" parentlabel="clocks" newlabel="dbg_timer_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="dbg_timer_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="dbg_timer_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="dbg_timer_clk" >
+<val type="phandle">dbg_base_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="dbg_timer_clk" >
+<val type="hex">96</val>
+<val type="number">7</val>
+</DTAppend>
+
+<DTAppend name="can1_clk" type="node" parentlabel="clocks" newlabel="can1_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="can1_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="can1_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="can1_clk" >
+<val type="phandle">per_base_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="can1_clk" >
+<val type="hex">160</val>
+<val type="number">5</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="can1_clk" >
+<val type="hex">164</val>
+<val type="number">9</val>
+<val type="number">3</val>
+</DTAppend>
+
+<DTAppend name="emac_0_clk" type="node" parentlabel="clocks" newlabel="emac_0_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="emac_0_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="emac_0_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="emac_0_clk" >
+<val type="phandle">emac0_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="emac_0_clk" >
+<val type="hex">160</val>
+<val type="number">0</val>
+</DTAppend>
+
+<DTAppend name="dbg_trace_clk" type="node" parentlabel="clocks" newlabel="dbg_trace_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="dbg_trace_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="dbg_trace_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="dbg_trace_clk" >
+<val type="phandle">dbg_base_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="dbg_trace_clk" >
+<val type="hex">96</val>
+<val type="number">6</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="dbg_trace_clk" >
+<val type="hex">108</val>
+<val type="number">0</val>
+<val type="number">3</val>
+</DTAppend>
+
+<DTAppend name="dbg_at_clk" type="node" parentlabel="clocks" newlabel="dbg_at_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="dbg_at_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="dbg_at_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="dbg_at_clk" >
+<val type="phandle">dbg_base_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="dbg_at_clk" >
+<val type="hex">96</val>
+<val type="number">4</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="dbg_at_clk" >
+<val type="hex">104</val>
+<val type="number">0</val>
+<val type="number">2</val>
+</DTAppend>
+
+<DTAppend name="l4_sp_clk" type="node" parentlabel="clocks" newlabel="l4_sp_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="l4_sp_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="l4_sp_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="l4_sp_clk" >
+<val type="phandle">mainclk</val>
+<val type="phandle">per_base_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="l4_sp_clk" >
+<val type="hex">96</val>
+<val type="number">3</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="l4_sp_clk" >
+<val type="hex">100</val>
+<val type="number">7</val>
+<val type="number">3</val>
+</DTAppend>
+
+<DTAppend name="can0_clk" type="node" parentlabel="clocks" newlabel="can0_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="can0_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="can0_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="can0_clk" >
+<val type="phandle">per_base_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="can0_clk" >
+<val type="hex">160</val>
+<val type="number">4</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="can0_clk" >
+<val type="hex">164</val>
+<val type="number">6</val>
+<val type="number">3</val>
+</DTAppend>
+
+<DTAppend name="spi_m_clk" type="node" parentlabel="clocks" newlabel="spi_m_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="spi_m_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="spi_m_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="spi_m_clk" >
+<val type="phandle">per_base_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="spi_m_clk" >
+<val type="hex">160</val>
+<val type="number">3</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="spi_m_clk" >
+<val type="hex">164</val>
+<val type="number">3</val>
+<val type="number">3</val>
+</DTAppend>
+
+<DTAppend name="cfg_clk" type="node" parentlabel="clocks" newlabel="cfg_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="cfg_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="cfg_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="cfg_clk" >
+<val type="phandle">cfg_s2f_usr0_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="cfg_clk" >
+<val type="hex">96</val>
+<val type="number">8</val>
+</DTAppend>
+
+<DTAppend name="mpu_l2_ram_clk" type="node" parentlabel="clocks" newlabel="mpu_l2_ram_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="mpu_l2_ram_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="mpu_l2_ram_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="mpu_l2_ram_clk" >
+<val type="phandle">mpuclk</val>
+</DTAppend>
+<DTAppend name="fixed-divider" parentlabel="mpu_l2_ram_clk" type="number" val="2"/>
+
+<DTAppend name="s2f_user0_clk" type="node" parentlabel="clocks" newlabel="s2f_user0_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="s2f_user0_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="s2f_user0_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="s2f_user0_clk" >
+<val type="phandle">cfg_s2f_usr0_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="s2f_user0_clk" >
+<val type="hex">96</val>
+<val type="number">9</val>
+</DTAppend>
+
+<DTAppend name="l3_mp_clk" type="node" parentlabel="clocks" newlabel="l3_mp_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="l3_mp_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="l3_mp_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="l3_mp_clk" >
+<val type="phandle">mainclk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="l3_mp_clk" >
+<val type="hex">96</val>
+<val type="number">1</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="l3_mp_clk" >
+<val type="hex">100</val>
+<val type="number">0</val>
+<val type="number">2</val>
+</DTAppend>
+
+<DTAppend name="dbg_clk" type="node" parentlabel="clocks" newlabel="dbg_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="dbg_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="dbg_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="dbg_clk" >
+<val type="phandle">dbg_base_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="dbg_clk" >
+<val type="hex">96</val>
+<val type="number">5</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="dbg_clk" >
+<val type="hex">104</val>
+<val type="number">2</val>
+<val type="number">2</val>
+</DTAppend>
+
+<DTAppend name="l3_sp_clk" type="node" parentlabel="clocks" newlabel="l3_sp_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="l3_sp_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="l3_sp_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="l3_sp_clk" >
+<val type="phandle">mainclk</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="l3_sp_clk" >
+<val type="hex">100</val>
+<val type="number">2</val>
+<val type="number">2</val>
+</DTAppend>
+
+<DTAppend name="nand_x_clk" type="node" parentlabel="clocks" newlabel="nand_x_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="nand_x_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="nand_x_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="nand_x_clk" >
+<val type="phandle">f2s_periph_ref_clk</val>
+<val type="phandle">main_nand_sdmmc_clk</val>
+<val type="phandle">per_nand_mmc_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="nand_x_clk" >
+<val type="hex">160</val>
+<val type="number">9</val>
+</DTAppend>
+
+<DTAppend name="gpio_db_clk" type="node" parentlabel="clocks" newlabel="gpio_db_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="gpio_db_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="gpio_db_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="gpio_db_clk" >
+<val type="phandle">per_base_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="gpio_db_clk" >
+<val type="hex">160</val>
+<val type="number">6</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="gpio_db_clk" >
+<val type="hex">168</val>
+<val type="number">0</val>
+<val type="number">24</val>
+</DTAppend>
+
+<DTAppend name="l3_main_clk" type="node" parentlabel="clocks" newlabel="l3_main_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="l3_main_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="l3_main_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="l3_main_clk" >
+<val type="phandle">mainclk</val>
+</DTAppend>
+
+<DTAppend name="l4_mp_clk" type="node" parentlabel="clocks" newlabel="l4_mp_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="l4_mp_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="l4_mp_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="l4_mp_clk" >
+<val type="phandle">mainclk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="l4_mp_clk" >
+<val type="hex">96</val>
+<val type="number">2</val>
+</DTAppend>
+<DTAppend name="div-reg" parentlabel="l4_mp_clk" >
+<val type="hex">100</val>
+<val type="number">4</val>
+<val type="number">3</val>
+</DTAppend>
+
+<DTAppend name="s2f_user1_clk" type="node" parentlabel="clocks" newlabel="s2f_user1_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="s2f_user1_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="s2f_user1_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="s2f_user1_clk" >
+<val type="phandle">s2f_usr1_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="s2f_user1_clk" >
+<val type="hex">160</val>
+<val type="number">7</val>
+</DTAppend>
+
+<DTAppend name="mpu_periph_clk" type="node" parentlabel="clocks" newlabel="mpu_periph_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="mpu_periph_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="mpu_periph_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="mpu_periph_clk" >
+<val type="phandle">mpuclk</val>
+</DTAppend>
+<DTAppend name="fixed-divider" parentlabel="mpu_periph_clk" type="number" val="4"/>
+
+<DTAppend name="sdmmc_clk" type="node" parentlabel="clocks" newlabel="sdmmc_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="sdmmc_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="sdmmc_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="sdmmc_clk" >
+<val type="phandle">f2s_periph_ref_clk</val>
+<val type="phandle">main_nand_sdmmc_clk</val>
+<val type="phandle">per_nand_mmc_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="sdmmc_clk" >
+<val type="hex">160</val>
+<val type="number">8</val>
+</DTAppend>
+
+<DTAppend name="qspi_clk" type="node" parentlabel="clocks" newlabel="qspi_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="qspi_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="qspi_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="qspi_clk" >
+<val type="phandle">f2s_periph_ref_clk</val>
+<val type="phandle">main_qspi_clk</val>
+<val type="phandle">per_qspi_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="qspi_clk" >
+<val type="hex">160</val>
+<val type="number">11</val>
+</DTAppend>
+
+<DTAppend name="emac_1_clk" type="node" parentlabel="clocks" newlabel="emac_1_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="emac_1_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="emac_1_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="emac_1_clk" >
+<val type="phandle">emac1_clk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="emac_1_clk" >
+<val type="hex">160</val>
+<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="l4_main_clk" type="node" parentlabel="clocks" newlabel="l4_main_clk" />
+<DTAppend name="#clock-cells" type="number" parentlabel="l4_main_clk" val="0" />
+<DTAppend name="compatible" type="string" parentlabel="l4_main_clk" val="altr,socfpga-gate-clk" />
+<DTAppend name="clocks" parentlabel="l4_main_clk" >
+<val type="phandle">mainclk</val>
+</DTAppend>
+<DTAppend name="clk-gate" parentlabel="l4_main_clk" >
+<val type="hex">96</val>
+<val type="number">0</val>
+</DTAppend>
+
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_spi1" val="per_base_clk"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_spi0" val="per_base_clk"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_i2c3" val="per_base_clk"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_i2c2" val="per_base_clk"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_i2c1" val="per_base_clk"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_i2c0" val="per_base_clk"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_gpio0" val="per_base_clk"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_gpio1" val="per_base_clk"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_gpio2" val="per_base_clk"/>
+</BoardInfo>
