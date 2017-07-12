@@ -21,7 +21,7 @@ The OCR configured in the FPGA has the following characteristics:
 The following drawing depicts the hardware just described:
 
 <p align="center">
-  <img src="https://github.com/robertofem/CycloneVSoC-examples/raw/master/CycloneVSoC.png" width="450" align="middle" alt="Cyclone V SoC simplified block diagram" />
+  <img src="https://github.com/robertofem/CycloneVSoC-examples/raw/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K/FPGA_OCR_256K.png" width="450" align="middle" alt="Cyclone V SoC simplified block diagram" />
 </p>
 
 
