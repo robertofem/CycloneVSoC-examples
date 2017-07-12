@@ -2,9 +2,10 @@ Cyclone V SoC examples
 ====================
 Examples using the FPSoC chip Cyclone V SoC. All these examples were tested on DE1-SoC board. However most of them are easily ported to other boards including Cyclone V SoC chips because they do not interact with the hardware in the board. 
 
-![alt text](https://github.com/robertofem/CycloneVSoC-examples/raw/master/CycloneVSoC.png =250x )
+![alt text](https://github.com/robertofem/CycloneVSoC-examples/raw/master/CycloneVSoC.png =100x20)
 
-Cyclone V SoC simplified block diagram
+<center><img src="https://github.com/robertofem/CycloneVSoC-examples/raw/master/CycloneVSoC.png" width="450" align="middle" alt="Cyclone V SoC simplified block diagram" /></center>
+
 This repository contains:
 
 * **Baremetal-applications**: Stand-alone applications without Operating System.
@@ -35,5 +36,4 @@ This repository contains:
 * **SD-operating-system**: It explains how to build an SD card with Operating System from scratch. All the files needed are also provided to save time. Currently the OS that have been tested are:
 
     * Angstrom-v2012.12
-    * Angstrom-v2016.12
     
