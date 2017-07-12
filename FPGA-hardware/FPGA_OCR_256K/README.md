@@ -1,2 +1,0 @@
-FPGA On-Chip RAM (OCR) 256KB
-
