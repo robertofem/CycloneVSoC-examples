@@ -291,7 +291,6 @@ ALT_STATUS_CODE dmac_init(void)
     return status;
 }
 
-/******************************************************************************/
 // DMA Controller uninitialization
 ALT_STATUS_CODE dmac_uninit(void)
 {
