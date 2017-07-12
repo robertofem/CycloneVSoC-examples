@@ -7,7 +7,7 @@ This is a complete example on moving data using the HPS Direct Memory Access Con
  
 This example moves data between a source buffer in processor´s memory to a destiny buffer in processor´s memory or in the FPGA:
 * When the macro USE_FPGA is not defined the destiny is in processors memory.
-* When the macro USE_FPGA is defined the destiny is a buffer in the FPGA in the address 0xC0000000, the beginning of the HPS-FPGA bridge. Therefore when selecting this option there should be a memory in the FPGA with enough space to do the transfer in address 0 of that bridge. In the folder [https://github.com/robertofem/CycloneVSoC_Examples/tree/master/FPGA_Hardware/DE1-SoC/FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC_Examples/tree/master/FPGA_Hardware/DE1-SoC/FPGA_OCR_256K) you can find a hardware project implementing a 256KB On-Chip RAM memory in the FPGA for this purpose.
+* When the macro USE_FPGA is defined the destiny is a buffer in the FPGA in the address 0xC0000000, the beginning of the HPS-FPGA bridge. Therefore when selecting this option there should be a memory in the FPGA with enough space to do the transfer in address 0 of that bridge. In the folder [https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/FPGA_OCR_256K) you can find a hardware project implementing a 256KB On-Chip RAM memory in the FPGA for this purpose.
     
 To control the cache behaviour there is the macro SWITCH_ON_CACHE.
 * When SWITCH_ON_CACHE is not defined the cache system L1 and L2 are switched off. In this case the DMAC accesses the processor RAM using the direct conection between L3 interconnect and SDRAM controller. You can modify transfer pointers to access processor memories  through ACP but this is slower because ACP will access L2 cache controller and L2 cache controller will finally access RAM to get the data because cache is off. So direct access to RAM is faster in this case.
@@ -45,4 +45,4 @@ The compilation process generates two files:
 How to test
 -----------
 In the following folder there is an example on how to run baremetal examples available in this repository:
-[https://github.com/robertofem/CycloneVSoC_Examples/tree/master/SD_Baremetal](https://github.com/robertofem/CycloneVSoC_Examples/tree/master/SD_Baremetal).
+[https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-baremetal](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-baremetal).
