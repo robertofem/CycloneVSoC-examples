@@ -1,5 +1,5 @@
-﻿Build_Baremetal_SD
-======================
+SD-baremetal
+=============
 
 This brief tutorial explains how to build a SD card to run the baremetal examples provided in this repository.
 
