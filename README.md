@@ -2,7 +2,8 @@ Cyclone V SoC examples
 ====================
 Examples using the FPSoC chip Cyclone V SoC. All these examples were tested on DE1-SoC board. However most of them are easily ported to other boards including Cyclone V SoC chips because they do not interact with the hardware in the board. 
 
-![alt text][Cyclone V SoC Diagram](https://github.com/robertofem/CycloneVSoC-examples/raw/master/CycloneVSoC.png)
+![alt text](https://github.com/robertofem/CycloneVSoC-examples/raw/master/CycloneVSoC.png =250x )
+
 Cyclone V SoC simplified block diagram
 This repository contains:
 
