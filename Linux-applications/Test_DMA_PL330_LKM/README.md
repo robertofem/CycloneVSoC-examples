@@ -5,7 +5,7 @@ Description
 -----------
 This application tests the [DMA_PL330_LKM](https://github.com/robertofem/CycloneVSoC-examples/tree/master/Linux-modules/DMA_PL330_LKM) kernel module. DMA_PL330_LKM is a module that permits application-FPGA transfers using the DMA controller PL330 available in HPS.  It uses character driver interface to communicate to application space. The entry /dev/dma_pl330 is created when the driver is inserted and afterwards the FPGA can be accessed as a file with the regular functions open(), read(), write() and close(). 
 
-In the FPGA should be a memory in the address 0xC0000000 from processor address space (0x00000000 from HPS-FPGA bridge address space) with space enough for the transfers. For this purpose the [FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K) project in this repository can be used. 
+In the FPGA should be a memory with space enough for the transfers. For this purpose the [FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K) project in this repository can be used.
 
 Test_DMA_PL330_LKM first generates a virtual address to access FPGA from application space, using mmap(). This is needed to check if the transfers using the driver are being done in proper way. After that the driver is configured using a sysfs entry in /sys/dma_pl330/. Lastly the program copies a buffer from application to the FPGA using write() and copies back the content in  the FPGA to the application using the read() function. Both operations are checked and a ERROR message is shown if the transfer went wrong.
 
@@ -15,7 +15,7 @@ The configuration of the module can be controlled with 4 macros on the top of th
 
 * USE_ACP: When 0 the  PL330 DMAC will copy data from/to FPGA to/from an un-cached buffer in processor memory using the port connecting L3 and SDRAMC. When 1 the access is through ACP port using a cached buffer. 
 
-* DMA_BUFF_PADD: This is the physical address in the FPGA were the module is going to copy data from the application space. When using the  [FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K) project this address is 0xC0000000.
+* DMA_BUFF_PADD: This is the physical address in the FPGA were the module is going to copy data from the application space. When using the  [FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K) project this address is 0xC0000000 (0xC0000000 in the processor address space 0x00000000 in the HPS-FPGA bridge address space).
 
 * PREPARE_MICROCODE_WHEN_OPEN: When 0 the microcode that PL330 DMA Controller executes is prepared before every transfer when entering the open() or read() function. When 1 the microcode is prepared when calling the open() function. Two microcodes are generated: one for read FPGA and another for write to FPGA. Later when using read() or write() the prepared microcodes are used. This saves the microcode preparation time  when doing the transfer. 
 
