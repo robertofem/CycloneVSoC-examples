@@ -20,6 +20,7 @@
 **/FPGA-hardware/**/**/db/**
 **/FPGA-hardware/**/**/incremental_db/**
 **/FPGA-hardware/**/**/soc_system/**
+**/FPGA-hardware/**/**/hps_isw_handoff/**
 **/FPGA-hardware/**/**/*.txt
 **/FPGA-hardware/**/**/*.rpt
 **/FPGA-hardware/**/**/*.csv
@@ -35,3 +36,4 @@
 **/FPGA-hardware/**/**/*.rbf
 **/FPGA-hardware/**/**/*.cdf
 **/FPGA-hardware/**/**/*.stp
+
