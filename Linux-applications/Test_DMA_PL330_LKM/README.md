@@ -39,7 +39,7 @@ How to test
 * Compile and the FPGA hardware ([FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K)  in example) and load it in the FPGA:
     *  If MSEL[5:0]="000000" FPGA is loaded by the U-boot during start-up. Check  the [tutorials to build a SD card with Operating System](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system) to learn how to configure the SD card so the FPGA is loaded from it. 
     *  If MSEL[5:0]="110010" use Quartus to load the FPGA:
-        *  Connect the USB cable (just in one side of power connector).
+        *  Connect the USB cable (just next to the power connector).
         *  Open Quartus programmer.
         *  Click Autodetect -> Mode JTAG -> Select 5CSEMA5 (for DE1-SoC and DE0-nano-SoC) if asked -> Right click in 5CSEMA5 -> Change FIle -> Select the .sof file for the project you want to load -> tick Program/Configure -> Click Start.
 
@@ -51,7 +51,7 @@ How to test
 > Remember. The version of the kernel for which the driver is compiled for should be the same running in the board. This implies that you have to compile the OS you are running in the board and compile the driver with the output files from that compilation. In the [tutorials to build a SD card with Operating System](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system) and in the [DMA_PL330_LKM folder](https://github.com/robertofem/CycloneVSoC-examples/tree/master/Linux-modules/DMA_PL330_LKM) you can find more information about compiling an Operating System and a Loadable Kernel Moduler (LKM) respectively.
 
 * Run the application:
-* ```bash
+ ```bash
   $ chmod 777 Test_DMA_PL330_LKM
   $ ./Test_DMA_PL330_LKM
 ```
