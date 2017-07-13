@@ -31,7 +31,6 @@ This programs was tested with Altera SoC EDS v16.1
 The compilation process generates two files:
 * baremetalapp.bin: to load the baremetal program from u-boot
 * baremetalapp.bin.img: to load the baremetal program from preloader
-* main.axf: can be used to debug
     
 How to test
 -----------
