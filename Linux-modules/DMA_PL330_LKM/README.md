@@ -79,7 +79,7 @@ To compile the driver you need to first compile the Operating System (OS) you wi
   * Compile the OS you will use. In [tutorials to build a SD card with Operating System](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system) there are examples on how to compile OS and how to prepare the environment to compile drivers. 
   * Prepare the make file you will use to compile the module. The makefile provided in this example is prepared to compile using the output of the [Angstrom-v2012.12](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system/Angstrom-v2012.12) compilation process. CROSS_COMPILE contains the path of the compilers used to compile this driver. ROOTDIR is the path to the kernel compiled source. It is used by the driver to get access to the header files used in the compilation (linux/module.h or linux/kernel.h in example).
   * Open a regular terminal (I used Debian 8 to compile Angstrom-v2012.12 and its drivers), navigate until the driver folder and tipe _make_.
-  * 
+ 
 The output of the compilation is the file _DMA_PL330.ko_.
     
 How to test
