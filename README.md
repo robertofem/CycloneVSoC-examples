@@ -20,8 +20,9 @@ This repository contains:
     * Test_DMA_PL330_LKM: it shows how to use the DMA\_PL330\_LKM module.
    
 * **Linux-modules**: Linux Loadable Kernel Modules (LKM). 
-	* DMA_PL330_LKM_Basic: stand-alone module that makes a data transfer using the PL330 DMAC (available in HPS) when inserted into the operating system. It can be configured to move data between: FPGA memory, HPS On-chip RAM, uncached buffer in processor´s RAM and cached buffer in processor´s RAM (through APC). It is a complete example that can be used as starting point for developing an specific application.
+	* DMA_PL330_LKM_Basic: stand-alone module that makes a data transfer using the PL330 DMAC (available in HPS) when inserted into the operating system. It can be configured to move data between: FPGA memory, HPS On-chip RAM, uncached buffer in processor´s RAM and cached buffer in processor´s RAM (through APC). It is a complete example that can be used as starting point for developing a DMA module for a specific application.
 	* DMA_PL330_LKM: module to make transfers between an application and the FPGA using PL330 DMAC. It uses char device driver interface to copy the data from application to a uncached or cached (through ACP) buffer in driver´s memory space. Later it uses PL330 DMAC to copy that buffer to FPGA. A /dev/dma_pl330 entry is created so writing in the FPGA is so easy as writing to a file. Linux_applications/Test_DMA_PL330_LKM shows how to use it.
+	* Enable_PMU_user_space: this module permits access to the Performance Monitoring Unit (PMU) from user space. By default the access from user space is forbidden and a bit must be setting from kernel space to later have access from user space. This module accomplishes that task.
 
 * **Useful-scripts**: Linux shell scripts to ease configuration of the board.
 	* fixed_mac_dhcp.sh: fixes MAC and asks IP using DHCP protocol.
