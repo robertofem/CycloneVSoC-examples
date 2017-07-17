@@ -104,8 +104,8 @@ How to test
         *  Open Quartus programmer.
         *  Click Autodetect -> Mode JTAG -> Select 5CSEMA5 (for DE1-SoC and DE0-nano-SoC) if asked -> Right click in the line representing the FPGA -> Change FIle -> Select the .sof file for the project you want to load -> tick Program/Configure -> Click Start.
 
-* Connect the serial console port (the mini-USB port in DE1-SoC) to the computer and open a session with a Seral Terminal (like Putty) at 115200 bauds. Now you have access to the board OS console.
-* Copy the [DMA_PL330_LKM](https://github.com/robertofem/CycloneVSoC-examples/tree/master/Linux-modules/DMA_PL330_LKM) module in the SD card (using SSH or connecting it to a regular compuer running Linux system) and insert it into the kernel using _insmod_ command: 
+* Connect the serial console port (the mini-USB port in DE1-SoC) to the computer and open a session with a Serial Terminal (like Putty) at 115200 bauds. Now you have access to the board OS console.
+* Copy the [DMA_PL330_LKM](https://github.com/robertofem/CycloneVSoC-examples/tree/master/Linux-modules/DMA_PL330_LKM) module in the SD card (using SSH or connecting it to a regular computer running Linux system) and insert it into the kernel using _insmod_ command: 
 ```bash
   $ insmod DMA_PL330_basic.ko
 ```
