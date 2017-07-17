@@ -34,11 +34,11 @@ The compilation process generates the executable file *test_DMA_PL330_LKM*.
     
 How to test
 ------------
-* Configure MSEL pins:
+* Configure MSEL pins (only if FPGA is used):
     *  MSEL[5:0]="000000" position when FPGA will be configured from SD card.
     *  MSEL[5:0]="110010" position when FPGA will be configured from EPCQ device or Quartus programmer.
 * Switch on the board.
-* Compile the FPGA hardware ([FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K)  in example) and load it in the FPGA:
+* Compile the FPGA hardware ([FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K)  in example) and load it in the FPGA (only if FPGA is used):
     *  If MSEL[5:0]="000000" FPGA is loaded by the U-boot during start-up. Check  the [tutorials to build a SD card with Operating System](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system) to learn how to configure the SD card so the FPGA is loaded from it. 
     *  If MSEL[5:0]="110010" use Quartus to load the FPGA:
         *  Connect the USB cable (just next to the power connector).
