@@ -5,15 +5,15 @@ This tutorial explains how to build an Angstrom 2012.12 SD card for Cyclone V So
 Table of contents:
 
 1. [Installation of the tools](#1---installation-of-the-tools)
-2. [SD card partitions and files](#2-sd-card-partitions-and-files)
-3. [Booting process](#booting-process)
-4. [Compile and u-boot kernel and root file system](#sd-card-partitions-and-files)
-5. [Create the partitions in the SD card](#sd-card-partitions-and-files)
-6. [Generate and test the Preloader](#sd-card-partitions-and-files)
-7. [Generate FPGA configuration file](#sd-card-partitions-and-files)
-8. [Generate Device Tree Blob](#sd-card-partitions-and-files)
-9. [Write u-boot.scr file and test the u-boot](#sd-card-partitions-and-files)
-10. [Write kernel and root-file system and test them](#sd-card-partitions-and-files)
+2. [SD card partitions and files](#2---sd-card-partitions-and-files)
+3. [Booting process](#3---booting-process)
+4. [Compile and u-boot kernel and root file system](#4---compile-and-u-boot-kernel-and-root-file-system)
+5. [Create the partitions in the SD card](#5---create-the-partitions-in-the-sd-card)
+6. [Generate and test the Preloader](#6---generate-and-test-the-preloader)
+7. [Generate FPGA configuration file](#7---generate-fpga-configuration-file)
+8. [Generate Device Tree Blob](#8---generate-device-tree-blob)
+9. [Write u-boot script file and test the u-boot](#9---write-u-boot-script-file-and-test-the-u-boot)
+10. [Write kernel and root-file system and test them](#10-write-kernel-and-root-file-system-and-test-them)
 
 1 - Installation of the tools
 ---------------------------
@@ -27,7 +27,7 @@ First the tools used to build the SD card should be installed. In this case we u
     * Ubuntu 12.04 32bit virtual machine running inside the previous Windows 7 in a VMWare virtual machine. Used to compile OS for the embedded system and to build the SD Card.
 All could be done inside an Ubuntu 12.04 machine installing Quartus II and Altera SoC EDS in it. 
 
-2-SD card partitions and files
+2 - SD card partitions and files
 ----------------------------
 As target board we are using DE1-SoC board from Terasic [4]. 
 As hardware project for the FPGA we are using GHRD (Golden Hardware Reference Design) provided by Terasic inside the DE1-SoC CD-ROM. We copy this folder in a location in the Windows 7 system. We will call this folder [de1_soc_GHRD] after this point.
@@ -49,33 +49,32 @@ More about the SD card in the SD Card Tutorial from Rocket Boards [5].
 <p align="center">
   <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2012.12/SD_card_partitions.png" width="200" align="middle" alt="Cyclone V SoC simplified block diagram" />
 </p>
- 
 
-Booting process
+3 - Booting process
 -----------------
 The booting process for Cyclone V SoC when OS is present is the following. The preloader (only 64K) is loaded from the bootROM program (saved during chip manufacturing) inside the 64k On-Chip RAM. It configures external RAM memory (1GB in DE1-SoC) and performs other tasks. It loads u-boot in RAM and jumps to it. The u-boot loads some basic drivers needed to launch OS. It executes some commands to initialize the system, reads .dtb file and loads some basic drivers to work with some devices. The u-boot can configure the FPGA as ecplained later. In the end it loads the kernel image in RAM and passes execution to it. Using the u-boot.scr file the default behavior of u-boot can be modified. 
 
 More about Cyclone V SoC boot in the [Preloader and U-boot Generation for Altera Cyclone V SoC](https://www.youtube.com/watch?v=vS7pvefsbRM) tutorial and in the Cyclone V SoC Handbook.
 
-Compile and u-boot kernel and root file system
+4 - Compile and u-boot kernel and root file system
 --------------------------------------------------
 
-Create the partitions in the SD card
+5 - Create the partitions in the SD card
+----------------------------------------
+
+6 - Generate and test the Preloader
 ------------------------------------
 
-Generate and test the Preloader
----------------------------------
+7 - Generate FPGA configuration file
+-------------------------------------
 
-Generate FPGA configuration file
-----------------------------------
+8 - Generate Device Tree Blob
+-----------------------------
 
-Generate Device Tree Blob
----------------------------
+9 - Write u-boot script file and test the u-boot
+------------------------------------------------
 
-Write u-boot.scr file and test the u-boot
-------------------------------------------
-
-Write kernel and root-file system and test them
--------------------------------------------------
+10 - Write kernel and root-file system and test them
+----------------------------------------------------
 
     
