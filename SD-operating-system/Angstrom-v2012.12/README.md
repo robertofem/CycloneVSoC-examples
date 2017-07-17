@@ -7,7 +7,7 @@ Table of contents:
 * [Installation of the tools](#installation-of-the-tools)
 * [SD card partitions and files](#SD-card-partitions-and-files)
 
-#Installation of the tools
+# Installation of the tools
 
 First the tools used to build the SD card should be installed. In this case we use a single PC running:
 
