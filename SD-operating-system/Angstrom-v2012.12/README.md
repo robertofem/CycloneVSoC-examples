@@ -4,8 +4,8 @@ This tutorial explains how to build an Angstrom 2012.12 SD card for Cyclone V So
 
 Table of contents:
 
-* [Installation of the tools](#installation-of-the-tools)
-* [SD card partitions and files](#sd-card-partitions-and-files)
+[1.Installation of the tools](#1.installation-of-the-tools)
+[2.SD card partitions and files](#sd-card-partitions-and-files)
 * [Booting process](#booting-processs)
 * [Compile and u-boot kernel and root file system](#sd-card-partitions-and-files)
 * [Create the partitions in the SD card](#sd-card-partitions-and-files)
@@ -15,7 +15,7 @@ Table of contents:
 * [Write u-boot.scr file and test the u-boot](#sd-card-partitions-and-files)
 * [Write kernel and root-file system and test them](#sd-card-partitions-and-files)
 
-Installation of the tools
+1.Installation of the tools
 ------------------------
 First the tools used to build the SD card should be installed. In this case we use a single PC running:
 
