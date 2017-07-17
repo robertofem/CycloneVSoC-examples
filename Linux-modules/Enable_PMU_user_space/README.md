@@ -23,7 +23,7 @@ int main(){
 }	 
 ```
  
- And the result is
+ And the result is:
  
  
 <p align="center">
@@ -70,9 +70,11 @@ How to test
 * Connect the serial console port (the mini-USB port in DE1-SoC) to the computer and open a session with a Serial Terminal (like Putty) at 115200 bauds. Now you have access to the board OS console.
 * Copy the _PMU_User_Space_EN.ko_ file in the SD card (using SSH or connecting it to a regular computer running Linux system) and insert it into the kernel using _insmod_ command: 
 ```bash
-  $ insmod DMA_PL330_basic.ko
+  $ insmod PMU_User_Space_EN.ko
 ```
- * The result (fail or success of the transfer) is printed in the kernel log. Depending on the configuration of your operating system the messages from the LKM will be directly printed in screen or you will need to use _dmesg_ to see them:
+ * The result is printed in the kernel log that should show say that the value of PMUSERENR.EN is 1. Depending on the configuration of your operating system the messages from the LKM will be directly printed in screen or you will need to use _dmesg_ to see them:
  ```bash
   $ dmesg
 ```
+
+Inserting the module will activate the PMU of the processor where the code is running. If the application that later uses PMU accesses it runs in a different core the _illegal instruction_ message will appear again. In that case you can remove and insert the module several times until the CPU where the application is running gets enable. Other option is to use [taskset](http://xmodulo.com/run-program-process-specific-cpu-cores-linux.html) utility (not installed in [Angstrom-v2012.12](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system/Angstrom-v2012.12)) to choose the CPU where you want to run the application. You can run the application in one core and if it does not run just try the other.
