@@ -64,12 +64,12 @@ Contents in the folder
 ----------------------
 * DMA_PL330_LKM.c: main file containing the code just explained before.
 * Modifications to the hwlib functions:
- * alt_dma.c and alt_dma.h: functions to control the DMAC (all the functions not used in our program in alt_dma.c were commented to minimize the errors compiling.).
- *  alt_dma_common.h: few declarations for DMA.
- *  alt_dma_periph_cv_av.h: some macro declarations.
- *  alt_dma_program.c and alt_dma_program.h: to generate the microcode program for the DMAC.
- *  alt_acpidmap.h, alt_address_space.c and alt_address_map.h: enable the ACP ID Mapper and configure ACP. 
- *  hwlib_socal_linux: All the generic files used in the files for all peripherals (hwlib.h, socal.h, etc.) were not copied to the folder of the driver. Copying this files gives a lot of errors that need long time to fix. So instead of fixing generic files we commented the include lines for generic files in the beginning of the files previously enumerated and copied all macros that these files need into one single file called hwlib_socal_linux.h. This file includes definitions from hwlib.h, alt_rstmgr.h, socal/hps.h, socal/alt_sysmgr.h , alt_cache.h and alt_mmu.h. 
+    * alt_dma.c and alt_dma.h: functions to control the DMAC (all the functions not used in our program in alt_dma.c were commented to minimize the errors compiling.).
+    *  alt_dma_common.h: few declarations for DMA.
+    *  alt_dma_periph_cv_av.h: some macro declarations.
+    *  alt_dma_program.c and alt_dma_program.h: to generate the microcode program for the DMAC.
+    *  alt_acpidmap.h, alt_address_space.c and alt_address_map.h: enable the ACP ID Mapper and configure ACP. 
+    *  hwlib_socal_linux: All the generic files used in the files for all peripherals (hwlib.h, socal.h, etc.) were not copied to the folder of the driver. Copying this files gives a lot of errors that need long time to fix. So instead of fixing generic files we commented the include lines for generic files in the beginning of the files previously enumerated and copied all macros that these files need into one single file called hwlib_socal_linux.h. This file includes definitions from hwlib.h, alt_rstmgr.h, socal/hps.h, socal/alt_sysmgr.h , alt_cache.h and alt_mmu.h. 
 * Makefile: describes compilation process.
 
 Compilation

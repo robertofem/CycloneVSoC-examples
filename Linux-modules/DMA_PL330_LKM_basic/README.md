@@ -23,16 +23,16 @@ This LKM only contains the two most basic functions: _init_ and _exit_ functions
 
 * DMA_PL330_LKM_init: executed when the module is inserted using _insmod_. It:
  
- * initializes the DMA Controller and reserves Channel 0 to be used in DMA transactions, 
- * [ioremap](http://www.makelinux.net/ldd3/chp-9-sect-4)s the FPGA buffer´s physical address to obtain its virtual address and be able to access from within the driver (this LKM is prepared to work with [FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K) FPGA hardware and the physical address of the buffer in the FPGA is 0xC0000000),
- * ioremaps HPS On-Chip RAM to obtain a virtual address and be able to access from within the driver (HPS-OCR is used to perform transfer and also to store the microcode used by the DMA Controller to perform the DMA transfers),
- * allocates un-cached buffer using dma_alloc_coherent() (accessed through L3-to-SDRAMC port),
- * allocates cached buffer using kmalloc() (accessed through ACP port),
- * configures ACP,
- * sets different data in source and destination buffers,
- * performs a DMA transfer between source and destination buffers (source and destination can be any of the 4 types of buffer: FPGA buffer, HPS On-chip RAM (HPS-OCR), uncached buffer in processor´s RAM and cached buffer in processor´s RAM),
- * waits for the DMA transfer to be finished polling a bit in the DMAC
- * and compares the content of source and destination buffers to check if the transfer has been correctly done.
+    * initializes the DMA Controller and reserves Channel 0 to be used in DMA transactions, 
+    * [ioremap](http://www.makelinux.net/ldd3/chp-9-sect-4)s the FPGA buffer´s physical address to obtain its virtual address and be able to access from within the driver (this LKM is prepared to work with [FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K) FPGA hardware and the physical address of the buffer in the FPGA is 0xC0000000),
+    * ioremaps HPS On-Chip RAM to obtain a virtual address and be able to access from within the driver (HPS-OCR is used to perform transfer and also to store the microcode used by the DMA Controller to perform the DMA transfers),
+    * allocates un-cached buffer using dma_alloc_coherent() (accessed through L3-to-SDRAMC port),
+    * allocates cached buffer using kmalloc() (accessed through ACP port),
+    * configures ACP,
+    * sets different data in source and destination buffers,
+    * performs a DMA transfer between source and destination buffers (source and destination can be any of the 4 types of buffer: FPGA buffer, HPS On-chip RAM (HPS-OCR), uncached buffer in processor´s RAM and cached buffer in processor´s RAM),
+    * waits for the DMA transfer to be finished polling a bit in the DMAC
+    * and compares the content of source and destination buffers to check if the transfer has been correctly done.
  
 * DMA_PL330_LKM_exit: executed when using _rmmod_. It reverts all what was done by DMA_PL330_LKM_init so the system remains clean, just exactly the same as before the driver was inserted.
 
