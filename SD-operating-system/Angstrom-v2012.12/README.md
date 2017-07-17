@@ -13,7 +13,7 @@ Table of contents:
 7. [Generate FPGA configuration file](#7---generate-fpga-configuration-file)
 8. [Generate Device Tree Blob](#8---generate-device-tree-blob)
 9. [Write u-boot script file and test the u-boot](#9---write-u-boot-script-file-and-test-the-u-boot)
-10. [Write kernel and root-file system and test them](#10-write-kernel-and-root-file-system-and-test-them)
+10. [Write kernel and root-file system and test them](#10---write-kernel-and-root-file-system-and-test-them)
 
 1 - Installation of the tools
 ---------------------------
