@@ -1,4 +1,4 @@
-DMA_PLL330_LKM
+DMA_PL330_LKM
 ============
 
 Introduction

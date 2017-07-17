@@ -20,6 +20,7 @@ To test this LKM using a buffer in FPGA, the [FPGA_OCR_256K](https://github.com/
 Description of the code
 ---------------------------
 This LKM only contains the two most basic functions: _init_ and _exit_ functions. They perform the followng tasks:
+
 * DMA_PL330_LKM_init: executed when the module is inserted using _insmod_. It:
  
  * initializes the DMA Controller and reserves Channel 0 to be used in DMA transactions, 
@@ -32,23 +33,42 @@ This LKM only contains the two most basic functions: _init_ and _exit_ functions
  * performs a DMA transfer between source and destination buffers (source and destination can be any of the 4 types of buffer: FPGA buffer, HPS On-chip RAM (HPS-OCR), uncached buffer in processor´s RAM and cached buffer in processor´s RAM),
  * waits for the DMA transfer to be finished polling a bit in the DMAC
  * and compares the content of source and destination buffers to check if the transfer has been correctly done.
+ 
+* DMA_PL330_LKM_exit: executed when using _rmmod_. It reverts all what was done by DMA_PL330_LKM_init so the system remains clean, just exactly the same as before the driver was inserted.
 
 To control the transfer the following macros are used:
- 
- * MESSAGE "4B transfer from HPS OCR to HPS OCR. DMA microcode program in HPS OCR.\n"
 
 ```c
-#define DMA_TRANSFER_SIZE   4 //Size of DMA transfer in Bytes
-#define DMA_TRANSFER_SRC_V  hps_ocr_vaddress //virtual address of the source buffer
-#define DMA_TRANSFER_DST_V  (hps_ocr_vaddress+8)//virtual address of the destiny buffer
-#define DMA_PROG_V	    (hps_ocr_vaddress+16)//virtual address of the DMAC microcode program
-#define DMA_TRANSFER_SRC_H  HPS_OCR_HADDRESS //hardware address of the source buffer 
-#define DMA_TRANSFER_DST_H  (HPS_OCR_HADDRESS+8)//hardware address of the destiny buffer 
-#define DMA_PROG_H	    (HPS_OCR_HADDRESS+16)//hardware address of the DMAC microcode program	
+#define MESSAGE "32B transfer from Cached buffer in Processor RAM to FPGA using ACP. DMA microcode program in HPS OCR.\n"
+#define DMA_TRANSFER_SIZE (32) //Size of DMA transfer in Bytes
+#define DMA_TRANSFER_SRC_V (cached_mem_v)  //virtual address of the source buffer
+#define DMA_TRANSFER_DST_V (fpga_ocr_vaddress //virtual address of the destiny buffer
+#define DMA_PROG_V (hps_ocr_vaddress+16) //virtual address of the DMAC microcode program
+#define DMA_TRANSFER_SRC_H (cached_mem_h+0x80000000) //hardware address of the source buffer
+#define DMA_TRANSFER_DST_H FPGA_OCR_HADDRESS //hardware address of the destiny buffer 
+#define DMA_PROG_H (HPS_OCR_HADDRESS+16) //hardware address of the DMAC microcode program	 
 ```
+
+In the previous block of code a transfer between a cached buffer in processor memory and a buffer in the FPGA is configured. The MESSAGE is shown before the transfer starts. DMA_TRANSFER_SIZE defines the size in Bytes of the transfer. The rest of the variables represent the virtual (to access from inside the LKM) and physical (to access from the FPGA) adresses for the source and destiny buffers and the buffer that will contain the microcode program used by the DMAC to perform this transfer. As it can be seen, 0x80000000 are added to the physical address of the cached buffer in order the DMAC to access it through ACP. 
+
+Using the previous macros, the main file of this LKM defines 4 different types of example transfers :
+
+ 1. 4B transfer from HPS OCR to HPS OCR. DMA microcode program in OCR.
+ 2. 64B transfer from HPS OCR to FPGA OCR. DMA microcode program in OCR.
+ 3. 256B transfer from Uncached buffer in Processor RAM to FPGA OCR.  DMA microcode program in OCR.
+ 4. 32B transfer from Cached buffer in Processor RAM to FPGA OCR using ACP.  DMA microcode program in OCR.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/Linux-modules/DMA_PL330_LKM_basic/Four-examples.png" width="800" align="middle" alt="Cyclone V SoC simplified block diagram" />
+</p>
+
+The dashed lines in example 4 mean that the this line will be used only sometimes. For example when reading data using ACP, if data is in caches it is inmediately served. However it it is not available the L2 controller needs to access the external SDRAM. The code in the repository comes prepared to run the example number 1 (moves data in the HPS-OCR).  Uncommenting the macros for other examples they can be also tested. 
+
+In all these examples the DMA microcode is stored in HPS-OCR for ease of programming. The reader can locate it in a cached or un-cached buffer in the processor memory (it would be a more logical place for it). 
+
 Contents in the folder
 ----------------------
-* DMA_PL330_LKM.c: main file containing the code just explained before.
+* DMA_PL330_LKM_basic.c: main file containing the code just explained before.
 * Modifications to the hwlib functions:
  * alt_dma.c and alt_dma.h: functions to control the DMAC (all the functions not used in our program in alt_dma.c were commented to minimize the errors compiling.).
  *  alt_dma_common.h: few declarations for DMA.
@@ -64,16 +84,29 @@ To compile the driver you need to first compile the Operating System (OS) you wi
 
   * Compile the OS you will use. In [tutorials to build a SD card with Operating System](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system) there are examples on how to compile OS and how to prepare the environment to compile drivers. 
   * Prepare the make file you will use to compile the module. The makefile provided in this example is prepared to compile using the output of the [Angstrom-v2012.12](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system/Angstrom-v2012.12) compilation process. CROSS_COMPILE contains the path of the compilers used to compile this driver. ROOTDIR is the path to the kernel compiled source. It is used by the driver to get access to the header files used in the compilation (linux/module.h or linux/kernel.h in example).
-  * Open a regular terminal (I used Debian 8 to compile Angstrom-v2012.12 and its drivers), navigate until the driver folder and tipe _make_.
+  * Open a regular terminal (I used Debian 8 to compile Angstrom-v2012.12 and its drivers), navigate until the driver folder and type _make_.
  
-The output of the compilation is the file _DMA_PL330.ko_.
-    
+The output of the compilation is the file _DMA_PL330_basic.ko_.
+
 How to test
------------
-Run the [Test_DMA_PL330_LKM](https://github.com/robertofem/CycloneVSoC-examples/tree/master/Linux-applications/Test_DMA_PL330_LKM) example.
+------------
+* Configure MSEL pins:
+    *  MSEL[5:0]="000000" position when FPGA will be configured from SD card.
+    *  MSEL[5:0]="110010" position when FPGA will be configured from EPCQ device or Quartus programmer.
+* Switch on the board.
+* Compile the FPGA hardware ([FPGA_OCR_256K](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K)  in example) and load it in the FPGA:
+    *  If MSEL[5:0]="000000" FPGA is loaded by the U-boot during start-up. Check  the [tutorials to build a SD card with Operating System](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system) to learn how to configure the SD card so the FPGA is loaded from it. 
+    *  If MSEL[5:0]="110010" use Quartus to load the FPGA:
+        *  Connect the USB cable (just next to the power connector).
+        *  Open Quartus programmer.
+        *  Click Autodetect -> Mode JTAG -> Select 5CSEMA5 (for DE1-SoC and DE0-nano-SoC) if asked -> Right click in the line representing the FPGA -> Change FIle -> Select the .sof file for the project you want to load -> tick Program/Configure -> Click Start.
 
---Author: Roberto Fernández Molanes (robertofem@gmail.com)
-
---Description:
-This module moves data between a Linux Application running in user space and an FPGA memory in the FPGA. 
-The module uses the "char driver" interface to connect application space and the driver. It creates a node in /dev a supplies support to the typical file functions:  open, close, write and read. When writing the data is copied using copy_from_user() function to an intermediate dma-able buffer in kernel space. Later on a transfer from the buffer to a memory in the FPGA is programed using the DMA Controller in HPS PL330. To program the PL330 transfer, the functions of the Altera´s hwlib were modified to work in kernel space (they are designed for baremetal apps). Better method would be to use "platform device" API to get information on the DMA from device tree and later use "DMA-engine" API to program the DMA transfer. However those APIs didn´t work and we were forced to do a less generic driver. Probably the DMA-engine options should be activated during compilation of the kernel but I was not able to do it.
+* Connect the serial console port (the mini-USB port in DE1-SoC) to the computer and open a session with a Seral Terminal (like Putty) at 115200 bauds. Now you have access to the board OS console.
+* Copy the [DMA_PL330_LKM](https://github.com/robertofem/CycloneVSoC-examples/tree/master/Linux-modules/DMA_PL330_LKM) module in the SD card (using SSH or connecting it to a regular compuer running Linux system) and insert it into the kernel using _insmod_ command: 
+```bash
+  $ insmod DMA_PL330_basic.ko
+```
+ * The result (fail or success of the transfer) is printed in the kernel log. Depending on the configuration of your operating system the messages from the LKM will be directly printed in screen or you will need to use _dmesg_ to see them:
+ ```bash
+  $ dmesg
+```
