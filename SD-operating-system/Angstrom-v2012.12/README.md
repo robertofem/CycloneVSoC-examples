@@ -4,8 +4,9 @@ This tutorial explains how to build an Angstrom 2012.12 SD card for Cyclone V So
 
 Table of contents:
 
-[1.Installation of the tools](#installation-of-the-tools)
-[2.SD card partitions and files](#sd-card-partitions-and-files)
+[1-Installation of the tools](#1-installation-of-the-tools)
+[2-SD card partitions and files](#2-sd-card-partitions-and-files)
+
 * [Booting process](#booting-processs)
 * [Compile and u-boot kernel and root file system](#sd-card-partitions-and-files)
 * [Create the partitions in the SD card](#sd-card-partitions-and-files)
@@ -15,7 +16,7 @@ Table of contents:
 * [Write u-boot.scr file and test the u-boot](#sd-card-partitions-and-files)
 * [Write kernel and root-file system and test them](#sd-card-partitions-and-files)
 
-1. Installation of the tools
+1-Installation of the tools
 ------------------------
 First the tools used to build the SD card should be installed. In this case we use a single PC running:
 
@@ -27,7 +28,7 @@ First the tools used to build the SD card should be installed. In this case we u
     * Ubuntu 12.04 32bit virtual machine running inside the previous Windows 7 in a VMWare virtual machine. Used to compile OS for the embedded system and to build the SD Card.
 All could be done inside an Ubuntu 12.04 machine installing Quartus II and Altera SoC EDS in it. 
 
-SD card partitions and files
+2-SD card partitions and files
 ----------------------------
 As target board we are using DE1-SoC board from Terasic [4]. 
 As hardware project for the FPGA we are using GHRD (Golden Hardware Reference Design) provided by Terasic inside the DE1-SoC CD-ROM. We copy this folder in a location in the Windows 7 system. We will call this folder [de1_soc_GHRD] after this point.
