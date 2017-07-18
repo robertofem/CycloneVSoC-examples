@@ -1,5 +1,5 @@
 Enable_PMU_User_Space
-================
+=====================
 
 Introduction
 -------------
@@ -59,8 +59,8 @@ Compilation
 To compile the driver you need to first compile the Operating System (OS) you will use to run the driver, otherwise the console will complain that it cannot insert the driver cause the tag of your module is different to the tag of the OS you are running. It does that to ensure that the driver will work. Therefore:
 
   * Compile the OS you will use. In [tutorials to build a SD card with Operating System](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system) there are examples on how to compile OS and how to prepare the environment to compile drivers. 
-  * Prepare the make file you will use to compile the module. The makefile provided in this example is prepared to compile using the output of the [Angstrom-v2012.12](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system/Angstrom-v2012.12) compilation process. CROSS_COMPILE contains the path of the compilers used to compile this driver. ROOTDIR is the path to the kernel compiled source. It is used by the driver to get access to the header files used in the compilation (linux/module.h or linux/kernel.h in example).
-  * Open a regular terminal (I used Debian 8 to compile Angstrom-v2012.12 and its drivers), navigate until the driver folder and type _make_.
+  * Prepare the make file you will use to compile the module. The makefile provided in this example is prepared to compile using the output of the [Angstrom-v2013.12](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system/Angstrom-v2013.12) compilation process. CROSS_COMPILE contains the path of the compilers used to compile this driver. ROOTDIR is the path to the kernel compiled source. It is used by the driver to get access to the header files used in the compilation (linux/module.h or linux/kernel.h in example).
+  * Open a regular terminal (I used Debian 8 to compile Angstrom-v2013.12 and its drivers), navigate until the driver folder and type _make_.
  
 The output of the compilation is the file _PMU_User_Space_EN.ko_.
 
@@ -77,4 +77,4 @@ How to test
   $ dmesg
 ```
 
-Inserting the module will activate the PMU of the processor where the code is running. If the application that later uses PMU accesses it runs in a different core the _illegal instruction_ message will appear again. In that case you can remove and insert the module several times until the CPU where the application is running gets enable. Other option is to use [taskset](http://xmodulo.com/run-program-process-specific-cpu-cores-linux.html) utility (not installed in [Angstrom-v2012.12](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system/Angstrom-v2012.12)) to choose the CPU where you want to run the application. You can run the application in one core and if it does not run just try the other.
+Inserting the module will activate the PMU of the processor where the code is running. If the application that later uses PMU accesses it runs in a different core the _illegal instruction_ message will appear again. In that case you can remove and insert the module several times until the CPU where the application is running gets enable. Other option is to use [taskset](http://xmodulo.com/run-program-process-specific-cpu-cores-linux.html) utility (not installed in [Angstrom-v2013.12](https://github.com/robertofem/CycloneVSoC-examples/tree/master/SD-operating-system/Angstrom-v2013.12)) to choose the CPU where you want to run the application. You can run the application in one core and if it does not run just try the other.
