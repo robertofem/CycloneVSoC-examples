@@ -47,7 +47,7 @@ o	u-boot.scr:  u-boot script. It is executed by the u-boot. It can change defaul
 More about the SD card in the SD Card Tutorial from Rocket Boards [5]. 
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2012.12/SD_card_partitions.png" width="200" align="middle" alt="SD card partitions" />
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2012.12/figs/SD_card_partitions.png" width="200" align="middle" alt="SD card partitions" />
 </p>
 
 3 - Booting process
@@ -152,7 +152,7 @@ The SD card partitions can be achieved in different ways:
 In this tutorial we use the third option. We used the DE1-SoC board so we download the Linux Console image (DE1_SoC_SD.img) from [Terasic´s DE1-SoC board web site](http://de1-soc.terasic.com/) and we write it into the SD card using Win32DiskImager.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/Win32_disk_imager.png" width="400" align="middle" alt="win32 disk imager screenshoot" />
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/Win32_disk_imager.png" width="400" align="middle" alt="win32 disk imager screenshoot" />
 </p>
 
 Using the Ubuntu Virtual machine we can access to the EXT3 partition (holding the root filesystem) and to the FAT32 partition (storing a .dtb file and a kernel image file called zImage). We erase the content in the FAT partition and EXT3 partition. Be careful if you remove it using Nautilus or other graphical folder explorer because an occult folder called .Trash-0 is created occupying space in the sdcard. Using the console, .Trash-0 folder can be easily removed. The size of each partition in the SD card can be easily modified using GParted utility.
