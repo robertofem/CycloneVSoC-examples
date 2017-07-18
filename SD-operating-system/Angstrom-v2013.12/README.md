@@ -282,19 +282,65 @@ echo $bootimage # gives the default name for kernel (zImage in our case).
 echo $fdtimage  # gives the default name for the device tree file (socfpga.dtb in our case)
 ```
 
+<p align="center">
+	<img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/uboot_console.png" width="400" align="middle" alt="dtb generation" />
+</p>
+
 To modify the default behavior one can write the so-called u-boot.script (human readable file with u-boot console instructions) and compile it to get the u-boot.scr. Our u-boot.script file looks like:
+```bash
+fatload mmc 0:1 $fpgadata soc_system.rbf;
+fpga load 0 $fpgadata $filesize;
+run bridge_enable_handoff;
+run mmcload;
+run mmcboot;
+```
  
 The first and second lines load the fpga configuration file and configure the FPGA part, respectively. The name of the file in the first line should match with the actual file in the FAT32 partition. The third line enables the FPGA-HPS bridges. The last two lines load and boot the kernel.
+
 To compile the u-boot.script navigate to the folder where u-boot.script is located using the embedded command shell and type:
-   
-This will generate the u-boot.scr in the same folder where 
- 
+```bash
+mkimage  -A arm -O linux -T script -C none -a 0 -e 0 -n "U-boot script" -d boot.script u-boot.scr
+```
+
+<p align="center">
+	<img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/uboot_script_generation.png" width="650" align="middle" alt="dtb generation" />
+</p>
+
 Now we copy the u-boot.scr file along with the uboot image into the FAT32 partition of the SD card. The u-boot image was generated during the compilation of the u-boot and it is located in the folder with root filesystem and kernel image (see section 3.5.2) with the name of u-boot-socfpga_cyclone5.img. Copy it to the FAT32 partition and change its name to u-boot.img, in order the preloader to be able to find it. Remember that, unlike most of tutorials, u-boot image should be located in FAT32 partition because we said so to the preloader. At this moment the FAT partition on the SD should contain u-boot.img, u-boot.scr, socfpga.dtb and soc_system.rbf. Powering-up the board with this SD card should give the following output.
  
+<p align="center">
+	<img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/uboot_fails_zimage.png" width="350" align="middle" alt="dtb generation" />
+</p>
+
 The output shows how the u-boot.scr file is correctly loaded. The soc_system.rbf file is loaded and the FPGA configured. The u-boot correctly reads the .rbf file but does not find the kernel image zImage.
 
 
 10 - Write kernel and root-file system and test them
 ----------------------------------------------------
+Last step is to copy zImage and filesystem into the SD to have a complete bootable SD card with FPGA configuration by u-boot. 
+We have compiled two different versions of the Linux kernel during Amstrong compilation. In the folder containing the compilation images we find:
+* Linux kernel 3.10ltsi image: zImage--3.10-r1.2-socfpga_cyclone5-20150925075605.img
+* Linux kernel 3.18 image: zImage--3.18-r1.2-socfpga_cyclone5-20150925161328.img
+
+Copy one of the images to the FAT32 partition and change its name to zImage. 
+
+The root file system is compressed in a folder called:
+* Angstrom-console-image-eglibc-ipk-v2013.12-socfpga_cyclone5.rootfs.tar.gz
+
+To copy the root file system into the SD is little more tricky. Go to a linux-based OS to be able to see the partition 2 (EXT3 partition). Open the folder navigation program as root and decompress this file into the partition 2. You can either use the console and copy the .img file also containing the filesystem. The file name is: 
+* Angstrom-console-image-eglibc-ipk-v2013.12-socfpga_cyclone5.rootfs.img
+
+Using dd command it can be copied to the partition 2 of the SD card: 
+```bash
+sudo dd if=altera-gsrd-image-socfpga_cyclone5.ext3 of=/dev/sdx2 
+```
+
+Booting now DE1-SoC board with the complete SD card gives the following output (for the 3.10 kernel).
+
+<p align="center">
+	<img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/Angstrom_loads_correctly.png" width="650" align="middle" alt="dtb generation" />
+</p>
+
+We have tested both, 3.10 and 3.18 kernel. Both of them correctly load. However 3.18 kernel is not does not recognize Ethernet peripheral and cannot be connected to the Internet. This problem is probably related with .dtb files since the conventions to write a .dtb file change from one kernel to another. To solve this problem the best way is to go deeply into .dtb files and learn to write our own. One good starting point could be the basic .dtb files included in the folder where file system, kernel and u-boot images are located after compilation. Because of this problem and without further investigation about its solution we have selected 3.10 kernel for our projects.
 
     
