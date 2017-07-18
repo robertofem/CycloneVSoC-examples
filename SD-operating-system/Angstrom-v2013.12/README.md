@@ -146,8 +146,8 @@ or
 ----------------------------------------
 The SD card partitions can be achieved in different ways:
 1. Using the provided script [Rocketboards SD Tutotial](http://rocketboards.org/foswiki/view/Documentation/GSRD141SdCard): Having all files to build the SD card you can use a provided Python script to partition the SD card and copy the files in it. Using the commands at the end of [Rocketboards SD Tutotial](http://rocketboards.org/foswiki/view/Documentation/GSRD141SdCard) you can later individually replace each file.
-2. Manually partition the SD card and copy files in it (Lab. 5 in the [[8]	]Altera WorkShop 2 Linux Kernel for Altera SoC Devices](http://rocketboards.org/foswiki/view/Documentation/WS2LinuxKernelIntroductionForAlteraSoCDevices)): You have more control about the size of each partition and you can add files gradually (as you generate them).
-3. Download a precompiled image and modify it. You can download a precompiled SD image, as the ones provided by Terasic in DE1-SoC documentation website [4] and modify it using the commands at the end of [Rocketboards SD Tutorial](http://rocketboards.org/foswiki/view/Documentation/GSRD141SdCard) or using graphical interface.
+2. Manually partition the SD card and copy files in it (Lab. 5 in the [Altera WorkShop 2 Linux Kernel for Altera SoC Devices](http://rocketboards.org/foswiki/view/Documentation/WS2LinuxKernelIntroductionForAlteraSoCDevices)): You have more control about the size of each partition and you can add files gradually (as you generate them).
+3. Download a precompiled image and modify it. You can download a precompiled SD image, as the ones provided by Terasic in DE1-SoC documentation website [Terasic´s DE1-SoC board web site](http://de1-soc.terasic.com/) and modify it using the commands at the end of [Rocketboards SD Tutorial](http://rocketboards.org/foswiki/view/Documentation/GSRD141SdCard) or using graphical interface.
 
 In this tutorial we use the third option. We used the DE1-SoC board so we download the Linux Console image (DE1_SoC_SD.img) from [Terasic´s DE1-SoC board web site](http://de1-soc.terasic.com/) and we write it into the SD card using Win32DiskImager.
 
@@ -159,12 +159,114 @@ Using the Ubuntu Virtual machine we can access to the EXT3 partition (holding th
 
 6 - Generate and test the Preloader
 ------------------------------------
+The preloader is generated using the preloader generator and the information in the Handoff folder that is inside the hardware folder. In our case, we used DE1-SoC board in this tutorial so we use the Golden Hardware Reference Design for DE1-SoC (It comes with the board documentation. We will call to this folder [de1_soc_GHRD] folder in the rest of this tutorial. This tutorial was done using the LAB1 of [Altera WorkShop 2 Linux Kernel for Altera SoC Devices](http://rocketboards.org/foswiki/view/Documentation/WS2LinuxKernelIntroductionForAlteraSoCDevices).
+
+To generate the preloader open the embedded command shell located at <path-to-soceds-tools>/embedded/embedded_command_shell.sh (in /altera/14.1/embedded/embedded_command_shell.sh in our case). Browse to the hardware project, in our case the GHRD for DE1-SoC or [de1_soc_GHRD] folder. Before launch the preloader generator we need to know if our board supports ECC storage or not. Type the following to find out.
+```bash
+grep "RW_MGR_MEM_DATA_WIDTH" ./hps_isw_handoff/soc_system_hps_0/sequencer_defines.h
+```
+
+If your macro for your board is set to 24 or 40, then your board supports ECC storage, and you will need to enable SDRAM scrubbing in the BSP Editor. If your macro for your board is set to 8, 16, or 32, then your board does not support ECC storage, and you will need to disable SDRAM scrubbing in the BSP Editor. Our macro is 32 so we will not enable SDRAM scrubbing.
+After that, call the bsp-editor writing the following in the command shell:
+```bash
+bsp-editor
+```
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader1.png" width="700" align="middle" alt="Altera Embedded Command Shell" />
+</p> 
+ 
+The bsp-editor GUI appears and a new preloader can be generated. Go to File->New BSP and select the folder [de1_soc_GHRD]/ hps_isw_handoff/soc_system_hps_0 as source for the Hardware. Leave the defaults in the software part and press OK.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader2.png" width="800" align="middle" alt="BSP-Editor" />
+</p>
+
+In the BSP Editor, under Settings->Common we select BOOT_FROM_SDMMC to indicate that boot-loader and OS is stored in a SD card (selected by default). In Settings->Common we select FAT_SUPPORT and we write the value 1 in the field FAT_BOOT_PARTITION to store u-boot in the FAT partiotion of the SD. FAT_LOAD_PAYLOAD_NAME defines the name of the u-boot image file. We leave default name “u-boot.img” as image file name.
+ 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader3.png" width="800" align="middle" alt="BSP-Editor 2" />
+</p>
+
+Finally, under Settings->Advanced->spl->boot we select SDRAM_SCRUBBING if the board supports ECC storage. In our case, DE1-SoC does not support ECC storage and we leave SDRAM_SCRUBBING unchecked (default).
+
+Then we press Generate button to generate BSP for the Preloader.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader4.png" width="800" align="middle" alt="BSP-Editor 3" />
+</p>
+ 
+We have got some errors because the version of Quartus used to generate this project is older than the one used to create the preloader (14.1). For this reason we have opened the project using Quartus 14.1 and recompiled the project. We have generated the Qsys system again, have added the .quip file to the project (.quip file points to the location of the IP cores used in Qsys), have executed hps_sdram_p0_parameters.tcl and hps_sdram_p0_pin_assignments.tcl files using Tools->Tcl Scripts… (following the indications of My First HPS-FPGA tutorial in DE1-SoC Documentation CD) and have compiled using Quartus II.
+
+If we come back to the bsp-editor again and we press Generate the BSP is generated without errors.
+ 
+ <p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader5.png" width="800" align="middle" alt="BSP-Editor 4" />
+</p>
+ 
+Now, exit from the bsp-editor and using the Embedded Command Shell navigate to the newly created folder [de1_soc_GHRD]/software/spl_bsp/ and type make. This command will extract the fixed part of the preloader and using the fixed part and the previously generated part will build the preloader image. The preloader image, called preloader-mkpimage.bin is stored in [de1_soc_GHRD]/software/spl_bsp/. 
+We copy the image file into folder [DE1SOC] in the Ubuntu running inside the virtual machine and we put it into the A2 partition (partition3) of the SD card. Use dd command to do it:
+```bash
+sudo dd if=preloader-mkpimage.bin of=/dev/sdx3 bs=64k seek=0
+```
+
+To know the name of the sdcard (named using sdx scheme) run the command cat /proc/partitions before and after inserting the SD card. In our case the name is sdd. Here the result in the Ubuntu console.
+
+ <p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader6.png" width="700" align="middle" alt="Copy preloader into SD card" />
+</p>
+
+Finally we can test the preloader in the board. We insert the SD in the board and see the result in the serial console. We should see the preloader trying to load 4 times and always failing to load u-boot image file. This is because it looks for the u-boot image in the FAT32 partition which is now empty.
+
+ <p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader7.png" width="700" align="middle" alt="Copy preloader into SD card" />
+</p>
 
 7 - Generate FPGA configuration file
 -------------------------------------
+To program the FPGA from software, .sof FPGA configuration file (generated in quartus project folder during quartus compilation) should be converted to .rbf file using either the embedded console or the Quartus II (like explained in [GUI Compile GSRD for Arrow SoCKit](http://rocketboards.org/foswiki/view/Documentation/GSRDCompileHardwareDesignArrowSoCKitEdition#Converting_.sof_to_.rbf)). In this case we use Quartus II GUI for ease.
+
+From Quartus go to **File->Convert Programming Files**, select .rbf as **Programming Type File** and  **Passive Parallel x8** or **x16** as **Mode**. Click on **SOF Data** and the click on **Add File** and browse the .sof source file. Write in File name the path and name of the .rbf output file. We select the same name as the .sof file (soc_system.rbf) as name and the path is the quartus project folder where the .sof file is located.Finally, click on the **Generate** button.
+
+ <p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/sof_to_rbf.png" width="700" align="middle" alt="Sof to rbf conversion" />
+</p>
+
+Copy the generated file into the FAT32 partition of the SD card. It will be later used to configure FPGA from u-boot.
 
 8 - Generate Device Tree Blob
 -----------------------------
+Device tree blob or DTB (.dtb file) describes hardware for the OS kernel. This way there is no information about the hardware in the compiled kernel image. This is useful to change hardware without recompile the kernel (very useful when having peripherals in FPGA). To generate the DTB file three source files are needed as input to sopc2dts (a piece of software coming with the Altera SoC EDS): .sopc_info file describing the Qsys hardware and two .xml files describing other information not contained in .sopc_info file like drivers to load, information about clocks, information about hardware in the board, etc… .dts file is in human readable form. It can be opened using a text editor. Using the device tree generator or dtc (another piece of software coming with the Altera SoC EDS) and .dts file as source, a .dtb file is finally generated.
+
+This file has created all the problems when trying to change kernel image. All the kernel images we compiled didn´t run because this file. We though the problem was the kernel image but it was this file. When we were able to generate an appropriate DTB we could run all the generated kernel images easily, just changing the zImage file (kernel image) in the FAT32 partition. 
+
+We enumerate now the steps done till we were able to run the Angstrom kernel image  compiled in section 4 in DE1-SoC board:
+1.	We downloaded the Console image from the [Terasic´s DE1-SoC board web site](http://de1-soc.terasic.com/) and put it in the SD card using Win32DiskImager. This image correctly runs in DE1-SoC.
+2.	We replaced the zImage in partition 1 by the one compiled for Angstrom. It didn´t run. Execution stops when loading kernel.
+3.	We replaced the filesystem in partition 2 by the filesystem compiled during angstrom compilation, leaving the Angstom image in partition 1. It didn´t run. Execution stops when loading kernel.
+4.	We left the Angstrom filesystem in partition 2 and we put the original zImage (image inside the original Terasic´s Console image) in the SD again. It ran. For this reason we though the problem was the kernel image and we started to compile different versions of Yocto and Angstrom. But it wasn´t. In that moment we started to change the device tree blob.
+5.	We put in the partition 1 of the SD card zImage compiled in section 4 and in partition 2 the root filesystem also compiled in section 4. Then we changed the .dtb file in partition 1 by the .dtb contained in the GHRD provided by Terasic in DE1-SoC CD-ROM documentation. It didn´t run. Execution stops when loading kernel again.
+6.	Using sopc2dts and dtc utilities we generated again the .dtb file of the GHRD using 14.1 tools. We used hps_clock_info.xml and soc_system_board_info.xml (the only two .xml files in GHRD in Terasic´s DE1-SoC CD ROM documentation) and soc_system.sopc_info as input files for the sop2dts. It didn´t run again. It stopped when running kernel again.
+7.	Then we started the [Altera WorkShop 2 Linux Kernel for Altera SoC Devices](http://rocketboards.org/foswiki/view/Documentation/WS2LinuxKernelIntroductionForAlteraSoCDevices), that explains how to generate DTB for several boards (unfortunately not for DE1-SoC).  We generated the DTB for DE0 nano, a very similar board to the DE1-SoC board. The tutorial include the following files: soc_system.sopcinfo, DE0NANO_board_info.xml and hps_common_board_info.xml. Using this three files and the indications in the tutorial we generated the .dts file and later the .dtb file. It didn´t work out. Execution stopped when loading kernel. In this case, it didn´t probably run because the specified hardware (DE0NANO-SoC) was different from the actual one (DE1-SoC).
+8.	Then, in a forum, a person said that after version 14 of the Altera software hps_clock_info.xml is no more needed. So we combined the steps 6 and 7. We used soc_system.sopcinfo and soc_system_board_info.xml from GHRD (step 6) and hps_common_board_info.xml from Workshop 2 tutorial (step 7) as source for sopc2dts to generate a .dts file. Then, using dtc utility we generated .dtb file. In this case the kernel launched correctly!!!!
+
+Now we explain the procedure to get a correct .dtb file (the same used in step 8 previously explained). First we take the hps_common_board_info.xml (we provide this file with this document to ease acquire this file from Workshop 2) used in step 8 inside [de1_soc_GHRD] with the rest of the files of the hardware project. Now we open the Altera Embedded Command Shell and navigate to the [de1_soc_GHRD] folder. Then we call the following line to generate .dts file:
+
+```bash
+sopc2dts –-input soc_system.sopcinfo\
+ –-output socfpga.dtb\
+ –-type dtb\
+ –-board soc_system_board_info.xml\
+ --board hps_common_board_info.xml\
+ –-bridge-removal all\
+ --clocks
+```
+ 
+soc_system_board_info.xml should be provided by Terasic in GHRD folder. soc_system.sopcinfo was generated when compiled the qsys system for the GHRD.
+After typing this command a .dtb file should have been generated.
+ 
+Somme DTAppend warnings appear. Altera website says they are OK. So we copy the the socfpga.dtb file into the FAT32 partition of the SD. We have called DTB as socfpga.dtb because it is the default name that the u-boot is going to use to find a DTB in the FAT32 partition.
+Attached to this document we provide the .xml files needed to compile the .dtb and the .dtb itself to save you time. In addition to this .xml files we provide other .xml files from a developer that we have found in Rocketboards forum. This developer asked Terasic for the .xml files to build the .dtb and Terasic answered him sending these files. They are slightly different from the ones explained before but the system correctly boots and works with them.
 
 9 - Write u-boot script file and test the u-boot
 ------------------------------------------------
