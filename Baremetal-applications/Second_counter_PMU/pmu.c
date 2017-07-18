@@ -4,6 +4,7 @@
  * @version     1.0
  * @date        22 July, 2015
  * @brief       ARMv7-A Performance Monitor Unit v2 Driver
+ *              Modification of the ARMv7-A Performance Monitor Unit v1 Driver by Sandro Pinto
  */
 
 /* Includes ---------------------------------------------*/
