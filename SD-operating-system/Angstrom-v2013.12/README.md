@@ -264,8 +264,12 @@ sopc2dts –-input soc_system.sopcinfo\
  
 soc_system_board_info.xml should be provided by Terasic in GHRD folder. soc_system.sopcinfo was generated when compiled the qsys system for the GHRD.
 After typing this command a .dtb file should have been generated.
- 
-Somme DTAppend warnings appear. Altera website says they are OK. So we copy the the socfpga.dtb file into the FAT32 partition of the SD. We have called DTB as socfpga.dtb because it is the default name that the u-boot is going to use to find a DTB in the FAT32 partition.
+
+ <p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/dtb_generation.png" width="700" align="middle" alt="dtb generation" />
+</p>
+
+Some DTAppend warnings appear. Altera website says they are OK. So we copy the the socfpga.dtb file into the FAT32 partition of the SD. We have called DTB as socfpga.dtb because it is the default name that the u-boot is going to use to find a DTB in the FAT32 partition.
 Attached to this document we provide the .xml files needed to compile the .dtb and the .dtb itself to save you time. In addition to this .xml files we provide other .xml files from a developer that we have found in Rocketboards forum. This developer asked Terasic for the .xml files to build the .dtb and Terasic answered him sending these files. They are slightly different from the ones explained before but the system correctly boots and works with them.
 
 9 - Write u-boot script file and test the u-boot
