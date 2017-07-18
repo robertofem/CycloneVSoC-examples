@@ -1,6 +1,6 @@
 Angstrom 2013.12 
 ============
-This tutorial explains how to build an Angstrom 2012.12 SD card for Cyclone V SoC from scratch.
+This tutorial explains how to build an Angstrom 2013.12 SD card for Cyclone V SoC from scratch.
 
 Table of contents:
 
@@ -47,7 +47,7 @@ o	u-boot.scr:  u-boot script. It is executed by the u-boot. It can change defaul
 More about the SD card in the SD Card Tutorial from Rocket Boards [5]. 
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2012.12/SD_card_partitions.png" width="200" align="middle" alt="Cyclone V SoC simplified block diagram" />
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2012.12/SD_card_partitions.png" width="200" align="middle" alt="SD card partitions" />
 </p>
 
 3 - Booting process
@@ -62,7 +62,7 @@ Angstrom is, along with Poky Altera Linux, a distribution directly maintained by
 
 One advantage of Angstrom over Poky Altera Linux is its package manager (opkg command) that permits package installation in the system without recompilation of the OS. However software repositories for Cyclone V device are still limited and contain few packages. Software missing in repositories must be compiled from source and the added to the system with opkg command.
 
-To compile Angstrom we have mainly followed the  [Rocketboards Tutorial](https://rocketboards.org/foswiki/view/Documentation/AngstromOnSoCFPGA_1#Angstrom_v2013.12) and the [tutorial in the official Angstrom website](http://www.angstrom-distribution.org/building-angstrom/). Both tutorials are very similar. We successfully compiled Angstrom for Cyclone V SoC using Debian 8.1.0-32bit, Debian 8.2.0-64bit and Ubuntu 12.04.4-32bit. The steps to be able to compile in these environments are exactly the same and they are explained below.
+To compile Angstrom we have mainly followed the  [Rocketboards Angstrom Tutorial](https://rocketboards.org/foswiki/view/Documentation/AngstromOnSoCFPGA_1#Angstrom_v2013.12) and the [tutorial in the official Angstrom website](http://www.angstrom-distribution.org/building-angstrom/). Both tutorials are very similar. We successfully compiled Angstrom for Cyclone V SoC using Debian 8.1.0-32bit, Debian 8.2.0-64bit and Ubuntu 12.04.4-32bit. The steps to be able to compile in these environments are exactly the same and they are explained below.
 
 The Angstrom buildsystem is using various components from the Yocto Project, most importantly the Openembedded buildsystem, the bitbake task executor and various application and BSP layers. The [tutorial in the official Angstrom website](http://www.angstrom-distribution.org/building-angstrom/) recommends you to visit [OpenEmbedded website](http://www.openembedded.org/wiki/OEandYourDistro) before start compilation, in order to install all the necessary tools. So first step is to install the required compilation tools in Debian and Ubuntu we should do:
 ```bash
@@ -79,7 +79,7 @@ If we have problems with dash try the following command to make /bin/sh to simbo
 sudo dpkg-reconfigure dash
 ```
 
-And then we make in a row the steps in [Rocketboards Tutorial](https://rocketboards.org/foswiki/view/Documentation/AngstromOnSoCFPGA_1#Angstrom_v2013.12), adding some changes. We put Terminal in the folder ~ and we do:
+And then we make in a row the steps in [Rocketboards Angstrom Tutorial](https://rocketboards.org/foswiki/view/Documentation/AngstromOnSoCFPGA_1#Angstrom_v2013.12), adding some changes. We put Terminal in the folder ~ and we do:
 ```bash
 git clone git://git.rocketboards.org/angstrom-socfpga.git
 ```
@@ -90,7 +90,7 @@ cd angstrom-socfpga
 git checkout -b angstrom-v2013.12-socfpga origin/angstrom-v2013.12-socfpga
 ```
 
-At this point in time v2014.06 exists but the [Rocketboards Tutorial](https://rocketboards.org/foswiki/view/Documentation/AngstromOnSoCFPGA_1#Angstrom_v2013.12) still recommends v2013.12 to be installed. Then we go to the ~/angstrom_socfpga/conf/ and erase or comment (#) the line from the local.conf file: 
+At this point in time v2014.06 exists but the [Rocketboards Angstrom Tutorial](https://rocketboards.org/foswiki/view/Documentation/AngstromOnSoCFPGA_1#Angstrom_v2013.12) still recommends v2013.12 to be installed. Then we go to the ~/angstrom_socfpga/conf/ and erase or comment (#) the line from the local.conf file: 
 ```bash
 # INHERIT += "rm_work"
 ```
@@ -106,7 +106,7 @@ MACHINE=socfpga_cyclone5 ./oebb.sh config socfpga_cyclone5
 After doing this step we detect that meta-kde4 was not copied to the computer because it could not be found in the internet. This is because changes in the website hosting meta-kde4 layer (Gitorious was acquired by Gitlab). SO we searched the meta-kde4 layer in Google and we manually downloaded it from https://gitlab.com/cbrx-fw/meta-kde4 and pasted it in …/angstrom_socfpga/sources/. Then we configure the compilation environment again and everything should be correctly configured. 
 
 Other option to solve this problem would be to modify the meta-kde4 line in layers.txt file in ~/angstrom_socfpga/sources/ so the configuration program can correctly find and download meta-kde4 layer from internet.
-After solving that problem we compiled the kernel, the u-boot and the root filesystem. With the $PATH still being ~/angstrom_socfpga/ complete the remaining steps in the [Rocketboards Tutorial](https://rocketboards.org/foswiki/view/Documentation/AngstromOnSoCFPGA_1#Angstrom_v2013.12) in a row to compile Angstrom.
+After solving that problem we compiled the kernel, the u-boot and the root filesystem. With the $PATH still being ~/angstrom_socfpga/ complete the remaining steps in the [Rocketboards Angstrom Tutorial](https://rocketboards.org/foswiki/view/Documentation/AngstromOnSoCFPGA_1#Angstrom_v2013.12) in a row to compile Angstrom.
 ```bash
 #Build ltsi (long term support) kernel (6 hours)
 MACHINE=socfpga_cyclone5 bitbake linux-altera
@@ -145,23 +145,17 @@ or
 5 - Create the partitions in the SD card
 ----------------------------------------
 The SD card partitions can be achieved in different ways:
-1. Using the provided script [5]: Having all files to build the SD card you can use a
-provided Python script to partition the SD card and copy the files in it. Using the
-commands at the end of [5] you can later individually replace each file.
-2. Manually partition the SD card and copy files in it (Lab. 5 in [8]): You have more control
-about the size of each partition and you can add files gradually (as you generate them).
-3. Download a precompiled image and modify it. You can download a precompiled SD
-image, as the ones provided by Terasic in DE1-SoC documentation website [4] and
-modify it using the commands at the end of [5] or using graphical interface.
-In this tutorial we use the third option. We download the Linux Console image
-(DE1_SoC_SD.img) from Tersaic´s DE1-SoC website [4] and we write it into the SD card using
-Win32DiskImager.
-Using the Ubuntu Virtual machine we can access to the EXT3 partition (holding the root
-filesystem) and to the FAT32 partition (storing a .dtb file and a kernel image file called zImage).
-We erase the content in the FAT partition and EXT3 partition. Be careful if you remove it using
-Nautilus or other graphical folder explorer because an occult folder called .Trash-0 is created
-occupying space in the sdcard. Using the console, .Trash-0 folder can be easily removed. The
-size of each partition in the SD card can be easily modified using GParted utility.
+1. Using the provided script [Rocketboards SD Tutotial](http://rocketboards.org/foswiki/view/Documentation/GSRD141SdCard): Having all files to build the SD card you can use a provided Python script to partition the SD card and copy the files in it. Using the commands at the end of [Rocketboards SD Tutotial](http://rocketboards.org/foswiki/view/Documentation/GSRD141SdCard) you can later individually replace each file.
+2. Manually partition the SD card and copy files in it (Lab. 5 in the [[8]	]Altera WorkShop 2 Linux Kernel for Altera SoC Devices](http://rocketboards.org/foswiki/view/Documentation/WS2LinuxKernelIntroductionForAlteraSoCDevices)): You have more control about the size of each partition and you can add files gradually (as you generate them).
+3. Download a precompiled image and modify it. You can download a precompiled SD image, as the ones provided by Terasic in DE1-SoC documentation website [4] and modify it using the commands at the end of [Rocketboards SD Tutorial](http://rocketboards.org/foswiki/view/Documentation/GSRD141SdCard) or using graphical interface.
+
+In this tutorial we use the third option. We used the DE1-SoC board so we download the Linux Console image (DE1_SoC_SD.img) from [Terasic´s DE1-SoC board web site](http://de1-soc.terasic.com/) and we write it into the SD card using Win32DiskImager.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/Win32_disk_imager.png" width="400" align="middle" alt="win32 disk imager screenshoot" />
+</p>
+
+Using the Ubuntu Virtual machine we can access to the EXT3 partition (holding the root filesystem) and to the FAT32 partition (storing a .dtb file and a kernel image file called zImage). We erase the content in the FAT partition and EXT3 partition. Be careful if you remove it using Nautilus or other graphical folder explorer because an occult folder called .Trash-0 is created occupying space in the sdcard. Using the console, .Trash-0 folder can be easily removed. The size of each partition in the SD card can be easily modified using GParted utility.
 
 6 - Generate and test the Preloader
 ------------------------------------
