@@ -200,7 +200,7 @@ We have got some errors because the version of Quartus used to generate this pro
 
 If we come back to the bsp-editor again and we press Generate the BSP is generated without errors.
  
- <p align="center">
+<p align="center">
   <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader5.png" width="800" align="middle" alt="BSP-Editor 4" />
 </p>
  
@@ -212,14 +212,14 @@ sudo dd if=preloader-mkpimage.bin of=/dev/sdx3 bs=64k seek=0
 
 To know the name of the sdcard (named using sdx scheme) run the command cat /proc/partitions before and after inserting the SD card. In our case the name is sdd. Here the result in the Ubuntu console.
 
- <p align="center">
-  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader6.png" width="700" align="middle" alt="Copy preloader into SD card" />
+<p align="center">
+	<img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader6.png" width="700" align="middle" alt="Copy preloader into SD card" />
 </p>
 
 Finally we can test the preloader in the board. We insert the SD in the board and see the result in the serial console. We should see the preloader trying to load 4 times and always failing to load u-boot image file. This is because it looks for the u-boot image in the FAT32 partition which is now empty.
 
- <p align="center">
-  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader7.png" width="700" align="middle" alt="Copy preloader into SD card" />
+<p align="center">
+	<img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/preloader7.png" width="700" align="middle" alt="Copy preloader into SD card" />
 </p>
 
 7 - Generate FPGA configuration file
@@ -228,8 +228,8 @@ To program the FPGA from software, .sof FPGA configuration file (generated in qu
 
 From Quartus go to **File->Convert Programming Files**, select .rbf as **Programming Type File** and  **Passive Parallel x8** or **x16** as **Mode**. Click on **SOF Data** and the click on **Add File** and browse the .sof source file. Write in File name the path and name of the .rbf output file. We select the same name as the .sof file (soc_system.rbf) as name and the path is the quartus project folder where the .sof file is located.Finally, click on the **Generate** button.
 
- <p align="center">
-  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/sof_to_rbf.png" width="700" align="middle" alt="Sof to rbf conversion" />
+<p align="center">
+	<img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/sof_to_rbf.png" width="700" align="middle" alt="Sof to rbf conversion" />
 </p>
 
 Copy the generated file into the FAT32 partition of the SD card. It will be later used to configure FPGA from u-boot.
@@ -265,8 +265,8 @@ sopc2dts –-input soc_system.sopcinfo\
 soc_system_board_info.xml should be provided by Terasic in GHRD folder. soc_system.sopcinfo was generated when compiled the qsys system for the GHRD.
 After typing this command a .dtb file should have been generated.
 
- <p align="center">
-  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/dtb_generation.png" width="700" align="middle" alt="dtb generation" />
+<p align="center">
+	<img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/dtb_generation.png" width="700" align="middle" alt="dtb generation" />
 </p>
 
 Some DTAppend warnings appear. Altera website says they are OK. So we copy the the socfpga.dtb file into the FAT32 partition of the SD. We have called DTB as socfpga.dtb because it is the default name that the u-boot is going to use to find a DTB in the FAT32 partition.
@@ -274,6 +274,25 @@ Attached to this document we provide the .xml files needed to compile the .dtb a
 
 9 - Write u-boot script file and test the u-boot
 ------------------------------------------------
+Now it is time to write the u-boot, the second stage during the booting process, into the SDCARD. Using a u-boot.scr file we are also going to modify the default behavior of the u-boot to configure the FPGA from .rbf file, unlock the FPGA-HPS bridges and load the kernel image. This chapter is based on the Lab 2 of the [Altera WorkShop 2 Linux Kernel for Altera SoC Devices](http://rocketboards.org/foswiki/view/Documentation/WS2LinuxKernelIntroductionForAlteraSoCDevices). For more information on u-boot and FPGA programming visit [Das U-Boot official website](http://www.denx.de/wiki/U-Boot) and [Configure FPGA from software](http://rocketboards.org/foswiki/view/Documentation/GSRD131ProgrammingFPGA) respectively.
+
+The default u-boot behavior is looking for a u-boot.scr and execute it. If it does not find the file it loads a .dtb file with the default name socfpga.dtb and loads the kernel image. Loading the kernel implies reading the the image file (with default name zImage), copying it into RAM and passing the execution to the kernel).  One can check that these are the default names that the u-boot is using accessing to the u-boot variables holding this value. When booting, cancel autoboot hitting any key to enter in the u-boot console, then try:
+```bash
+echo $bootimage # gives the default name for kernel (zImage in our case).
+echo $fdtimage  # gives the default name for the device tree file (socfpga.dtb in our case)
+```
+
+To modify the default behavior one can write the so-called u-boot.script (human readable file with u-boot console instructions) and compile it to get the u-boot.scr. Our u-boot.script file looks like:
+ 
+The first and second lines load the fpga configuration file and configure the FPGA part, respectively. The name of the file in the first line should match with the actual file in the FAT32 partition. The third line enables the FPGA-HPS bridges. The last two lines load and boot the kernel.
+To compile the u-boot.script navigate to the folder where u-boot.script is located using the embedded command shell and type:
+   
+This will generate the u-boot.scr in the same folder where 
+ 
+Now we copy the u-boot.scr file along with the uboot image into the FAT32 partition of the SD card. The u-boot image was generated during the compilation of the u-boot and it is located in the folder with root filesystem and kernel image (see section 3.5.2) with the name of u-boot-socfpga_cyclone5.img. Copy it to the FAT32 partition and change its name to u-boot.img, in order the preloader to be able to find it. Remember that, unlike most of tutorials, u-boot image should be located in FAT32 partition because we said so to the preloader. At this moment the FAT partition on the SD should contain u-boot.img, u-boot.scr, socfpga.dtb and soc_system.rbf. Powering-up the board with this SD card should give the following output.
+ 
+The output shows how the u-boot.scr file is correctly loaded. The soc_system.rbf file is loaded and the FPGA configured. The u-boot correctly reads the .rbf file but does not find the kernel image zImage.
+
 
 10 - Write kernel and root-file system and test them
 ----------------------------------------------------
