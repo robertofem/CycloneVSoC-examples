@@ -1,10 +1,10 @@
 /**
  * @file        pmu.c
  * @author      Filipe Salgado (filipe.salgado@gmail.com), Roberto Fernández (robertofem@gmail.com)
- * @version     1.0
+ * @version     2.0
  * @date        22 July, 2015
  * @brief       ARMv7-A Performance Monitor Unit v2 Driver
- *              Modification of the ARMv7-A Performance Monitor Unit v1 Driver by Sandro Pinto
+ *              Modification of the original ARMv7-A Performance Monitor Unit v1 Driver by Sandro Pinto (sandro.pinto@dei.uminho.pt)
  */
 
 /* Includes ---------------------------------------------*/
