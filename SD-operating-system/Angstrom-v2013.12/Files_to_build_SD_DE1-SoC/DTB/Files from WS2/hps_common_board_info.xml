@@ -1,0 +1,87 @@
+<BoardInfo>
+
+<!-- 
+Starting in the 3.11 kernel, the ethernet driver looks for alias
+in the device tree for a bus_id used to talk the phy.  Having
+these aliases allows seamless support of multiple emacs
+-->
+
+
+<DTAppend name="next-level-cache" type="phandle" parentlabel="hps_0_arm_a9_0" val="hps_0_L2"/>
+<DTAppend name="next-level-cache" type="phandle" parentlabel="hps_0_arm_a9_1" val="hps_0_L2"/>
+
+<DTAppend name="cache-unified" type="bool" parentlabel="hps_0_L2" val="true"/>
+<DTAppend name="arm,tag-latency" parentlabel="hps_0_L2">
+	<val type="number">1</val>
+	<val type="number">1</val>
+	<val type="number">1</val>
+</DTAppend>
+<DTAppend name="arm,data-latency" parentlabel="hps_0_L2">
+	<val type="number">2</val>
+	<val type="number">1</val>
+	<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="status" type="string" parentlabel="hps_0_wd_timer1" val="disabled" />
+
+<DTAppend name="pmu0" type="node" parentlabel="sopc0" newlabel="pmu"/>
+<DTAppend name="#address-cells" type="number" parentlabel="pmu" val="1"/>
+<DTAppend name="#size-cells" type="number" parentlabel="pmu" val="1"/>
+<DTAppend name="compatible" type="string" parentlabel="pmu" val="arm,cortex-a9-pmu"/>
+<DTAppend name="interrupt-parent" type="phandle" parentlabel="pmu" val="hps_0_arm_gic_0"/>
+<DTAppend name="interrupts" parentlabel="pmu">
+<val type="number">0</val>
+<val type="number">176</val>
+<val type="number">4</val>
+<val type="number">0</val>
+<val type="number">177</val>
+<val type="number">4</val>
+</DTAppend>
+<DTAppend name="ranges" type="bool" parentlabel="pmu" val="true"/>
+
+<DTAppend name="cti0@ff118000" type="node" parentlabel="pmu" newlabel="cti0"/>
+<DTAppend name="compatible" type="string" parentlabel="cti0" val="arm,coresight-cti"/>
+<DTAppend name="reg" parentlabel="cti0">
+<val type="hex">0xff118000</val>
+<val type="hex">0x1000</val>
+</DTAppend>
+
+<DTAppend name="cti0@ff119000" type="node" parentlabel="pmu" newlabel="cti1"/>
+<DTAppend name="compatible" type="string" parentlabel="cti1" val="arm,coresight-cti"/>
+<DTAppend name="reg" parentlabel="cti1">
+<val type="hex">0xff119000</val>
+<val type="hex">0x1000</val>
+</DTAppend>
+
+<DTAppend name="fpgabridge@0" type="node" parentlabel="sopc0" newlabel="fpgabridge0"/>
+<DTAppend name="compatible" type="string" parentlabel="fpgabridge0" val="altr,socfpga-hps2fpga-bridge"/>
+<DTAppend name="label" type="string" parentlabel="fpgabridge0" val="hps2fpga"/>
+<DTAppend name="clocks" type="phandle" parentlabel="fpgabridge0" val="l4_main_clk"/>
+<DTAppend name="init-val" type="number" parentlabel="fpgabridge0" val="1"/>
+
+<DTAppend name="fpgabridge@1" type="node" parentlabel="sopc0" newlabel="fpgabridge1"/>
+<DTAppend name="compatible" type="string" parentlabel="fpgabridge1" val="altr,socfpga-lwhps2fpga-bridge"/>
+<DTAppend name="label" type="string" parentlabel="fpgabridge1" val="lwhps2fpga"/>
+<DTAppend name="clocks" type="phandle" parentlabel="fpgabridge1" val="l4_main_clk"/>
+<DTAppend name="init-val" type="number" parentlabel="fpgabridge1" val="1"/>
+
+<DTAppend name="fpgabridge@2" type="node" parentlabel="sopc0" newlabel="fpgabridge2"/>
+<DTAppend name="compatible" type="string" parentlabel="fpgabridge2" val="altr,socfpga-fpga2hps-bridge"/>
+<DTAppend name="label" type="string" parentlabel="fpgabridge2" val="fpga2hps"/>
+<DTAppend name="clocks" type="phandle" parentlabel="fpgabridge2" val="l4_main_clk"/>
+<DTAppend name="init-val" type="number" parentlabel="fpgabridge2" val="1"/>
+
+
+<DTAppend name="reg" parentlabel="hps_0_usb0">
+<val type="hex">0xffb00000</val>
+<val type="hex">0x40000</val>
+</DTAppend>
+
+<DTAppend name="reg" parentlabel="hps_0_usb1">
+<val type="hex">0xffb40000</val>
+<val type="hex">0x40000</val>
+</DTAppend>
+
+<DTAppend name="compatible" type="string" parentlabel="memcpy_msgdma" val="demo,memcpy_msgdma"/>
+
+</BoardInfo>

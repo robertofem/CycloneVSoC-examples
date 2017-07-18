@@ -1,0 +1,294 @@
+<BoardInfo pov="hps_0_arm_a9_0">
+<!--
+This file is intended to be used when building device trees 
+for the Altera Cyclone5 SOC Development Kits. 
+This board info file and hps_clock_info.xml are required input
+to sopc2dts to create a device tree suitable for the 3.9 version
+of the Linux kernel.  One typically executes sopc2dts as follows:
+
+	sopc2dts -i soc_system.sopcinfo -b soc_system_board_info.xml
+		-b hps_clock_info.xml -o soc_system.dts 
+
+-->
+
+<DTAppend name="model" type="string" parentlabel="" val="Altera SOCFPGA Cyclone V"/>
+<DTAppend name="compatible" parentlabel="" >
+	<val type="string">altr,socfpga-cyclone5</val>
+	<val type="string">altr,socfpga</val>
+</DTAppend>
+<IRQMasterIgnore className="intr_capturer"/>
+<IRQMasterIgnore className="d_irq"/>
+
+<DTAppend name="next-level-cache" type="phandle" parentlabel="hps_0_arm_a9_0" val="hps_0_L2"/>
+<DTAppend name="next-level-cache" type="phandle" parentlabel="hps_0_arm_a9_1" val="hps_0_L2"/>
+
+<DTAppend name="cache-unified" type="bool" parentlabel="hps_0_L2" val="true"/>
+<DTAppend name="arm,tag-latency" parentlabel="hps_0_L2">
+	<val type="number">1</val>
+	<val type="number">1</val>
+	<val type="number">1</val>
+</DTAppend>
+<DTAppend name="arm,data-latency" parentlabel="hps_0_L2">
+	<val type="number">2</val>
+	<val type="number">1</val>
+	<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="interrupt-controller" parentlabel="hps_0_gpio0"/>
+<DTAppend name="#interrupt-cells" type="number" parentlabel="hps_0_gpio0" val="2"/>
+
+<DTAppend name="interrupt-controller" parentlabel="hps_0_gpio1"/>
+<DTAppend name="#interrupt-cells" type="number" parentlabel="hps_0_gpio1" val="2"/>
+
+<DTAppend name="interrupt-controller" parentlabel="hps_0_gpio2"/>
+<DTAppend name="#interrupt-cells" type="number" parentlabel="hps_0_gpio2" val="2"/>
+
+<DTAppend name="clock-frequency" type="number" parentlabel="hps_0_uart0" val="100000000"/>
+<DTAppend name="clock-frequency" type="number" parentlabel="hps_0_uart1" val="100000000"/>
+<DTAppend name="clock-frequency" type="number" parentlabel="hps_0_timer0" val="100000000"/>
+<DTAppend name="clock-frequency" type="number" parentlabel="hps_0_timer1" val="100000000"/>
+<DTAppend name="clock-frequency" type="number" parentlabel="hps_0_timer2" val="25000000"/>
+<DTAppend name="clock-frequency" type="number" parentlabel="hps_0_timer3" val="25000000"/>
+
+<DTAppend name="cpu1-start-addr" type="hex" parentlabel="hps_0_sysmgr" val="0xffd080c4"/>
+<DTAppend name="compatible" type="string" parentlabel="hps_0_sysmgr" val="syscon" action="add"/>
+<DTAppend name="compatible" type="string" parentlabel="hps_0_rstmgr" val="syscon" action="add"/>
+
+<DTAppend name="speed-mode" type="number" parentlabel="hps_0_i2c0" val="0"/>
+<DTAppend name="status" type="string" parentlabel="hps_0_i2c1" val="disabled"/>
+<DTAppend name="status" type="string" parentlabel="hps_0_i2c2" val="disabled"/>
+<DTAppend name="status" type="string" parentlabel="hps_0_i2c3" val="disabled"/>
+
+<DTAppend name="clock-names" type="string" parentlabel="hps_0_gmac0" val="stmmaceth"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_gmac0" val="emac0_clk"/>
+
+<DTAppend name="phy-mode" type="string" parentlabel="hps_0_gmac1" val="rgmii"/>
+<DTAppend name="clock-names" type="string" parentlabel="hps_0_gmac1" val="stmmaceth"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_gmac1" val="emac1_clk"/>
+
+<DTAppend name="phy-addr" type="hex" parentlabel="hps_0_gmac1" val="0xffffffff"/>
+<DTAppend name="micrel-ksz9021rlrn-clk-skew" type="hex" parentlabel="hps_0_gmac1" val="0xa0e0"/>
+<DTAppend name="micrel-ksz9021rlrn-rx-skew" type="hex" parentlabel="hps_0_gmac1" val="0x0"/>
+
+<DTAppend name="status" type="string" parentlabel="hps_0_gmac0" val="disabled"/>
+<DTAppend name="status" type="string" parentlabel="hps_0_uart1" val="disabled"/>
+<DTAppend name="status" type="string" parentlabel="hps_0_usb0" val="disabled"/>
+<DTAppend name="status" type="string" parentlabel="hps_0_nand0" val="disabled"/>
+<DTAppend name="clocks" type="phandle" parentlabel="hps_0_nand0" val="nand_clk"/>
+
+<I2CBus master="hps_0_i2c0">
+	<I2CChip addr="0x28" label="lcd" name="newhaven,nhd-0216k3z-nsw-bbw"></I2CChip>
+	<I2CChip addr="0x51" label="eeprom" name="atmel,24c32"></I2CChip>
+</I2CBus>
+<DTAppend name="height" type="number" parentlabel="lcd" val="2"/>
+<DTAppend name="width" type="number" parentlabel="lcd" val="16"/>
+<DTAppend name="brightness" type="number" parentlabel="lcd" val="8"/>
+<DTAppend name="pagesize" type="number" parentlabel="eeprom" val="32"/>
+<DTAppend name="clocks"  parentlabel="hps_0_sdmmc" >
+<val type="phandle">l4_mp_clk</val>
+<val type="phandle">sdmmc_clk</val>
+</DTAppend>
+<DTAppend name="clock-names"  parentlabel="hps_0_sdmmc" >
+<val type="string">biu</val>
+<val type="string">ciu</val>
+</DTAppend>
+<DTAppend name="#address-cells" type="number" parentlabel="hps_0_sdmmc" val="1"/>
+<DTAppend name="#size-cells" type="number" parentlabel="hps_0_sdmmc" val="0"/>
+<DTAppend name="supports-highspeed"  parentlabel="hps_0_sdmmc" />
+<DTAppend name="broken-cd" type="bool" parentlabel="hps_0_sdmmc" val="true"/>
+<DTAppend name="compatible" type="string" parentlabel="hps_0_sdmmc" val="altr,socfpga-dw-mshc" action="replace"/>
+<DTAppend name="altr,dw-mshc-ciu-div" type="number" parentlabel="hps_0_sdmmc" val="3"/>
+<DTAppend name="altr,dw-mshc-sdr-timing"  parentlabel="hps_0_sdmmc" >
+<val type="number">0</val>
+<val type="number">3</val>
+</DTAppend>
+<DTAppend name="slot@0" type="node" parentlabel="hps_0_sdmmc" newlabel="slot_0"/>
+<DTAppend name="reg" type="number" parentlabel="slot_0" val="0"/>
+<DTAppend name="bus-width" type="number" parentlabel="slot_0" val="4"/>
+
+<DTAppend name="master-ref-clk" type="number" parentlabel="hps_0_qspi" val="400000000"/>
+<DTAppend name="ext-decoder" type="number" parentlabel="hps_0_qspi" val="0"/>
+<DTAppend name="n25q00@0" type="node" parentlabel="hps_0_qspi" newlabel="flash0"/>
+<DTAppend name="#address-cells" type="number" parentlabel="hps_0_qspi" val="1"/>
+<DTAppend name="#size-cells" type="number" parentlabel="hps_0_qspi" val="0"/>
+<DTAppend name="#address-cells" type="number" parentlabel="flash0" val="1"/>
+<DTAppend name="#size-cells" type="number" parentlabel="flash0" val="1"/>
+<DTAppend name="compatible" type="string" parentlabel="flash0" val="n25q00"/>
+<DTAppend name="reg" type="number" parentlabel="flash0" val="0"/>
+<DTAppend name="spi-max-frequency" type="number" parentlabel="flash0" val="100000000"/>
+<DTAppend name="page-size" type="number" parentlabel="flash0" val="256"/>
+<DTAppend name="block-size" type="number" parentlabel="flash0" val="16"/>
+<DTAppend name="m25p,fast-read" type="bool" parentlabel="flash0" val="true"/>
+<DTAppend name="read-delay" type="number" parentlabel="flash0" val="4"/>
+<DTAppend name="tshsl-ns" type="number" parentlabel="flash0" val="50"/>
+<DTAppend name="tsd2d-ns" type="number" parentlabel="flash0" val="50"/>
+<DTAppend name="tchsh-ns" type="number" parentlabel="flash0" val="4"/>
+<DTAppend name="tslch-ns" type="number" parentlabel="flash0" val="4"/>
+<DTAppend name="partition@0" type="node" parentlabel="flash0" newlabel="part0"/>
+<DTAppend name="label" type="string" parentlabel="part0" val="Flash 0 Raw Data"/>
+<DTAppend name="reg" parentlabel="part0" >
+<val type="hex">0x0</val>
+<val type="hex">0x800000</val>
+</DTAppend>
+<DTAppend name="partition@800000" type="node" parentlabel="flash0" newlabel="part1"/>
+<DTAppend name="label" type="string" parentlabel="part1" val="Flash 1 jffs2 Filesystem"/>
+<DTAppend name="reg" parentlabel="part1">
+<val type="hex">0x800000</val>
+<val type="hex">0x800000</val>
+</DTAppend>
+
+<DTAppend name="status" type="string" parentlabel="hps_0_spi0" val="disabled"/>
+<DTAppend name="status" type="string" parentlabel="hps_0_spi1" val="disabled"/>
+
+<DTAppend name="spidev@0" type="node" parentlabel="hps_0_spi0" newlabel="spidev0"/>
+<DTAppend name="compatible" type="string" parentlabel="spidev0" val="spidev"/>
+<DTAppend name="reg" type="number" parentlabel="spidev0" val="0"/>
+<DTAppend name="spi-max-frequency" type="number" parentlabel="spidev0" val="100000000"/>
+<DTAppend name="enable-dma" type="number" parentlabel="spidev0" val="1"/>
+
+<DTAppend name="spidev@0" type="node" parentlabel="hps_0_spi1" newlabel="spidev1"/>
+<DTAppend name="compatible" type="string" parentlabel="spidev1" val="spidev"/>
+<DTAppend name="reg" type="number" parentlabel="spidev1" val="0"/>
+<DTAppend name="spi-max-frequency" type="number" parentlabel="spidev1" val="100000000"/>
+<DTAppend name="enable-dma" type="number" parentlabel="spidev1" val="1"/>
+
+<DTAppend name="leds" type="node" parentlabel="sopc0" newlabel="soc_leds"/>
+<DTAppend name="compatible" type="string" parentlabel="soc_leds" val="gpio-leds"/>
+
+<DTAppend name="hps0" type="node" parentlabel="soc_leds" newlabel="led_hps0"/>
+<DTAppend name="hps1" type="node" parentlabel="soc_leds" newlabel="led_hps1"/>
+<DTAppend name="hps2" type="node" parentlabel="soc_leds" newlabel="led_hps2"/>
+<DTAppend name="hps3" type="node" parentlabel="soc_leds" newlabel="led_hps3"/>
+
+<DTAppend name="fpga0" type="node" parentlabel="soc_leds" newlabel="led_fpga0"/>
+<DTAppend name="fpga1" type="node" parentlabel="soc_leds" newlabel="led_fpga1"/>
+<DTAppend name="fpga2" type="node" parentlabel="soc_leds" newlabel="led_fpga2"/>
+<DTAppend name="fpga3" type="node" parentlabel="soc_leds" newlabel="led_fpga3"/>
+
+<DTAppend name="label" type="string" parentlabel="led_hps0" val="hps_led0"/>
+<DTAppend name="gpios" parentlabel="led_hps0" >
+<val type="phandle">hps_0_gpio1</val>
+<val type="number">15</val>
+<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="label" type="string" parentlabel="led_hps1" val="hps_led1"/>
+<DTAppend name="gpios" parentlabel="led_hps1" >
+<val type="phandle">hps_0_gpio1</val>
+<val type="number">14</val>
+<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="label" type="string" parentlabel="led_hps2" val="hps_led2"/>
+<DTAppend name="gpios" parentlabel="led_hps2" >
+<val type="phandle">hps_0_gpio1</val>
+<val type="number">13</val>
+<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="label" type="string" parentlabel="led_hps3" val="hps_led3"/>
+<DTAppend name="gpios" parentlabel="led_hps3" >
+<val type="phandle">hps_0_gpio1</val>
+<val type="number">12</val>
+<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="label" type="string" parentlabel="led_fpga0" val="fpga_led0"/>
+<DTAppend name="gpios" parentlabel="led_fpga0" >
+<val type="phandle">led_pio</val>
+<val type="number">0</val>
+<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="label" type="string" parentlabel="led_fpga1" val="fpga_led1"/>
+<DTAppend name="gpios" parentlabel="led_fpga1" >
+<val type="phandle">led_pio</val>
+<val type="number">1</val>
+<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="label" type="string" parentlabel="led_fpga2" val="fpga_led2"/>
+<DTAppend name="gpios" parentlabel="led_fpga2" >
+<val type="phandle">led_pio</val>
+<val type="number">2</val>
+<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="label" type="string" parentlabel="led_fpga3" val="fpga_led3"/>
+<DTAppend name="gpios" parentlabel="led_fpga3" >
+<val type="phandle">led_pio</val>
+<val type="number">3</val>
+<val type="number">1</val>
+</DTAppend>
+
+<DTAppend name="pmu0" type="node" parentlabel="sopc0" newlabel="pmu"/>
+<DTAppend name="#address-cells" type="number" parentlabel="pmu" val="1"/>
+<DTAppend name="#size-cells" type="number" parentlabel="pmu" val="1"/>
+<DTAppend name="compatible" type="string" parentlabel="pmu" val="arm,cortex-a9-pmu"/>
+<DTAppend name="interrupt-parent" type="phandle" parentlabel="pmu" val="hps_0_arm_gic_0"/>
+<DTAppend name="interrupts" parentlabel="pmu">
+<val type="number">0</val>
+<val type="number">176</val>
+<val type="number">4</val>
+<val type="number">0</val>
+<val type="number">177</val>
+<val type="number">4</val>
+</DTAppend>
+<DTAppend name="ranges" type="bool" parentlabel="pmu" val="true"/>
+
+<DTAppend name="cti0@ff118000" type="node" parentlabel="pmu" newlabel="cti0"/>
+<DTAppend name="compatible" type="string" parentlabel="cti0" val="arm,coresight-cti"/>
+<DTAppend name="reg" parentlabel="cti0">
+<val type="hex">0xff118000</val>
+<val type="hex">0x100</val>
+</DTAppend>
+
+<DTAppend name="cti0@ff119000" type="node" parentlabel="pmu" newlabel="cti1"/>
+<DTAppend name="compatible" type="string" parentlabel="cti1" val="arm,coresight-cti"/>
+<DTAppend name="reg" parentlabel="cti1">
+<val type="hex">0xff119000</val>
+<val type="hex">0x100</val>
+</DTAppend>
+
+<DTAppend name="fpgabridge@0" type="node" parentlabel="sopc0" newlabel="fpgabridge0"/>
+<DTAppend name="compatible" type="string" parentlabel="fpgabridge0" val="altr,socfpga-hps2fpga-bridge"/>
+<DTAppend name="label" type="string" parentlabel="fpgabridge0" val="hps2fpga"/>
+<DTAppend name="clocks" type="phandle" parentlabel="fpgabridge0" val="l4_main_clk"/>
+
+<DTAppend name="fpgabridge@1" type="node" parentlabel="sopc0" newlabel="fpgabridge1"/>
+<DTAppend name="compatible" type="string" parentlabel="fpgabridge1" val="altr,socfpga-lwhps2fpga-bridge"/>
+<DTAppend name="label" type="string" parentlabel="fpgabridge1" val="lwhps2fpga"/>
+<DTAppend name="clocks" type="phandle" parentlabel="fpgabridge1" val="l4_main_clk"/>
+
+<DTAppend name="fpgabridge@2" type="node" parentlabel="sopc0" newlabel="fpgabridge2"/>
+<DTAppend name="compatible" type="string" parentlabel="fpgabridge2" val="altr,socfpga-fpga2hps-bridge"/>
+<DTAppend name="label" type="string" parentlabel="fpgabridge2" val="fpga2hps"/>
+<DTAppend name="clocks" type="phandle" parentlabel="fpgabridge2" val="l4_main_clk"/>
+
+<DTAppend name="l3regs@0xff800000" type="node" parentlabel="sopc0" newlabel="l3regs"/>
+<DTAppend name="compatible"  parentlabel="l3regs" >
+<val type="string">altr,l3regs</val>
+<val type="string">syscon</val>
+</DTAppend>
+<DTAppend name="reg"  parentlabel="l3regs" >
+<val type="hex">0xff800000</val>
+<val type="hex">0x1000</val>
+</DTAppend>
+
+
+<DTAppend name="sdrctl@0xffc25000" type="node" parentlabel="sopc0" newlabel="sdctrl"/>
+<DTAppend name="compatible"  parentlabel="sdctrl" >
+<val type="string">altr,sdr-ctl</val>
+<val type="string">syscon</val>
+</DTAppend>
+<DTAppend name="reg"  parentlabel="sdctrl" >
+<val type="hex">0xffc25000</val>
+<val type="hex">0x1000</val>
+</DTAppend>
+
+
+
+<Chosen>
+        <Bootargs val="console=ttyS0,115200"></Bootargs>
+</Chosen>
+</BoardInfo>

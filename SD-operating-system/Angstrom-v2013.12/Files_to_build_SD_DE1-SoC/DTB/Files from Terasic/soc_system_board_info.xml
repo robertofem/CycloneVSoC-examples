@@ -1,0 +1,9 @@
+<BoardInfo pov="hps_0_arm_a9_0">
+
+<DTAppend name="model" type="string" parentlabel="" val="Altera SOCFPGA Cyclone V"/>
+<DTAppend name="compatible" parentlabel="" >
+	<val type="string">altr,socfpga-cyclone5</val>
+	<val type="string">altr,socfpga</val>
+</DTAppend>
+
+</BoardInfo>

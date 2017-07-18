@@ -1,6 +1,6 @@
 Angstrom 2013.12 
-============
-This tutorial explains how to build an Angstrom 2013.12 SD card for Cyclone V SoC from scratch.
+================
+This tutorial explains how to build an Angstrom 2013.12 SD card for Cyclone V SoC from scratch. The folder _Files_to_build_SD_DE1-SoC_ contains the different files generated during this tutorial so the user can save time when building the SD card.Files_to_build_SD_DE1-SoC
 
 Table of contents:
 
@@ -16,7 +16,7 @@ Table of contents:
 10. [Write kernel and root-file system and test them](#10---write-kernel-and-root-file-system-and-test-them)
 
 1 - Installation of the tools
----------------------------
+-----------------------------
 First the tools used to build the SD card should be installed. In this case we use a single PC running:
 
 * Windows 7 OS. We install:
@@ -28,7 +28,7 @@ First the tools used to build the SD card should be installed. In this case we u
 All could be done inside an Ubuntu 12.04 machine installing Quartus II and Altera SoC EDS in it. 
 
 2 - SD card partitions and files
-----------------------------
+--------------------------------
 As target board we are using DE1-SoC board from Terasic [4]. 
 As hardware project for the FPGA we are using GHRD (Golden Hardware Reference Design) provided by Terasic inside the DE1-SoC CD-ROM. We copy this folder in a location in the Windows 7 system. We will call this folder [de1_soc_GHRD] after this point.
 Inside the Ubuntu system we create a folder inside ~ folder called DE1SOC. We will refer to this folder as [DE1SOC]. We will use this folder as reference and all files generated in the Windows 7 system will be copied to this folder to later copied into the SD card.
@@ -51,7 +51,7 @@ More about the SD card in the SD Card Tutorial from Rocket Boards [5].
 </p>
 
 3 - Booting process
------------------
+-------------------
 The booting process for Cyclone V SoC when OS is present is the following. The preloader (only 64K) is loaded from the bootROM program (saved during chip manufacturing) inside the 64k On-Chip RAM. It configures external RAM memory (1GB in DE1-SoC) and performs other tasks. It loads u-boot in RAM and jumps to it. The u-boot loads some basic drivers needed to launch OS. It executes some commands to initialize the system, reads .dtb file and loads some basic drivers to work with some devices. The u-boot can configure the FPGA as ecplained later. In the end it loads the kernel image in RAM and passes execution to it. Using the u-boot.scr file the default behavior of u-boot can be modified. 
 
 More about Cyclone V SoC boot in the [Preloader and U-boot Generation for Altera Cyclone V SoC](https://www.youtube.com/watch?v=vS7pvefsbRM) tutorial and in the Cyclone V SoC Handbook.
@@ -158,7 +158,7 @@ In this tutorial we use the third option. We used the DE1-SoC board so we downlo
 Using the Ubuntu Virtual machine we can access to the EXT3 partition (holding the root filesystem) and to the FAT32 partition (storing a .dtb file and a kernel image file called zImage). We erase the content in the FAT partition and EXT3 partition. Be careful if you remove it using Nautilus or other graphical folder explorer because an occult folder called .Trash-0 is created occupying space in the sdcard. Using the console, .Trash-0 folder can be easily removed. The size of each partition in the SD card can be easily modified using GParted utility.
 
 6 - Generate and test the Preloader
-------------------------------------
+-----------------------------------
 The preloader is generated using the preloader generator and the information in the Handoff folder that is inside the hardware folder. In our case, we used DE1-SoC board in this tutorial so we use the Golden Hardware Reference Design for DE1-SoC (It comes with the board documentation. We will call to this folder [de1_soc_GHRD] folder in the rest of this tutorial. This tutorial was done using the LAB1 of [Altera WorkShop 2 Linux Kernel for Altera SoC Devices](http://rocketboards.org/foswiki/view/Documentation/WS2LinuxKernelIntroductionForAlteraSoCDevices).
 
 To generate the preloader open the embedded command shell located at <path-to-soceds-tools>/embedded/embedded_command_shell.sh (in /altera/14.1/embedded/embedded_command_shell.sh in our case). Browse to the hardware project, in our case the GHRD for DE1-SoC or [de1_soc_GHRD] folder. Before launch the preloader generator we need to know if our board supports ECC storage or not. Type the following to find out.
@@ -223,7 +223,7 @@ Finally we can test the preloader in the board. We insert the SD in the board an
 </p>
 
 7 - Generate FPGA configuration file
--------------------------------------
+------------------------------------
 To program the FPGA from software, .sof FPGA configuration file (generated in quartus project folder during quartus compilation) should be converted to .rbf file using either the embedded console or the Quartus II (like explained in [GUI Compile GSRD for Arrow SoCKit](http://rocketboards.org/foswiki/view/Documentation/GSRDCompileHardwareDesignArrowSoCKitEdition#Converting_.sof_to_.rbf)). In this case we use Quartus II GUI for ease.
 
 From Quartus go to **File->Convert Programming Files**, select .rbf as **Programming Type File** and  **Passive Parallel x8** or **x16** as **Mode**. Click on **SOF Data** and the click on **Add File** and browse the .sof source file. Write in File name the path and name of the .rbf output file. We select the same name as the .sof file (soc_system.rbf) as name and the path is the quartus project folder where the .sof file is located.Finally, click on the **Generate** button.
@@ -338,7 +338,7 @@ sudo dd if=altera-gsrd-image-socfpga_cyclone5.ext3 of=/dev/sdx2
 Booting now DE1-SoC board with the complete SD card gives the following output (for the 3.10 kernel).
 
 <p align="center">
-	<img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/Angstrom_loads_correctly.png" width="650" align="middle" alt="dtb generation" />
+	<img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/master/SD-operating-system/Angstrom-v2013.12/figs/Angstrom_loads_correctly.png" width="600" align="middle" alt="dtb generation" />
 </p>
 
 We have tested both, 3.10 and 3.18 kernel. Both of them correctly load. However 3.18 kernel is not does not recognize Ethernet peripheral and cannot be connected to the Internet. This problem is probably related with .dtb files since the conventions to write a .dtb file change from one kernel to another. To solve this problem the best way is to go deeply into .dtb files and learn to write our own. One good starting point could be the basic .dtb files included in the folder where file system, kernel and u-boot images are located after compilation. Because of this problem and without further investigation about its solution we have selected 3.10 kernel for our projects.
