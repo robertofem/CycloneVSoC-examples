@@ -435,7 +435,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     printk("]\n");
   }*/
   
-  //Copy data from hardware buffer (FPGA) to the application memory
+  //Copy data DMAble buffer in kernel space to the FPGA
   if (prepare_microcode_in_open == 1)
   {
     //execute the program prepared in the open
