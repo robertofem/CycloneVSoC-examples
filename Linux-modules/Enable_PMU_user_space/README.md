@@ -72,7 +72,7 @@ How to test
 ```bash
   $ insmod PMU_User_Space_EN.ko
 ```
- * The result is printed in the kernel log that should show say that the value of PMUSERENR.EN is 1. Depending on the configuration of your operating system the messages from the LKM will be directly printed in screen or you will need to use _dmesg_ to see them:
+* The result is printed in the kernel log that should show say that the value of PMUSERENR.EN is 1. Depending on the configuration of your operating system the messages from the LKM will be directly printed in screen or you will need to use _dmesg_ to see them:
  ```bash
   $ dmesg
 ```
