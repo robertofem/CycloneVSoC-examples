@@ -313,11 +313,12 @@ static int dev_open(struct inode *inodep, struct file *filep){
    return 0;
 }
  
-/** @brief This function is called whenever device is being read from user space i.e. data is
- *  being sent from the device to the user. In this case is uses the copy_to_user() function to
- *  send the buffer string to the user and captures any errors.
+/** @brief This function is called whenever fpga is being read from user space.
+ *  when called, a DMA transfer from FPGA to a non_cached buffer in kernel space
+ *  is done. Later this buffer is copied to the user space using copy_to_user()
+ *  function.
  *  @param filep A pointer to a file object (defined in linux/fs.h)
- *  @param buffer The pointer to the buffer to which this function writes the data
+ *  @param buffer The ptr to the buffer to which this function writes the data
  *  @param len The length of the b
  *  @param offset The offset if required
  */
@@ -393,12 +394,14 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
   return 0;
 }
  
-/** @brief This function is called whenever the device is being written to from user space i.e.
- *  data is sent to the device from the user. The data is copied to the message[] array in this
- *  LKM using the sprintf() function along with the length of the string.
+/** @brief This function is called whenever fpga is being written from user
+ *  space. When called, data is copied from user space to a non-cached buffer
+ *  in kernel space using copy_from_user() function. Later a DMA transfer from
+ *  that buffer to the FPGA takes place.
  *  @param filep A pointer to a file object
  *  @param buffer The buffer to that contains the string to write to the device
- *  @param len The length of the array of data that is being passed in the const char buffer
+ *  @param len The length of the array of data that is being passed in the const
+ *  char buffer
  *  @param offset The offset if required
  */
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
@@ -435,7 +438,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     printk("]\n");
   }*/
   
-  //Copy data from hardware buffer (FPGA) to the application memory
+  //Copy data DMAble buffer in kernel space to the FPGA
   if (prepare_microcode_in_open == 1)
   {
     //execute the program prepared in the open

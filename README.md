@@ -9,7 +9,7 @@ Examples using the FPSoC chip [Cyclone V SoC](https://www.altera.com/products/so
 This repository contains:
 
 * **Baremetal-applications**: Stand-alone applications without Operating System.
-	* Basic_transfer_DMA_PL330: This is a complete example on moving data using the HPS Direct Memory Access Controller (DMAC) PL330. Data can be moved from a buffer in processor to another buffer in processor or to the FPGA. This example also shows how to switch on the cache memories L1 and L2 and how to configure the ACP port to access cache memories from L3 when caches are on.
+	* DMA_transfer_PL330_ACP: This is a complete example on moving data using the HPS Direct Memory Access Controller (DMAC) PL330. Data can be moved from a buffer in processor to another buffer in processor or to the FPGA. This example also shows how to switch on the cache memories L1 and L2 and how to configure the ACP port to access cache memories from L3 when caches are on.
 	* Second_counter_PMU: This example uses a counter in the Performance Monitoring Unit (PMU) timer to measure seconds and build a second counter. It stands as an example on how to use PMU to measure time in baremetal.
 
 * **FPGA-hardware**: Quartus projects describing the FPGA hardware needed in some of the examples.
