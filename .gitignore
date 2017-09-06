@@ -1,7 +1,7 @@
 #Files after compilation not to be uploaded to the repository
 
 #modules
-**.o 
+**.o
 **.mod
 **.mod.c
 **.cmd
@@ -11,9 +11,10 @@
 **tmp_versions/**
 
 #baremetal
-**/Baremetal/*.axf** 
-**/Baremetal/*.o
-**/Baremetal/*.bin** 
+*.axf**
+**/Baremetal-applications/**/*.o
+**/Baremetal-applications/**/*.bin**
+
 
 #Quartus II files
 **/FPGA-hardware/**/**/.qsys_edit/**
@@ -36,4 +37,3 @@
 **/FPGA-hardware/**/**/*.rbf
 **/FPGA-hardware/**/**/*.cdf
 **/FPGA-hardware/**/**/*.stp
-
