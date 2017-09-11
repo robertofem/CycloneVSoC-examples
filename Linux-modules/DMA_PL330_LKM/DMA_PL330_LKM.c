@@ -266,7 +266,7 @@ static ssize_t lockdown_cpu_store(struct kobject *kobj,
     *(L2C_vaddress + 8) = lockdown_cpu;
     *(L2C_vaddress + 12) = lockdown_cpu;
     iounmap(L2C_vaddress);
-    printk(KERN_INFO "DMA LKM: CPU lockdown settings changed to %X\n", lockdown_cpu);
+    printk(KERN_INFO "DMA LKM: CPU lockdown settings changed to 0x%X\n", lockdown_cpu);
     return count;
   }
 }
@@ -304,7 +304,7 @@ static ssize_t lockdown_acp_store(struct kobject *kobj,
     *(L2C_vaddress + ACPidWR*2*4) = lockdown_acp;
     *(L2C_vaddress + ACPidWR*2*4 + 4) = lockdown_acp;
     iounmap(L2C_vaddress);
-    printk(KERN_INFO "DMA LKM: ACP lockdown settings changed to %X\n", lockdown_acp);
+    printk(KERN_INFO "DMA LKM: ACP lockdown settings changed to 0x%X\n", lockdown_acp);
     return count;
   }
 }
