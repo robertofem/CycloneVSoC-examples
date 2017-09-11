@@ -249,10 +249,11 @@ static ssize_t dma_transfer_size_show(struct kobject *kobj,
 static ssize_t lockdown_cpu_store(struct kobject *kobj,
   struct kobj_attribute *attr, const char *buf, size_t count)
 {
-  int* L2C_vaddress;
+  void* L2C_vaddress;
   sscanf(buf, "%du", &lockdown_cpu);
   //ioremap L2 Cache Controller
-  L2C_vaddress = (int*)ioremap(L2CC_PL310, 64);
+  L2C_vaddress = ioremap(L2CC_PL310, 64);
+  printk("HW:0x%x VI:0x%x\n", (L2CC_PL310 + LOCKDOWN_REG), L2C_vaddress);
   if (L2C_vaddress == NULL)
   {
     printk(KERN_INFO "DMA LKM: error doing L2C ioremap\n");
@@ -261,12 +262,12 @@ static ssize_t lockdown_cpu_store(struct kobject *kobj,
   else
   {
     //Change lockdown for CPU0 data and instruction lockdown regs
-    *(L2C_vaddress) = lockdown_cpu;
-    *(L2C_vaddress + 4) = lockdown_cpu;
-    *(L2C_vaddress + 8) = lockdown_cpu;
-    *(L2C_vaddress + 12) = lockdown_cpu;
+    *((int*)L2C_vaddress) = lockdown_cpu;
+    *((int*)(L2C_vaddress + 4)) = lockdown_cpu;
+    *((int*)(L2C_vaddress + 8)) = lockdown_cpu;
+    *((int*)(L2C_vaddress + 12)) = lockdown_cpu;
+    //printk(KERN_INFO "DMA LKM: CPU lockdown settings changed to 0x%X\n", lockdown_cpu);
     iounmap(L2C_vaddress);
-    printk(KERN_INFO "DMA LKM: CPU lockdown settings changed to 0x%X\n", lockdown_cpu);
     return count;
   }
 }
@@ -280,10 +281,11 @@ static ssize_t lockdown_cpu_show(struct kobject *kobj,
 static ssize_t lockdown_acp_store(struct kobject *kobj,
   struct kobj_attribute *attr, const char *buf, size_t count)
 {
-  int* L2C_vaddress;
+  void* L2C_vaddress;
   sscanf(buf, "%du", &lockdown_acp);
   //ioremap lockdown regs in L2 Cache Controller
-  L2C_vaddress = (int*)ioremap(L2CC_PL310 + LOCKDOWN_REG, 64);
+  L2C_vaddress = ioremap(L2CC_PL310 + LOCKDOWN_REG, 64);
+  printk("HW:0x%x VI:0x%x\n", (L2CC_PL310 + LOCKDOWN_REG), L2C_vaddress);
   if (L2C_vaddress == NULL)
   {
     printk(KERN_INFO "DMA LKM: error doing L2C ioremap\n");
@@ -299,12 +301,12 @@ static ssize_t lockdown_acp_store(struct kobject *kobj,
     ACPidRD = 3;
     ACPidWR = 4;
     //Change lockdown for ACP RD and WR data and instruction lockdown regs
-    *(L2C_vaddress + ACPidRD*2*4) = lockdown_acp;
-    *(L2C_vaddress + ACPidRD*2*4 + 4) = lockdown_acp;
-    *(L2C_vaddress + ACPidWR*2*4) = lockdown_acp;
-    *(L2C_vaddress + ACPidWR*2*4 + 4) = lockdown_acp;
+    *((int*)(L2C_vaddress + ACPidRD*8)) = lockdown_acp;
+    *((int*)(L2C_vaddress + ACPidRD*8 + 4)) = lockdown_acp;
+    *((int*)(L2C_vaddress + ACPidWR*8)) = lockdown_acp;
+    *((int*)(L2C_vaddress + ACPidWR*8 + 4)) = lockdown_acp;
+    //printk(KERN_INFO "DMA LKM: ACP lockdown settings changed to 0x%X\n", lockdown_acp);
     iounmap(L2C_vaddress);
-    printk(KERN_INFO "DMA LKM: ACP lockdown settings changed to 0x%X\n", lockdown_acp);
     return count;
   }
 }
