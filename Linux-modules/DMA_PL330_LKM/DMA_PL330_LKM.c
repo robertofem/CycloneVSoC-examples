@@ -253,7 +253,6 @@ static ssize_t lockdown_cpu_store(struct kobject *kobj,
   sscanf(buf, "%du", &lockdown_cpu);
   //ioremap L2 Cache Controller
   L2C_vaddress = ioremap(L2CC_PL310, 64);
-  printk("HW:0x%x VI:0x%x\n", (L2CC_PL310 + LOCKDOWN_REG), L2C_vaddress);
   if (L2C_vaddress == NULL)
   {
     printk(KERN_INFO "DMA LKM: error doing L2C ioremap\n");
@@ -285,7 +284,6 @@ static ssize_t lockdown_acp_store(struct kobject *kobj,
   sscanf(buf, "%du", &lockdown_acp);
   //ioremap lockdown regs in L2 Cache Controller
   L2C_vaddress = ioremap(L2CC_PL310 + LOCKDOWN_REG, 64);
-  printk("HW:0x%x VI:0x%x\n", (L2CC_PL310 + LOCKDOWN_REG), L2C_vaddress);
   if (L2C_vaddress == NULL)
   {
     printk(KERN_INFO "DMA LKM: error doing L2C ioremap\n");
