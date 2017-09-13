@@ -67,13 +67,16 @@ static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 static ALT_DMA_CHANNEL_t Dma_Channel; //dma channel to be used in transfers
 
 //---------VARIABLES TO EXPORT USING SYSFS-----------------//
-static int use_acp = 0; //to use acp (add 0x80000000) when accessing processors RAM
+static int use_acp = 0; //to use acp for DMA transfers
 static int prepare_microcode_in_open = 0;//microcode program is prepared when opening char driver
 //when prepare_microcode_in_open the following vars are used to prepare DMA microcodes in open() func
 static void* dma_buff_padd = (void*) 0xC0000000;//physical address of buff to use in write and read from application
 static int dma_transfer_size = 0; //transfer size in Bytes of the DMA transaction
 static int lockdown_cpu = 0; //L2 cache controller lockdown value for CPU0 and 1
 static int lockdown_acp = 0; //L2 cache controller lockdown value for ACP port
+static unsigned int sdramc_priority = 0; //reg. controlling the port priorities in SDRAMC
+static unsigned int sdramc_weight0 = 0; //reg.0 controlling weights for SDRAM controller scheduller
+static unsigned int sdramc_weight1 = 0; //reg.1 controlling weights for SDRAM controller scheduller
 
 //------VARIABLES TO IMPLEMENT THE CHAR DEVICE DRIVER INTERFACE--------//
 #define  DEVICE_NAME "dma_pl330"        ///< The device will appear at /dev/dma_ch0 using this value
@@ -94,6 +97,15 @@ static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 #define L2CC_PL310 0xfffef000
 //This is the offset to the lockdown registers inside L2 Controller
 #define LOCKDOWN_REG 0x900
+
+//-------VARIABLES TO CONTROL ADVANCED FEATURES IN SDRAM CONTROLLER-----//
+//SDRAM controller address
+#define SDRREGS 0xFFC20000
+#define SDRREGS_SPAN 0x20000 //128kB
+//Offset of the internal registers in SDRAM controller
+#define MMPRIORITY 0x50AC
+#define MPWEIGHT_0_4 0x50B0
+#define MPWEIGHT_1_4 0x50B4
 
 //available operations on char device driver: open, read, write and close
 static struct file_operations fops =
@@ -315,6 +327,93 @@ static ssize_t lockdown_acp_show(struct kobject *kobj,
    return sprintf(buf, "%d\n", lockdown_acp);
 }
 
+static ssize_t sdramc_priority_store(struct kobject *kobj,
+  struct kobj_attribute *attr, const char *buf, size_t count)
+{
+  void* SDRAMC_vaddress;
+  sscanf(buf, "%u", &sdramc_priority);
+  //ioremap SDRAM controller
+  SDRAMC_vaddress = ioremap(SDRREGS, SDRREGS_SPAN);
+  if (SDRAMC_vaddress == NULL)
+  {
+    printk(KERN_INFO "DMA LKM: error doing SDRAMC ioremap\n");
+    return 0;
+  }
+  else
+  {
+    //Copy the configuration sent to the register
+    *((unsigned int *)(SDRAMC_vaddress + MMPRIORITY)) = sdramc_priority;
+    printk(KERN_INFO "DMA LKM: SDRAMC priority reg. changed to 0x%X\n",
+    *((unsigned int *)(SDRAMC_vaddress + MMPRIORITY)) );
+    iounmap(SDRAMC_vaddress);
+    return count;
+  }
+}
+
+static ssize_t sdramc_priority_show(struct kobject *kobj,
+  struct kobj_attribute *attr, char *buf)
+{
+   return sprintf(buf, "%u\n", sdramc_priority);
+}
+
+static ssize_t sdramc_weight0_store(struct kobject *kobj,
+  struct kobj_attribute *attr, const char *buf, size_t count)
+{
+  void* SDRAMC_vaddress;
+  sscanf(buf, "%u", &sdramc_weight0);
+  //ioremap SDRAM controller
+  SDRAMC_vaddress = ioremap(SDRREGS, SDRREGS_SPAN);
+  if (SDRAMC_vaddress == NULL)
+  {
+    printk(KERN_INFO "DMA LKM: error doing SDRAMC ioremap\n");
+    return 0;
+  }
+  else
+  {
+    //Copy the configuration sent to the register
+    *((unsigned int *)(SDRAMC_vaddress + MPWEIGHT_0_4)) = sdramc_weight0;
+    printk(KERN_INFO "DMA LKM: SDRAMC weight reg. 0 changed to 0x%X\n",
+    *((unsigned int *)(SDRAMC_vaddress + MPWEIGHT_0_4)) );
+    iounmap(SDRAMC_vaddress);
+    return count;
+  }
+}
+
+static ssize_t sdramc_weight0_show(struct kobject *kobj,
+  struct kobj_attribute *attr, char *buf)
+{
+   return sprintf(buf, "%u\n", sdramc_weight0);
+}
+
+static ssize_t sdramc_weight1_store(struct kobject *kobj,
+  struct kobj_attribute *attr, const char *buf, size_t count)
+{
+  void* SDRAMC_vaddress;
+  sscanf(buf, "%u", &sdramc_weight1);
+  //ioremap SDRAM controller
+  SDRAMC_vaddress = ioremap(SDRREGS, SDRREGS_SPAN);
+  if (SDRAMC_vaddress == NULL)
+  {
+    printk(KERN_INFO "DMA LKM: error doing SDRAMC ioremap\n");
+    return 0;
+  }
+  else
+  {
+    //Copy the configuration sent to the register
+    *((unsigned int *)(SDRAMC_vaddress + MPWEIGHT_1_4)) = sdramc_weight1;
+    printk(KERN_INFO "DMA LKM: SDRAMC weight reg. 1 changed to 0x%X\n",
+    *((unsigned int *)(SDRAMC_vaddress + MPWEIGHT_1_4)));
+    iounmap(SDRAMC_vaddress);
+    return count;
+  }
+}
+
+static ssize_t sdramc_weight1_show(struct kobject *kobj,
+  struct kobj_attribute *attr, char *buf)
+{
+   return sprintf(buf, "%u\n", sdramc_weight1);
+}
+
 /**  Use these helper macros to define the name and access levels of the kobj_attributes
  *  The kobj_attribute has an attribute attr (name and mode), show and store function pointers
  */
@@ -328,6 +427,12 @@ static struct kobj_attribute lockdown_cpu_attr = __ATTR(lockdown_cpu, 0666,
   lockdown_cpu_show, lockdown_cpu_store);
 static struct kobj_attribute lockdown_acp_attr = __ATTR(lockdown_acp, 0666,
   lockdown_acp_show, lockdown_acp_store);
+static struct kobj_attribute sdramc_priority_attr = __ATTR(sdramc_priority, 0666,
+  sdramc_priority_show, sdramc_priority_store);
+static struct kobj_attribute sdramc_weight0_attr = __ATTR(sdramc_weight0, 0666,
+  sdramc_weight0_show, sdramc_weight0_store);
+static struct kobj_attribute sdramc_weight1_attr = __ATTR(sdramc_weight1, 0666,
+  sdramc_weight1_show, sdramc_weight1_store);
 
 /**  The pl330_lkm_attrs[] is an array of attributes that is used to create the attribute group below.
  *  The attr property of the kobj_attribute is used to extract the attribute struct
@@ -339,6 +444,9 @@ static struct attribute *pl330_lkm_attrs[] = {
       &dma_transfer_size_attr.attr,
       &lockdown_cpu_attr.attr,
       &lockdown_acp_attr.attr,
+      &sdramc_priority_attr.attr,
+      &sdramc_weight0_attr.attr,
+      &sdramc_weight1_attr.attr,
       NULL,
 };
 
