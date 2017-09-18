@@ -3,7 +3,7 @@ DMA_PL330_LKM
 
 Introduction
 -------------
-This Loadable Kernel Module (LKM) moves data between a Linux Application running in user space and a memory or other kind of peripheral in the FPGA using the DMA Controller PL330 available in the HPS. For data sizes bigger than 128B this method is faster than moving data with the processor using memcpy(). Moreover the processor is freed during the transfer and can perform other calculations.
+This Loadable Kernel Module (LKM) moves data between a Linux Application running in user space and a memory or other kind of peripheral in the FPGA using the DMA Controller PL330 available in the HPS. For data sizes bigger than 128B this method is faster than moving data with the processor using memcpy().
 
 The module uses the _char driver_ interface to connect application space and the kernel space. It creates a node in _/dev_ called _**/dev/dma_pl330**_ and support for the the typical file functions is given:   open(), close(), write() and read(). This way reading or writing to an FPGA address using the DMA is as easy as reading or writing into a file. The LKM also exports some variables using sysfs in _**/sys/dma_pl330/**_ to control its behaviour. The application [Test_DMA_PL330_LKM](https://github.com/robertofem/CycloneVSoC-examples/tree/master/Linux-applications/Test_DMA_PL330_LKM) is an example on how to use this driver. 
 
@@ -22,7 +22,7 @@ This functions are only available in kernel space and that is the main reason wh
 
 Description of the code
 ------------------------
-The LKM contains the following *variables to control* its behaviour. This variables are exported to the file system using sysfs (in /sys/dma_pl330/):
+The LKM contains the following *variables to control* its behaviour. This variables are exported to the file system using sysfs (in /sys/dma_pl330/). This variables control the basic behaviour of the transfer:
 
 * use_acp: When 0 the  PL330 DMAC will will use the port connecting L3 and SDRAMC. When 1 the access is through ACP port. 
 
@@ -31,6 +31,18 @@ The LKM contains the following *variables to control* its behaviour. This variab
 * dma_transfer_size: Size of the DMA transfer in Bytes. Only used when prepare_microcode_in_open = 1. Otherwise the size of the DMA transfer is the size passed as argument in read() and write() functions.
 
 * dma_buff_padd: This is the physical address in the FPGA were data is going to be written when using write() or read when using read(). 
+
+The following variables are also exported through sysfs but give access to advances low-level features that can deteriorate or improve the transfer and other task running in CPU depending on several aspects like data size, CPU task load, etc. It is recommended not to use these features unless you know what you are doing. The advanced sysfs variables are:
+
+* lockdown_cpu: writing to this variable specific ways of the L2 8-way associative cache controller can be locked for CPU0 or CPU1. For example. Writting  0b00000101 in this field will lock ways 0 and 2 of the cache controller. That means that CPU0 and CPU1 wont be able to write in these 2 ways. Read from these ways its allowed. This permits for example to reserve two ways of the cache for exclusive usage by the ACP and whatever the ACP writes in cache is going to reside in cache for sure (unless size is bigger than those two ways). This will make that CPU0 and CP1 can read faster the data ACP is writing because it will be for sure in cache. Otherwise the CPUs could use these two ways and send to external SDRAM data that the ACP is writing.
+
+* lockdown_acp: the same as lockdown_cpu but for ACP port. 
+
+* sdramc_priority: represents the mmpriority register of the SDRAM Controller. Writing to this register automatically writes into mmpriority register in the SDRAM Controller. Using this register the priority of the SDRAM ports can be changed. It can be used to improve the transfer speed when accessing thorugh the L3-SDRAM port. Elevating the priority for this port compared to the CPU ports makes that the L3-SDRAM port is always granted access in case CPU and L3-SDRAM ports access simultaneously to the SDRAM controller. The bit fields in this variable are the same explained in the Cyclone V SoC Handbook for the mmpriority register. GO there for more details.
+
+* sdramc_weight0: writing to this variable writes in the mpweight_0_4 register of the SDRAM controller. Changing to this reg the bandwidth granted for ports accessing simultaneously to the SDRAM controller can be changed. Similar to changing port priority. See Cyclone V SOC Handbook for more details.
+
+* sdramc_weight1:  writing to this variable writes in the mpweight_1_4 register of the SDRAM controller.
 
 The insertion and removal functions, available in every driver are:
 
@@ -56,9 +68,10 @@ The char device driver interface functions are:
  
  * dev_release: called when callin the close() function from the application. Does nothing.
 
-Possible improvements: 
+Possible improvements to be done: 
  * Lock (when calling dev_open) and unlock (when calling dev_release) so the driver cannot be open more than once at a time.
  * Augment the number of channel used by the DMAC (PL330 has 8 DMA channels that can work simultaneously). One idea could be to use one channel each time an application opens the driver and lock the open when the number of opens reaches 8. This ways up to 8 different applications could be making usage of the DMAC.
+ * leave read and write functions before transfer ends so the application calling the driver can keep doing operations with CPU. This could be done leaving functions just after the transfer starts and using interrupts instead of polling to tell the driver that transfer has finished. And a sysfs variable could be used to notify to the application using the driver that the transfer is over.
 
 Contents in the folder
 ----------------------

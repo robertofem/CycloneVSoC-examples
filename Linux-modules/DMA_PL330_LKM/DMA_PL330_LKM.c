@@ -67,7 +67,7 @@ static phys_addr_t cached_mem_h; //hardware address, to be used in hardware
 static ALT_DMA_CHANNEL_t Dma_Channel; //dma channel to be used in transfers
 
 //---------VARIABLES TO EXPORT USING SYSFS-----------------//
-static int use_acp = 0; //to use acp for DMA transfers
+static int use_acp = 1; //to use acp for DMA transfers
 static int prepare_microcode_in_open = 0;//microcode program is prepared when opening char driver
 //when prepare_microcode_in_open the following vars are used to prepare DMA microcodes in open() func
 static void* dma_buff_padd = (void*) 0xC0000000;//physical address of buff to use in write and read from application
