@@ -35,6 +35,12 @@ Steps to build the SD card
 * Create FPGA bitstream (only needed when using u-boot during boot process): The typical Quartus compilation outputs a .sof file with the FPGA hardware. To load it from the SD card we first need to convert the .sof file into .rbf file. This is done in Quartus->File->Convert Programming Files. The output should be called soc_system.rbf" to match the name used u-boot script for the FPGA configuration file so the u-boot can find it.
 * Copy "baremetalapp.bin.img" or "baremetalapp.bin" to the partition 1, depending on the boot process selected (with preloader or with u-boot).
 
+The following figure shows the aspect of the FAT32 partition when using u-boot:
+<p align="center">
+  <img src="https://raw.githubusercontent.com/UviDTE-FPSoC/CycloneVSoC-examples/master/SD-baremetal/FAT32-partition.png" width="600" align="middle" alt="Cyclone V SoC simplified block diagram" />
+</p>
+
+
 How to run
 ----------
 * Put the SD card in the board.
