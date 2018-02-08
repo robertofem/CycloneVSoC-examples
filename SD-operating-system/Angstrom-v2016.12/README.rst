@@ -1,8 +1,8 @@
 ====================
 Angstrom build guide
 ====================
-This guide follows the process for building an SD card with an Angstrom image to run in a Cyclone V
-based SoCFPGA device.
+This guide follows the process for building an SD card with an Angstrom 2016.12 image to run in a Cyclone V
+based SoC FPGA device.
 
 *Disclaimer: The versions of the software built on this guide may not be the latests releases
 available. This is intentional in order to make a guide that will result in an usable system. In
@@ -13,7 +13,7 @@ will build correctly.*
 Requirements
 ============
 In order to build an SD card image capable of running Angstrom for a Cyclone V based device,
-the
+the following is needed:
 
 - Blank SD card
 - Linux PC
@@ -122,9 +122,8 @@ To compile U-Boot, execute the following commands:
 
 The compiled U-Boot image will be called "u-boot.img".
 
-Aside from the image, a boot script is needed in order to run the necessary commands to boot up the
-device. The script will program the FPGA, load the device tree, load the kernel, and run the kernel
-with some boot arguments. Create a file challed "boot.script" and type the following commands:
+Aside from the image, a boot script is needed in order to run specific u-boot commands on boot up. The script will program the FPGA, load the device tree, load the kernel, and run the kernel
+with some boot arguments. If we do not add an -u-boot script along with the u-boot the u-boot will behave in a default way and just load the kernel. To generate a u-boot script create a file challed "boot.script" and type the following commands:
 
 .. code-block:: guess
 
@@ -155,6 +154,8 @@ To run this script, it must be compiled with the following command:
 .. code-block:: bash
 
    mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "Boot Script Name" -d boot.script u-boot.scr
+
+The output is the file u-boot.src that will be also loaded in the SD-card.
 
 
 ======================
@@ -259,7 +260,7 @@ identify its device name with the "lsblk" command, and run the following command
    sync
 
 When the SD card is burned, the initial booting stages can be tested. Connect the device to the
-computer via the serial port. Open a putty serial console, and start the device. First, the
+computer via the serial port. Open a putty serial console at 115200 bauds, and start the device. First, the
 preloader will print status messages informing of initialization before loading U-Boot. The output
 from U-Boot will inform about the load of the FPGA bitstream, and complain about the lack of
 device tree blob (soc_system.dtb) and kernel image (zImage).
@@ -341,7 +342,7 @@ indicated in the U-Boot script) to the FAT partition. Next, extract the root fil
 EXT4 folder. If everything has worked as intended, the device should boot correctly.
 
 To use the SDK, run the SDK script, which will extract the SDK files in the location you provide.
-This SDK contains all the required files required to develop applications to be run in the
+This SDK contains all the required files required to develop applications and kernel modules to be run in the
 device.
 
 
