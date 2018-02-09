@@ -1,6 +1,6 @@
 Cyclone V SoC examples
 ====================
-Examples using the FPSoC chip [Cyclone V SoC](https://www.altera.com/products/soc/portfolio/cyclone-v-soc/overview.html). All these examples were tested on DE1-SoC board. However most of them are easily ported to other boards including Cyclone V SoC chips because they do not interact with the hardware in the board. 
+Examples using the FPSoC chip [Cyclone V SoC](https://www.altera.com/products/soc/portfolio/cyclone-v-soc/overview.html). All these examples were tested on DE1-SoC board. However most of them are easily ported to other boards including Cyclone V SoC chips because they do not interact with the hardware in the board.
 
 <p align="center">
   <img src="https://github.com/robertofem/CycloneVSoC-examples/raw/master/CycloneVSoC.png" width="450" align="middle" alt="Cyclone V SoC simplified block diagram" />
@@ -15,11 +15,11 @@ This repository contains:
 * **FPGA-hardware**: Quartus projects describing the FPGA hardware needed in some of the examples.
 	* DE1-SoC:  Hardware for Terasic´s DE1-SoC board.
 		* FPGA_OCR_256K: this hardware project includes a 256kB On-Chip memory in the FPGA, implemented using 10Mb memory blocks. This memory is hanging at the beginning of the address space of the HPS-to-FPGA bridge.
-    
+
 * **Linux-applications**:
     * Test_DMA_PL330_LKM: it shows how to use the DMA\_PL330\_LKM module.
-   
-* **Linux-modules**: Linux Loadable Kernel Modules (LKM). 
+
+* **Linux-modules**: Linux Loadable Kernel Modules (LKM).
 	* DMA_PL330_LKM_Basic: stand-alone module that makes a data transfer using the PL330 DMAC (available in HPS) when inserted into the operating system. It can be configured to move data between: FPGA memory, HPS On-chip RAM, uncached buffer in processor´s RAM and cached buffer in processor´s RAM (through APC). It is a complete example that can be used as starting point for developing a DMA module for a specific application.
 	* DMA_PL330_LKM: module to make transfers between an application and the FPGA using PL330 DMAC. It uses char device driver interface to copy the data from application to a uncached or cached (through ACP) buffer in driver´s memory space. Later it uses PL330 DMAC to copy that buffer to FPGA. A /dev/dma_pl330 entry is created so writing in the FPGA is so easy as writing to a file. Linux_applications/Test_DMA_PL330_LKM shows how to use it.
 	* Enable_PMU_user_space: this module permits access to the Performance Monitoring Unit (PMU) from user space. By default the access from user space is forbidden and a bit must be setting from kernel space to later have access from user space. This module accomplishes that task.
@@ -30,5 +30,5 @@ This repository contains:
 * **SD-baremetal**: This brief tutorial explains how to build a SD card to run the baremetal examples provided in this repository.
 
 * **SD-operating-system**: It explains how to build an SD card with Operating System from scratch. All the files needed are also provided to save time. Currently the OS that have been tested are:
-    * Angstrom-v2013.12
-    
+    * Angstrom-v2013.12.
+    * Angstrom-v2016.12. This tutorial also explains MAC spoofing (to set-up MAC on start-up), custom driver installation and running applications on start-up.
