@@ -351,7 +351,7 @@ MAC Spoofing
 ============
 
 In order to spoof (change with a custom one) the MAC address of the device, create a file named
-"00-default.network" in the folder, and copy the following content:
+"00-default.network" in the folder "/etc/systemd/network", and copy the following content:
 
 .. code-block:: guess
 
