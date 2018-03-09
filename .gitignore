@@ -13,8 +13,8 @@
 #baremetal
 *.axf**
 **/Baremetal-applications/**/*.o
-**/Baremetal-applications/**/*.bin**
-
+**/Baremetal-applications/**/*.bin
+**/Baremetal-applications/**/*.bin.img
 
 #Quartus II files
 **/FPGA-hardware/**/**/.qsys_edit/**
@@ -37,3 +37,4 @@
 **/FPGA-hardware/**/**/*.rbf
 **/FPGA-hardware/**/**/*.cdf
 **/FPGA-hardware/**/**/*.stp
+**/FPGA-hardware/**/**/*.cof
