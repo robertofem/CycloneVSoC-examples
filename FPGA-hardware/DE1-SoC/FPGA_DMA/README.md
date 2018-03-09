@@ -1,9 +1,9 @@
-FPGA_OCR_256K
+FPGA_DMA
 ===========
 
 Description
 ------------
-This project implements a double port On-Chip RAM(OCR) and a DMA Controller Core (available in Qsys) controller in the FPGA. Its purpose is to test the DMA Controller and serve as example to use it. This project is a modification of the DE1-SoC Golden Hardware Reference Design (GHRD) available in the DE1-SoC CD-ROM documentation.
+This project implements a double port On-Chip RAM (FPGA-OCR) and a DMA Controller Core (available in Qsys) controller in the FPGA. Its purpose is to test the DMA Controller and serve as example to use it. With the connections of the DMA COntroller ports data can be copied from the FPGA-OCR to some memory in the HPS. This project is a modification of the DE1-SoC Golden Hardware Reference Design (GHRD) available in the DE1-SoC CD-ROM documentation.
 
 The OCR configured in the FPGA has the following characteristics:
 
@@ -24,7 +24,7 @@ The DMA Controller Core has the following characteristics:
 The following drawing depicts the hardware just described:
 
 <p align="center">
-  <img src="https://github.com/robertofem/CycloneVSoC-examples/raw/master/FPGA-hardware/DE1-SoC/FPGA_OCR_256K/FPGA_DMA.png" width="500" align="middle" alt="Cyclone V SoC with DMA in FPGA" />
+  <img src="https://github.com/robertofem/CycloneVSoC-examples/raw/master/FPGA-hardware/DE1-SoC/FPGA_DMA/FPGA_DMA.png" width="500" align="middle" alt="Cyclone V SoC with DMA in FPGA" />
 </p>
 
  There is also a PLL sourcing all FPGA components including the FPGA-side of the HPS-to-FPGA and FPGA-to-HPS bridge (not depicted in the figure):
