@@ -43,22 +43,4 @@ void fpga_dma_write_reg(void* addr, uint32_t reg, uint32_t val);
 uint32_t fpga_dma_read_bit(void* addr, uint32_t reg, uint32_t bit);
 void fpga_dma_write_bit(void* addr, uint32_t reg, uint32_t bit, uint32_t val);
 
-// //--------Basic functions to read each register---------//
-// uint32_t fpga_dma_read_status(void* address);
-// void fpga_dma_write_status(void* address, uint32_t status);
-// uint32_t fpga_dma_read_readaddress(void* address);
-// void fpga_dma_write_readaddress(void* address, uint32_t readaddress);
-// uint32_t fpga_dma_read_writeaddress(void* address);
-// void fpga_dma_write_writeaddress(void* address, uint32_t writeaddress);
-// uint32_t fpga_dma_read_length(void* address);
-// void fpga_dma_write_length(void* address, uint32_t length);
-// uint32_t fpga_dma_read_control(void* address);
-// void fpga_dma_write_control(void* address, uint32_t control);
-//
-// //------Extra functions to access individual bits------//
-// uint32_t fpga_dma_read_done(void* address);
-// void fpga_dma_write_done(void* address, uint32_t);
-// uint32_t fpga_dma_read_go(void* address);
-// void fpga_dma_write_go(void* address, uint32_t);
-
 #endif // __FPGA_DMAC_API__
