@@ -24,7 +24,7 @@ The DMA Controller Core has the following characteristics:
 The following drawing depicts the hardware just described:
 
 <p align="center">
-  <img src="https://github.com/robertofem/CycloneVSoC-examples/raw/master/FPGA-hardware/DE1-SoC/FPGA_DMA/FPGA_DMA.png" width="500" align="middle" alt="Cyclone V SoC with DMA in FPGA" />
+  <img src="https://raw.githubusercontent.com/robertofem/CycloneVSoC-examples/soft_dma_baremetal/FPGA-hardware/DE1-SoC/FPGA_DMA/FPGA_DMA.png" width="500" align="middle" alt="Cyclone V SoC with DMA in FPGA" />
 </p>
 
  There is also a PLL sourcing all FPGA components including the FPGA-side of the HPS-to-FPGA and FPGA-to-HPS bridge (not depicted in the figure):
