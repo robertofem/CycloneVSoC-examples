@@ -3,66 +3,51 @@
 * Author: Roberto Fernandez Molanes (robertofem@gmail.com)
 * University of Vigo
 *
-* 31 May 2017
+* 28 March 2018
 *
-* This is a complete example on moving data using the HPS DMAC PL330.
-* This example also shows how to switch on the cache memories L1 and L2
-* and how to configure the ACP port to access cache memories from L3.
+* This is a simple example showing how to use a DMA in the FPGA. It is intended
+* to be used with the hardware project DMA_FPGA, also available in the
+* repository.
+* The component for doing DMA is the basic (non scatter-gather) DMA Controller
+* available in Qsys. The files fpga_dmac_api.h and fpga_dmac_api.c contain
+* macros and functions to control this DMA controller.
 *
-* This example moves data between a source buffer in processor´s memory to
-* a destiny buffer in processor´s memory or in the FPGA:
-*   - When the macro USE_FPGA is not defined the destiny is
-*     in processors memory.
-*   - When the macro USE_FPGA is defined the destiny is a buffer
-*     in the FPGA in the address 0xC0000000, the beginning of the HPS-FPGA
-*     bridge. Therefore when selecting this option there should be a memory
-*     in the FPGA with enough space to do the transfer. In the folder
-*     https://github.com/robertofem/CycloneVSoC_Examples/tree/master/
-*     DE1-SoC/FPGA_Hardware/FPGA_OCR_256K you can find a hardware project
-*     implementing a 256KB On-Chip RAM memory in the FPGA for this purpose.
-*
-* To control the cache behaviour there is the macro SWITCH_ON_CACHE.
-*   - When SWITCH_ON_CACHE is not defined the cache system L1 and L2
-*     are switched off. In this case the DMAC accesses the processor RAM
-*     using the direct conection between L3 interconnect and SDRAM controller.
-*     The reader can modify transfer pointers to access processor memories
-*     through ACP but this is slower because ACP will access L2 cache
-*     controller and L2 cache controller will finally access RAM to get the
-*     data because cache is off.
-*   - When SWITCH_ON_CACHE is defined the cache L1 and L2 are switched on
-*     with optimizations using Legup functions. In this case the DMAC
-*     accesses the processor cached memory in a coherent way using the ACP.
-*     This is very much faster than when the cache is off because: a) the
-*     processor instructions are executed faster, b) the data is in cache that
-*     is faster than RAM. However for big buffers (bigger than cache size)
-*     this strategy could be counterproductive because the DMA will be writing
-*     /reading cache through APC but data is not there so L2 controller will
-*     need to access external RAM anyway. In this case (not treated in this
-*     example) it is better to directly access to external RAM through the
-*     RAM Controller (like when cache is OFF). In this case, to maintain the
-*     coherency of the data the user should flush the cache after the transfer
-*     when writing to the processor RAM or before the transfer when reading
-*     from processor RAM.
-*
-* This example was programmed modifying the "HPS DMA Example" from Altera.
-* File name: Altera-SoCFPGA-HardwareLib-DMA-CV-GNU.tar.
-* Legup cache functions for Cyclone V SoC in arm_cache.c were slightly
-* modified. Thats why we created the files arm_cache_modified.h and
-* arm_cache_modified.c. The modification is only in arm_cache.c:
-* L1_NORMAL_111_11 constant was changed from its original value
-* 0x00007c0e to 0x00017c0e. This change sets S bit in table
-* descriptors definyng normal memory region attributes, making
-* normal memory shareable (coherent) for ACP accesses.
-* alt_dma_modified.c also contains modifications to the original
-* alt_dma.c from hwlib. The changes are changes in macros
-* ALT_DMA_CCR_OPT_SC_DEFAULT and ALT_DMA_CCR_OPT_DC_DEFAULT so the DMA
-* does cacheable accesses. Othe change is the split of
-* alt_dma_memory_to_memory() into 2 functions
-* alt_dma_memory_to_memory_only_prepare_program() and alt_dma_channel_exec().
-* This way the program and its execution can run separately. The program can
-* be prepare during initializations only once and its execution time is later
-* reduced when doing the transfer.
+* In this particular example the DMA controller reads a buffer in processor
+* memory and copies to a FPGA On-Chip RAM (FPGA-OCR) using the FPGA-to-HPS port.
+* Since the FPGA-to-HPS port access L3, FPGA has access to ACP and L3-SDRAMC
+* port, so coherent and no-coherent access can be performed. In this example
+* this can be controlled with a macro.
+* At hardware level the DMAC controller should be connected to HPS using the
+* read port and to FPGA-OCR using the write port, so data can flow in the
+* intended direction (this DMA component is not bidirectional and there are
+* write and read ports).
+* Using a macro it is possible in this example to change the direction of
+* the transfer and write into HPS memories the data in FPGA-OCR.
+* In this case the hardware project must bu modified to connect the read port
+* of the DMA controller to the FPGA-OCR and the write port to the HPS.
+
+* The macros to control the behaviour of the example:
+* - SWITCH_ON_CACHE: if it is defined the cache is enabled and the DMAC accesses
+*   the buffer in processor memory through ACP port. Access is coherent to
+*   cache. If it is not defined  the cache is disabled and access is through
+*   L3-SDRAMC port. Notice that the combination of cache enablement and
+*   port selected ensures coherency of data without cache flushing. In the case
+*   of having the cache switched on and FPGA writing to L3-SDRAM port the
+*   processor may read data in cache instead the last version living in SDRAM
+*   only. In this case processor should flush the cache before reading this data.
+*   If the operation is reading the processor should flush cache after writing
+*   data to memory so the FPGA reads the latest version of it.
+* - DMA_TRANSFER_SIZE: size of the transfer in Bytes.
+* - WRITE_OPERATION: if defined it means that a write operation takes place
+*   (read FPGA-OCR and write the HPS memories). If not defined (default),
+*   the read operation is done.
 ******************************************************************************/
+
+/******************MACROS TO CONTROL THE BEHAVIOUR OF THE EXAMPLE*************/
+//#define SWITCH_ON_CACHE //uncomment to switch on cache and use ACP
+#define DMA_TRANSFER_SIZE  256//DMA transfer size in Bytes
+//#define WRITE_OPERATION
+/*****************************************************************************/
 #ifndef soc_cv_av
     #define soc_cv_av
 #endif
@@ -82,12 +67,7 @@
 #include "arm_cache_modified.h" //to use modified Legup cache config functions
 #include "fpga_dmac_api.h"
 
-/******************MACROS TO CONTROL THE BEHAVIOUR OF THE EXAMPLE*************/
-//#define SWITCH_ON_CACHE //uncomment to switch on cache and use ACP
-#define DMA_TRANSFER_SIZE  16 //DMA transfer size in Bytes
-
-/**************************SOME MACROS TO EASE PROGRAMMING*******************/
-//The address of DMA Cont in FPGA is the HPS-FPGA + Qsys address assigned to it
+//The address of FPGA-DMAC is the HPS-FPGA bridge + Qsys address assigned to it
 #define FPGA_DMAC_QSYS_ADDRESS 0x10000
 #define FPGA_DMAC_ADDRESS ((uint8_t*)0xC0000000+FPGA_DMAC_QSYS_ADDRESS)
 //Address of the On-Chip RAM in the FPGA, as seen by processor
@@ -96,16 +76,32 @@
 //Address of the On-Chip RAM in the FPGA, as seen by DMAC
 #define FPGA_OCR_ADDRESS_DMAC 0x0
 
-//when cache on add 0x8000000 to processor address to access processor RAM
-//through acp from L3 with DMAC
-#define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) FPGA_OCR_ADDRESS_DMAC)
-#define DMA_TRANSFER_SRC_UP     ((uint8_t*) FPGA_OCR_ADDRESS_UP)
-#define DMA_TRANSFER_DST_UP     ((uint8_t*) &Write_Buffer[0])
-#ifdef SWITCH_ON_CACHE //cache is on
-    #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) &Write_Buffer[0] + 0x80000000)
+//DMAC transfer addresses (from processor they are virtual addresses)
+#ifdef WRITE_OPERATION
+  #define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) FPGA_OCR_ADDRESS_DMAC)
+  #define DMA_TRANSFER_SRC_UP     ((uint8_t*) FPGA_OCR_ADDRESS_UP)
+  #ifdef  SWITCH_ON_CACHE
+    //add 0x80000000 to access through ACP
+    #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) &Buffer[0] + 0x80000000)
+  #else
+    #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) Buffer)
+  #endif
+  #define DMA_TRANSFER_DST_UP     ((uint8_t*) Buffer)
 #else
-    #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) &Write_Buffer[0])
+  #ifdef  SWITCH_ON_CACHE
+    //add 0x80000000 to access through ACP
+    #define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) &Buffer[0] + 0x80000000)
+  #else
+    #define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) Buffer)
+  #endif
+  #define DMA_TRANSFER_SRC_UP     ((uint8_t*) Buffer)
+  #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) FPGA_OCR_ADDRESS_DMAC)
+  #define DMA_TRANSFER_DST_UP     ((uint8_t*) FPGA_OCR_ADDRESS_UP)
 #endif
+
+//GPIO to change AXI AXI_SIGNALS
+#define GPIO_QSYS_ADDRESS 0x20000
+#define GPIO_ADDRESS ((uint8_t*)0xC0000000 + GPIO_QSYS_ADDRESS)
 
 /************MACRO TO SELECT THE CACHE CONFIGURATION WHEN CACHE IS ON*********/
 //With this define select the level of cache optimization
@@ -137,6 +133,8 @@ void print_src_dst(uint8_t* src, uint8_t* dst, int size);
 int main(void)
 {
     ALT_STATUS_CODE status = ALT_E_SUCCESS;
+    uint32_t AXI_SIGNALS;
+    uint8_t* gpio_add = GPIO_ADDRESS;
 
     //--Cache configuration--//
     #ifdef SWITCH_ON_CACHE
@@ -164,29 +162,66 @@ int main(void)
 		return 1;
 	}
 
-    //--DMAC initialization--//
-    fpga_dma_write_reg( FPGA_DMAC_ADDRESS,
-                        FPGA_DMA_CONTROL,
-                        FPGA_DMA_WORD_TRANSFERS &
-                        FPGA_DMA_END_WHEN_LENGHT_ZERO
-                      );
+  //--DMAC initialization--//
+  fpga_dma_write_reg( FPGA_DMAC_ADDRESS,
+                      FPGA_DMA_CONTROL,
+                      FPGA_DMA_QUADWORD_TRANSFERS | //128-bit bus
+                      FPGA_DMA_END_WHEN_LENGHT_ZERO
+                    );
 
-    uint8_t Write_Buffer[DMA_TRANSFER_SIZE]; //Destiny buffer for DMA transfer
+  unsigned long long Buffer_8[DMA_TRANSFER_SIZE*2];
+  uint8_t* Buffer;
+  uint8_t* Buffer_8_ptr;
+  Buffer_8_ptr = (uint8_t*)Buffer_8;
+  for(int k=0; k<DMA_TRANSFER_SIZE; k++)
+  {
+    if ((((unsigned int)Buffer_8_ptr) % ((unsigned int)DMA_TRANSFER_SIZE))==0)
+    {
+      Buffer = Buffer_8_ptr;
+      break;
+    }
+    else
+    {
+      Buffer_8_ptr++;
+    }
+  }
 
+  //------DEFINE AXI SIGNALS THAT CAN AFFECT THE TRANSACTION-------//
+  //AXI_SIGNALS[3-0]  = AWCACHE = 0111 (Cacheable write-back, allocate reads only)
+  //AXI_SIGNALS[6-4]  = AWPROT = 000 (normal access, non-secure, data)
+  //AXI_SIGNALS[11-7] = AWUSER = 00001 (Coherent access)
+  //AXI_SIGNALS[19-16]  = ARCACHE = 0111
+  //AXI_SIGNALS[22-20]  = ARPROT = 000
+  //AXI_SIGNALS[27-23] = ARUSER = 00001
+  //AXI_SIGNALS = 0x00970097; //works for WR and RD and gives fastest accesses
+  AXI_SIGNALS = 0x00970097;
+  //Write data to the GPIO connected to AXI signals
+  *gpio_add = AXI_SIGNALS;
 
-    //--Initialize Buffers with random data and print--//
+  //--Initialize Buffers with random data and print--//
 	printf("INFO: Initializing data in transfer buffers\n\r");
 	for(int i = 0; i < DMA_TRANSFER_SIZE; i++)
 	{
-		DMA_TRANSFER_DST_UP[i] = (uint8_t)rand();
 		DMA_TRANSFER_SRC_UP[i] = (uint8_t)rand();
+    DMA_TRANSFER_DST_UP[i] = (uint8_t)rand();
 	}
-    print_src_dst(DMA_TRANSFER_DST_UP, DMA_TRANSFER_SRC_UP, DMA_TRANSFER_SIZE);
 
+  print_src_dst(DMA_TRANSFER_SRC_UP, DMA_TRANSFER_DST_UP, DMA_TRANSFER_SIZE);
 
     //--Copy source buffer to destination buffer--//
-	printf("INFO: Copying from 0x%08x to 0x%08x size = %d bytes.\n\r",
+	printf("CPU: Copying from 0x%08x to 0x%08x size = %d bytes.\n\r",
+    (int)DMA_TRANSFER_SRC_UP, (int)DMA_TRANSFER_DST_UP, (int)DMA_TRANSFER_SIZE);
+  printf("DMA: Copying from 0x%08x to 0x%08x size = %d bytes.\n\r",
     (int)DMA_TRANSFER_SRC_DMAC, (int)DMA_TRANSFER_DST_DMAC, (int)DMA_TRANSFER_SIZE);
+
+  fpga_dma_write_bit( FPGA_DMAC_ADDRESS,//clean go bit
+                      FPGA_DMA_CONTROL,
+                      FPGA_DMA_GO,
+                      0);
+  fpga_dma_write_bit( FPGA_DMAC_ADDRESS, //clean the done bit
+                      FPGA_DMA_STATUS,
+                      FPGA_DMA_DONE,
+                      0);
   fpga_dma_write_reg( FPGA_DMAC_ADDRESS,   //set source address
                       FPGA_DMA_READADDRESS,
                       (uint32_t) DMA_TRANSFER_SRC_DMAC);
@@ -196,20 +231,29 @@ int main(void)
   fpga_dma_write_reg( FPGA_DMAC_ADDRESS, //set transfer size
                       FPGA_DMA_LENGTH,
                       DMA_TRANSFER_SIZE);
-  fpga_dma_write_bit( FPGA_DMAC_ADDRESS, //clean the done bit
-                      FPGA_DMA_STATUS,
-                      FPGA_DMA_DONE,
-                      0);
+
+ //Wait a small time. Needed for the read to work.
+ int counter=0;
+ for(int j=0; j<10; j++) counter++;
+
+  //Start transfer
   fpga_dma_write_bit( FPGA_DMAC_ADDRESS,//start transfer
                       FPGA_DMA_CONTROL,
                       FPGA_DMA_GO,
                       1);
+
   while(fpga_dma_read_bit(FPGA_DMAC_ADDRESS, FPGA_DMA_STATUS, FPGA_DMA_DONE)==0)
   {}
 
-    //-- Print and compare results--//
-    print_src_dst(DMA_TRANSFER_DST_UP, DMA_TRANSFER_SRC_UP, DMA_TRANSFER_SIZE);
-    return 0;
+
+  //-- Print and compare results--//
+  print_src_dst(DMA_TRANSFER_SRC_UP, DMA_TRANSFER_DST_UP, DMA_TRANSFER_SIZE);
+  if(memcmp(DMA_TRANSFER_SRC_UP, DMA_TRANSFER_DST_UP,(size_t)DMA_TRANSFER_SIZE)==0)
+    printf("Transfer Successful!\n");
+  else
+    printf("Transfer Failed\n");
+
+  return 0;
 }
 
 
