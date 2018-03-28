@@ -9,11 +9,13 @@ Examples using the FPSoC chip [Cyclone V SoC](https://www.altera.com/products/so
 This repository contains:
 
 * **Baremetal-applications**: Stand-alone applications without Operating System.
-	* DMA_transfer_PL330_ACP: This is a complete example on moving data using the HPS Direct Memory Access Controller (DMAC) PL330. Data can be moved from a buffer in processor to another buffer in processor or to the FPGA. This example also shows how to switch on the cache memories L1 and L2 and how to configure the ACP port to access cache memories from L3 when caches are on.
+	* DMA_transfer_FPGA_DMAC: This example shows how to use a DMA controller in the FPGA to read and write the HPS memories. Transfers can be done with cache switched ON through ACP and with cache switched OFF through the L3-to-SDRAMC port.
+  * DMA_transfer_PL330_ACP: This is a complete example on moving data using the HPS Direct Memory Access Controller (DMAC) PL330. Data can be moved from a buffer in processor to another buffer in processor or to the FPGA. This example also shows how to switch on the cache memories L1 and L2 and how to configure the ACP port to access cache memories from L3 when caches are on.
 	* Second_counter_PMU: This example uses a counter in the Performance Monitoring Unit (PMU) timer to measure seconds and build a second counter. It stands as an example on how to use PMU to measure time in baremetal.
 
 * **FPGA-hardware**: Quartus projects describing the FPGA hardware needed in some of the examples.
 	* DE1-SoC:  Hardware for Terasic´s DE1-SoC board.
+    * FPGA_DMA: it implements a DMA controller in the FPGA and a 1kB on-chip memory. Using this DMA it is possible to move data between HPS and FPGA using the FPGA as master.  
 		* FPGA_OCR_256K: this hardware project includes a 256kB On-Chip memory in the FPGA, implemented using 10Mb memory blocks. This memory is hanging at the beginning of the address space of the HPS-to-FPGA bridge.
 
 * **Linux-applications**:
