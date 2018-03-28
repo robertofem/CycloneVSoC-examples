@@ -213,6 +213,22 @@ module ghrd_top(
   wire        hps_warm_reset;
   wire        hps_debug_reset;
   wire [27:0] stm_hw_events;
+  
+   wire [31:0]pio_controlled_axi_signals;
+
+// local parameters
+  localparam AWCACHE_BASE = 0;
+  localparam AWCACHE_SIZE = 4;
+  localparam AWPROT_BASE  = 4;
+  localparam AWPROT_SIZE  = 3;
+  localparam AWUSER_BASE  = 7;
+  localparam AWUSER_SIZE  = 5;
+  localparam ARCACHE_BASE = 16;
+  localparam ARCACHE_SIZE = 4;
+  localparam ARPROT_BASE  = 20;
+  localparam ARPROT_SIZE  = 3;
+  localparam ARUSER_BASE  = 23;
+  localparam ARUSER_SIZE  = 5;
 
 // connection of internal logics
 //  assign LEDR = fpga_led_internal;
@@ -308,7 +324,16 @@ module ghrd_top(
 		  .hps_0_h2f_reset_reset_n               (hps_fpga_reset_n),               //                hps_0_h2f_reset.reset_n
         .hps_0_f2h_warm_reset_req_reset_n      (~hps_warm_reset),      //       hps_0_f2h_warm_reset_req.reset_n
         .hps_0_f2h_debug_reset_req_reset_n     (~hps_debug_reset),     //      hps_0_f2h_debug_reset_req.reset_n
-        .hps_0_f2h_cold_reset_req_reset_n      (~hps_cold_reset)       //       hps_0_f2h_cold_reset_req.reset_n
+        .hps_0_f2h_cold_reset_req_reset_n      (~hps_cold_reset),       //       hps_0_f2h_cold_reset_req.reset_n
+		  
+		  .mcu_axi_signals_in_port               (pio_controlled_axi_signals),               //           mcu_axi_signals.in_port
+        .mcu_axi_signals_out_port              (pio_controlled_axi_signals),              //                          .out_port
+        .axi_signals_awcache                   (pio_controlled_axi_signals[AWCACHE_BASE+:AWCACHE_SIZE]),                   //               axi_signals.awcache
+        .axi_signals_awprot                    (pio_controlled_axi_signals[AWPROT_BASE+: AWPROT_SIZE]),                    //                          .awprot
+        .axi_signals_awuser                    (pio_controlled_axi_signals[AWUSER_BASE+: AWUSER_SIZE]),                    //                          .awuser
+        .axi_signals_arcache                   (pio_controlled_axi_signals[ARCACHE_BASE+:ARCACHE_SIZE]),                   //                          .arcache
+        .axi_signals_aruser                    (pio_controlled_axi_signals[ARPROT_BASE+: ARPROT_SIZE]),                    //                          .aruser
+        .axi_signals_arprot                    (pio_controlled_axi_signals[ARUSER_BASE+: ARUSER_SIZE])
     );
   
 // Source/Probe megawizard instance

@@ -9,6 +9,14 @@
    categories="System" />
  <parameter name="bonusData"><![CDATA[bonusData 
 {
+   element axi_conduit_merger_0
+   {
+      datum _sortIndex
+      {
+         value = "5";
+         type = "int";
+      }
+   }
    element clk_0
    {
       datum _sortIndex
@@ -75,6 +83,22 @@
          type = "String";
       }
    }
+   element pio_0
+   {
+      datum _sortIndex
+      {
+         value = "6";
+         type = "int";
+      }
+   }
+   element pio_0.s1
+   {
+      datum baseAddress
+      {
+         value = "131072";
+         type = "String";
+      }
+   }
    element pll_0
    {
       datum _sortIndex
@@ -104,6 +128,11 @@
  <parameter name="timeStamp" value="0" />
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
+ <interface
+   name="axi_signals"
+   internal="axi_conduit_merger_0.conduit_end"
+   type="conduit"
+   dir="end" />
  <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
  <interface
    name="hps_0_f2h_cold_reset_req"
@@ -131,8 +160,31 @@
    type="reset"
    dir="start" />
  <interface name="hps_0_hps_io" internal="hps_0.hps_io" type="conduit" dir="end" />
+ <interface
+   name="mcu_axi_signals"
+   internal="pio_0.external_connection"
+   type="conduit"
+   dir="end" />
  <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
  <interface name="reset" internal="clk_0.clk_in_reset" type="reset" dir="end" />
+ <module
+   name="axi_conduit_merger_0"
+   kind="axi_conduit_merger"
+   version="1.0"
+   enabled="1">
+  <parameter name="AXCACHE_EN" value="0" />
+  <parameter name="AXPROT_EN" value="0" />
+  <parameter name="AXUSER_EN" value="0" />
+  <parameter name="AXUSER_WIDTH" value="5" />
+  <parameter name="BUSER_EN" value="0" />
+  <parameter name="BUSER_WIDTH" value="5" />
+  <parameter name="DATA_WIDTH" value="128" />
+  <parameter name="ID_WIDTH" value="8" />
+  <parameter name="RUSER_EN" value="0" />
+  <parameter name="RUSER_WIDTH" value="5" />
+  <parameter name="WUSER_EN" value="0" />
+  <parameter name="WUSER_WIDTH" value="5" />
+ </module>
  <module name="clk_0" kind="clock_source" version="16.0" enabled="1">
   <parameter name="clockFrequency" value="50000000" />
   <parameter name="clockFrequencyKnown" value="true" />
@@ -149,16 +201,16 @@
   <parameter name="bigEndian" value="false" />
   <parameter name="burstEnable" value="false" />
   <parameter name="fifoDepth" value="128" />
-  <parameter name="maxBurstSize" value="128" />
+  <parameter name="maxBurstSize" value="8" />
   <parameter name="minimumDmaTransactionRegisterWidth" value="24" />
-  <parameter name="readAddressMap"><![CDATA[<address-map><slave name='onchip_memory_0.s2' start='0x0' end='0x400' /></address-map>]]></parameter>
-  <parameter name="readSlaveAddressWidthMax" value="10" />
+  <parameter name="readAddressMap"><![CDATA[<address-map><slave name='axi_conduit_merger_0.altera_axi_slave' start='0x0' end='0x100000000' /></address-map>]]></parameter>
+  <parameter name="readSlaveAddressWidthMax" value="32" />
   <parameter name="readSlaveDataWidthMax" value="128" />
   <parameter name="softresetEnable" value="true" />
   <parameter name="useRegistersForFIFO" value="false" />
-  <parameter name="writeAddressMap"><![CDATA[<address-map><slave name='hps_0_axi_sdram.axi_slave0' start='0x0' end='0x80000000' /><slave name='hps_0_gmac0.axi_slave0' start='0xFF700000' end='0xFF702000' /><slave name='hps_0_gmac1.axi_slave0' start='0xFF702000' end='0xFF704000' /><slave name='hps_0_sdmmc.axi_slave0' start='0xFF704000' end='0xFF705000' /><slave name='hps_0_qspi.axi_slave0' start='0xFF705000' end='0xFF705100' /><slave name='hps_0_fpgamgr.axi_slave0' start='0xFF706000' end='0xFF707000' /><slave name='hps_0_gpio0.axi_slave0' start='0xFF708000' end='0xFF708100' /><slave name='hps_0_gpio1.axi_slave0' start='0xFF709000' end='0xFF709100' /><slave name='hps_0_gpio2.axi_slave0' start='0xFF70A000' end='0xFF70A100' /><slave name='hps_0_l3regs.axi_slave0' start='0xFF800000' end='0xFF801000' /><slave name='hps_0_nand0.axi_slave0' start='0xFF900000' end='0xFF910000' /><slave name='hps_0_qspi.axi_slave1' start='0xFFA00000' end='0xFFA00100' /><slave name='hps_0_usb0.axi_slave0' start='0xFFB00000' end='0xFFB40000' /><slave name='hps_0_usb1.axi_slave0' start='0xFFB40000' end='0xFFB80000' /><slave name='hps_0_nand0.axi_slave1' start='0xFFB80000' end='0xFFB90000' /><slave name='hps_0_fpgamgr.axi_slave1' start='0xFFB90000' end='0xFFB90100' /><slave name='hps_0_dcan0.axi_slave0' start='0xFFC00000' end='0xFFC01000' /><slave name='hps_0_dcan1.axi_slave0' start='0xFFC01000' end='0xFFC02000' /><slave name='hps_0_uart0.axi_slave0' start='0xFFC02000' end='0xFFC02100' /><slave name='hps_0_uart1.axi_slave0' start='0xFFC03000' end='0xFFC03100' /><slave name='hps_0_i2c0.axi_slave0' start='0xFFC04000' end='0xFFC04100' /><slave name='hps_0_i2c1.axi_slave0' start='0xFFC05000' end='0xFFC05100' /><slave name='hps_0_i2c2.axi_slave0' start='0xFFC06000' end='0xFFC06100' /><slave name='hps_0_i2c3.axi_slave0' start='0xFFC07000' end='0xFFC07100' /><slave name='hps_0_timer0.axi_slave0' start='0xFFC08000' end='0xFFC08100' /><slave name='hps_0_timer1.axi_slave0' start='0xFFC09000' end='0xFFC09100' /><slave name='hps_0_sdrctl.axi_slave0' start='0xFFC25000' end='0xFFC26000' /><slave name='hps_0_timer2.axi_slave0' start='0xFFD00000' end='0xFFD00100' /><slave name='hps_0_timer3.axi_slave0' start='0xFFD01000' end='0xFFD01100' /><slave name='hps_0_clkmgr.axi_slave0' start='0xFFD04000' end='0xFFD05000' /><slave name='hps_0_rstmgr.axi_slave0' start='0xFFD05000' end='0xFFD05100' /><slave name='hps_0_sysmgr.axi_slave0' start='0xFFD08000' end='0xFFD08400' /><slave name='hps_0_dma.axi_slave0' start='0xFFE01000' end='0xFFE02000' /><slave name='hps_0_spim0.axi_slave0' start='0xFFF00000' end='0xFFF00100' /><slave name='hps_0_spim1.axi_slave0' start='0xFFF01000' end='0xFFF01100' /><slave name='hps_0_arm_gic_0.axi_slave1' start='0xFFFEC100' end='0xFFFEC200' /><slave name='hps_0_timer.axi_slave0' start='0xFFFEC600' end='0xFFFEC700' /><slave name='hps_0_arm_gic_0.axi_slave0' start='0xFFFED000' end='0xFFFEE000' /><slave name='hps_0_L2.axi_slave0' start='0xFFFEF000' end='0xFFFF0000' /><slave name='hps_0_axi_ocram.axi_slave0' start='0xFFFF0000' end='0x100000000' /></address-map>]]></parameter>
-  <parameter name="writeSlaveAddressWidthMax" value="32" />
-  <parameter name="writeSlaveDataWidthMax" value="32" />
+  <parameter name="writeAddressMap"><![CDATA[<address-map><slave name='onchip_memory_0.s2' start='0x0' end='0x400' /></address-map>]]></parameter>
+  <parameter name="writeSlaveAddressWidthMax" value="10" />
+  <parameter name="writeSlaveDataWidthMax" value="128" />
  </module>
  <module name="hps_0" kind="altera_hps" version="16.0" enabled="1">
   <parameter name="ABSTRACT_REAL_COMPARE_TEST" value="false" />
@@ -722,6 +774,20 @@
   <parameter name="useShallowMemBlocks" value="false" />
   <parameter name="writable" value="true" />
  </module>
+ <module name="pio_0" kind="altera_avalon_pio" version="16.0" enabled="1">
+  <parameter name="bitClearingEdgeCapReg" value="false" />
+  <parameter name="bitModifyingOutReg" value="false" />
+  <parameter name="captureEdge" value="false" />
+  <parameter name="clockRate" value="100000000" />
+  <parameter name="direction" value="InOut" />
+  <parameter name="edgeType" value="RISING" />
+  <parameter name="generateIRQ" value="false" />
+  <parameter name="irqType" value="LEVEL" />
+  <parameter name="resetValue" value="252645135" />
+  <parameter name="simDoTestBenchWiring" value="false" />
+  <parameter name="simDrivenValue" value="0" />
+  <parameter name="width" value="32" />
+ </module>
  <module name="pll_0" kind="altera_pll" version="16.0" enabled="1">
   <parameter name="debug_print_output" value="false" />
   <parameter name="debug_use_rbc_taf_method" value="false" />
@@ -928,6 +994,15 @@
  <connection
    kind="avalon"
    version="16.0"
+   start="axi_conduit_merger_0.altera_axi_master"
+   end="hps_0.f2h_axi_slave">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="16.0"
    start="hps_0.h2f_axi_master"
    end="dma_0.control_port_slave">
   <parameter name="arbitrationPriority" value="1" />
@@ -946,8 +1021,17 @@
  <connection
    kind="avalon"
    version="16.0"
+   start="hps_0.h2f_axi_master"
+   end="pio_0.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x00020000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="16.0"
    start="dma_0.read_master"
-   end="onchip_memory_0.s2">
+   end="axi_conduit_merger_0.altera_axi_slave">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
   <parameter name="defaultConnection" value="false" />
@@ -956,18 +1040,24 @@
    kind="avalon"
    version="16.0"
    start="dma_0.write_master"
-   end="hps_0.f2h_axi_slave">
+   end="onchip_memory_0.s2">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection kind="clock" version="16.0" start="clk_0.clk" end="pll_0.refclk" />
  <connection kind="clock" version="16.0" start="pll_0.outclk0" end="dma_0.clk" />
+ <connection kind="clock" version="16.0" start="pll_0.outclk0" end="pio_0.clk" />
  <connection
    kind="clock"
    version="16.0"
    start="pll_0.outclk0"
    end="onchip_memory_0.clk1" />
+ <connection
+   kind="clock"
+   version="16.0"
+   start="pll_0.outclk0"
+   end="axi_conduit_merger_0.clock" />
  <connection
    kind="clock"
    version="16.0"
@@ -985,11 +1075,17 @@
    end="hps_0.h2f_lw_axi_clock" />
  <connection kind="reset" version="16.0" start="clk_0.clk_reset" end="pll_0.reset" />
  <connection kind="reset" version="16.0" start="clk_0.clk_reset" end="dma_0.reset" />
+ <connection kind="reset" version="16.0" start="clk_0.clk_reset" end="pio_0.reset" />
  <connection
    kind="reset"
    version="16.0"
    start="clk_0.clk_reset"
    end="onchip_memory_0.reset1" />
+ <connection
+   kind="reset"
+   version="16.0"
+   start="clk_0.clk_reset"
+   end="axi_conduit_merger_0.reset_sink" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
 </system>
