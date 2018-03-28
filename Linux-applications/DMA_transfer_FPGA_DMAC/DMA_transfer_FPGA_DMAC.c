@@ -46,11 +46,18 @@
 #define HPS_OCR_ADDRESS 0xFFFF0000
 
 //DMAC transfer addresses (from processor they are virtual addresses)
-#define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) FPGA_OCR_ADDRESS_DMAC)
-#define DMA_TRANSFER_SRC_UP     ((uint8_t*) FPGA_OCR_vaddr)
-#define DMA_TRANSFER_DST_DMAC   ((uint8_t*) HPS_OCR_ADDRESS)
-#define DMA_TRANSFER_DST_UP     ((uint8_t*) HPS_OCR_vaddr)
-
+//#define WRITE_OPERATION
+#ifdef WRITE_OPERATION
+  #define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) FPGA_OCR_ADDRESS_DMAC)
+  #define DMA_TRANSFER_SRC_UP     ((uint8_t*) FPGA_OCR_vaddr)
+  #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) HPS_OCR_ADDRESS)
+  #define DMA_TRANSFER_DST_UP     ((uint8_t*) HPS_OCR_vaddr)
+#else
+  #define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) HPS_OCR_ADDRESS)
+  #define DMA_TRANSFER_SRC_UP     ((uint8_t*) HPS_OCR_vaddr)
+  #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) FPGA_OCR_ADDRESS_DMAC)
+  #define DMA_TRANSFER_DST_UP     ((uint8_t*) FPGA_OCR_vaddr)
+#endif
 
 void printbuff(uint8_t* buff, int size)
 {
@@ -189,7 +196,7 @@ int main() {
                       FPGA_DMA_DONE,
                       0);
 
-  printf("Start DMA Transfer\n");
+  //printf("Start DMA Transfer\n");
   fpga_dma_write_bit( FPGA_DMA_vaddr_void,//start transfer
                       FPGA_DMA_CONTROL,
                       FPGA_DMA_GO,
