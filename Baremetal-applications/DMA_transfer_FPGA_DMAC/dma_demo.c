@@ -44,7 +44,7 @@
 ******************************************************************************/
 
 /******************MACROS TO CONTROL THE BEHAVIOUR OF THE EXAMPLE*************/
-//#define SWITCH_ON_CACHE //uncomment to switch on cache and use ACP
+#define SWITCH_ON_CACHE //uncomment to switch on cache and use ACP
 #define DMA_TRANSFER_SIZE  256//DMA transfer size in Bytes
 //#define WRITE_OPERATION
 /*****************************************************************************/
@@ -163,28 +163,12 @@ int main(void)
 	}
 
   //--DMAC initialization--//
-  fpga_dma_write_reg( FPGA_DMAC_ADDRESS,
-                      FPGA_DMA_CONTROL,
-                      FPGA_DMA_QUADWORD_TRANSFERS | //128-bit bus
-                      FPGA_DMA_END_WHEN_LENGHT_ZERO
-                    );
+  fpga_dma_init(FPGA_DMAC_ADDRESS,
+                FPGA_DMA_QUADWORD_TRANSFERS | //128-bit bus
+                FPGA_DMA_END_WHEN_LENGHT_ZERO);
 
-  unsigned long long Buffer_8[DMA_TRANSFER_SIZE*2];
-  uint8_t* Buffer;
-  uint8_t* Buffer_8_ptr;
-  Buffer_8_ptr = (uint8_t*)Buffer_8;
-  for(int k=0; k<DMA_TRANSFER_SIZE; k++)
-  {
-    if ((((unsigned int)Buffer_8_ptr) % ((unsigned int)DMA_TRANSFER_SIZE))==0)
-    {
-      Buffer = Buffer_8_ptr;
-      break;
-    }
-    else
-    {
-      Buffer_8_ptr++;
-    }
-  }
+  //alligned allocation to the transfer size is needed for reading HPS from FPGA
+  uint8_t* Buffer = (uint8_t*) align_malloc(DMA_TRANSFER_SIZE);
 
   //------DEFINE AXI SIGNALS THAT CAN AFFECT THE TRANSACTION-------//
   //AXI_SIGNALS[3-0]  = AWCACHE = 0111 (Cacheable write-back, allocate reads only)
@@ -214,37 +198,15 @@ int main(void)
   printf("DMA: Copying from 0x%08x to 0x%08x size = %d bytes.\n\r",
     (int)DMA_TRANSFER_SRC_DMAC, (int)DMA_TRANSFER_DST_DMAC, (int)DMA_TRANSFER_SIZE);
 
-  fpga_dma_write_bit( FPGA_DMAC_ADDRESS,//clean go bit
-                      FPGA_DMA_CONTROL,
-                      FPGA_DMA_GO,
-                      0);
-  fpga_dma_write_bit( FPGA_DMAC_ADDRESS, //clean the done bit
-                      FPGA_DMA_STATUS,
-                      FPGA_DMA_DONE,
-                      0);
-  fpga_dma_write_reg( FPGA_DMAC_ADDRESS,   //set source address
-                      FPGA_DMA_READADDRESS,
-                      (uint32_t) DMA_TRANSFER_SRC_DMAC);
-  fpga_dma_write_reg( FPGA_DMAC_ADDRESS,  //set destiny address
-                      FPGA_DMA_WRITEADDRESS,
-                      (uint32_t) DMA_TRANSFER_DST_DMAC);
-  fpga_dma_write_reg( FPGA_DMAC_ADDRESS, //set transfer size
-                      FPGA_DMA_LENGTH,
-                      DMA_TRANSFER_SIZE);
-
- //Wait a small time. Needed for the read to work.
- int counter=0;
- for(int j=0; j<10; j++) counter++;
+  fpga_dma_config_transfer(FPGA_DMAC_ADDRESS,
+                           DMA_TRANSFER_SRC_DMAC,
+                           DMA_TRANSFER_DST_DMAC,
+                           DMA_TRANSFER_SIZE);
 
   //Start transfer
-  fpga_dma_write_bit( FPGA_DMAC_ADDRESS,//start transfer
-                      FPGA_DMA_CONTROL,
-                      FPGA_DMA_GO,
-                      1);
+  fpga_dma_start_transfer(FPGA_DMAC_ADDRESS);
 
-  while(fpga_dma_read_bit(FPGA_DMAC_ADDRESS, FPGA_DMA_STATUS, FPGA_DMA_DONE)==0)
-  {}
-
+  while(fpga_dma_transfer_done(FPGA_DMAC_ADDRESS)==0) {}
 
   //-- Print and compare results--//
   print_src_dst(DMA_TRANSFER_SRC_UP, DMA_TRANSFER_DST_UP, DMA_TRANSFER_SIZE);

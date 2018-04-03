@@ -4,6 +4,7 @@
 #define __FPGA_DMAC_API__
 
 #include <inttypes.h>
+#include <stdlib.h>
 
 //REGISTER MAP
 #define FPGA_DMA_STATUS         0
@@ -42,5 +43,12 @@ uint32_t fpga_dma_read_reg(void* addr, uint32_t reg);
 void fpga_dma_write_reg(void* addr, uint32_t reg, uint32_t val);
 uint32_t fpga_dma_read_bit(void* addr, uint32_t reg, uint32_t bit);
 void fpga_dma_write_bit(void* addr, uint32_t reg, uint32_t bit, uint32_t val);
+
+//------------Some specific functions-------------------//
+void fpga_dma_init();
+void fpga_dma_config_transfer(void* addr, void* src, void* dst, unsigned int size);
+void fpga_dma_start_transfer(void* addr);
+uint32_t fpga_dma_transfer_done(void* addr);
+void* align_malloc (size_t size);
 
 #endif // __FPGA_DMAC_API__
