@@ -177,8 +177,8 @@ int main(void)
   //AXI_SIGNALS[19-16]  = ARCACHE = 0111
   //AXI_SIGNALS[22-20]  = ARPROT = 000
   //AXI_SIGNALS[27-23] = ARUSER = 00001
-  //AXI_SIGNALS = 0x00970097; //works for WR and RD and gives fastest accesses
-  AXI_SIGNALS = 0x00970097;
+  //AXI_SIGNALS = 0x00870087; //works for WR and RD and gives fastest accesses
+  AXI_SIGNALS = 0x00870087;
   //Write data to the GPIO connected to AXI signals
   *gpio_add = AXI_SIGNALS;
 
