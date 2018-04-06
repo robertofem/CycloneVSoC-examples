@@ -77,9 +77,11 @@ uint32_t fpga_dma_transfer_done(void* addr)
 }
 
 //alligned allocation to the transfer size is needed for reading HPS from FPGA
-void* align_malloc (size_t size)
+
+void* align_malloc (size_t size, void** unaligned_addr)
 {
-  char* Buffer_8 = (char*) malloc(size*2);;
+  char* Buffer_8 = (char*) malloc(size*2);
+  *unaligned_addr = (void*) Buffer_8;
   uint8_t* Buffer_8_ptr;
   Buffer_8_ptr = (uint8_t*)Buffer_8;
   for(int k=0; k<(size); k++)

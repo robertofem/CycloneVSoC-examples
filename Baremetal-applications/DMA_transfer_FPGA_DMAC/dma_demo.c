@@ -168,7 +168,8 @@ int main(void)
                 FPGA_DMA_END_WHEN_LENGHT_ZERO);
 
   //alligned allocation to the transfer size is needed for reading HPS from FPGA
-  uint8_t* Buffer = (uint8_t*) align_malloc(DMA_TRANSFER_SIZE);
+  void* unalligned_Buffer;
+  uint8_t* Buffer = (uint8_t*) align_malloc(DMA_TRANSFER_SIZE, &unalligned_Buffer);
 
   //------DEFINE AXI SIGNALS THAT CAN AFFECT THE TRANSACTION-------//
   //AXI_SIGNALS[3-0]  = AWCACHE = 0111 (Cacheable write-back, allocate reads only)
@@ -214,6 +215,8 @@ int main(void)
     printf("Transfer Successful!\n");
   else
     printf("Transfer Failed\n");
+
+  free(unalligned_Buffer);
 
   return 0;
 }
