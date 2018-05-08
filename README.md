@@ -8,6 +8,11 @@ Examples using the FPSoC chip [Cyclone V SoC](https://www.altera.com/products/so
 
 This repository contains:
 
+* **Starting-guides**: guides on how to start with Cyclone V SoC boards. Currently
+  only a guide for DE1-SoC board is available. However the process to
+  start with any Cyclone V SoC board is similar and this guide can be used
+  regardless the Cyclone V SoC board used.
+
 * **Baremetal-applications**: Stand-alone applications without Operating System.
 	* DMA_transfer_FPGA_DMAC: This example shows how to use a DMA controller in the FPGA to read and write the HPS memories. Transfers can be done with cache switched ON through ACP and with cache switched OFF through the L3-to-SDRAMC port.
   * DMA_transfer_PL330_ACP: This is a complete example on moving data using the HPS Direct Memory Access Controller (DMAC) PL330. Data can be moved from a buffer in processor to another buffer in processor or to the FPGA. This example also shows how to switch on the cache memories L1 and L2 and how to configure the ACP port to access cache memories from L3 when caches are on.
