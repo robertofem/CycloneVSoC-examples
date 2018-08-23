@@ -29,6 +29,7 @@
 #include <asm/uaccess.h>    // Required for the copy to user function
 
 #include "hwlib_socal_linux.h"
+#include "alt_address_space.h" //ACP configuration
 
 //data available with modinfo command
 MODULE_LICENSE("GPL");//< The license type
@@ -38,10 +39,16 @@ MODULE_VERSION("1.0");
 
 #define DRIVER_NAME "alloc_buffers"
 #define CLASS_NAME "alloc_buffers"
-#define DEV_NAME "buff"
+#define DEV_NAME "dmable_buff"
 #define NUM_BUFF 5 //Number of buffers
 
 //---------VARIABLES AND CONSTANTS-----------------//
+//SDRAM
+//SDRAMC beginning address
+#define SDRAMC_REGS 0xFFC20000
+#define SDRAMC_REGS_SPAN 0x20000 //128kB
+#define FPGAPORTRST 0x5080
+
 // Device driver variables
 static int majorNumber;
 static struct class* class = NULL;
@@ -49,18 +56,18 @@ static struct device* buff[NUM_BUFF] = {NULL, NULL, NULL, NULL, NULL};
 
 //Virtual and physical addresses of the buffers
 static void* virt_buff[NUM_BUFF];
-static void* phys_buff[NUM_BUFF];
+static dma_addr_t phys_buff[NUM_BUFF];
 
 // Char device interface function prototypes
-static int buff_open(struct inode *, struct file *);
-static int buff_release(struct inode *, struct file *);
-static ssize_t buff_read(struct file *, char *, size_t, loff_t *);
-static ssize_t buff_write(struct file *, const char *, size_t, loff_t *);
+static int dmable_buff_open(struct inode *, struct file *);
+static int dmable_buff_release(struct inode *, struct file *);
+static ssize_t dmable_buff_read(struct file *, char *, size_t, loff_t *);
+static ssize_t dmable_buff_write(struct file *, const char *, size_t, loff_t *);
 static struct file_operations fops = {
-    .open = buff_open,
-    .read = buff_read,
-    .write = buff_write,
-    .release = buff_release,
+    .open = dmable_buff_open,
+    .read = dmable_buff_read,
+    .write = dmable_buff_write,
+    .release = dmable_buff_release,
 };
 
 //Flag if a buffer is open()
@@ -120,7 +127,7 @@ static ssize_t buff4_size_store(struct kobject *kobj, struct kobj_attribute *att
 //uncached
 static ssize_t buff0_uncached_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-  return sprintf(buf, "%dB\n", buff_uncached[0]);
+  return sprintf(buf, "%d\n", buff_uncached[0]);
 }
 static ssize_t buff0_uncached_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
@@ -129,7 +136,7 @@ static ssize_t buff0_uncached_store(struct kobject *kobj, struct kobj_attribute 
 }
 static ssize_t buff1_uncached_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-  return sprintf(buf, "%dB\n", buff_uncached[1]);
+  return sprintf(buf, "%d\n", buff_uncached[1]);
 }
 static ssize_t buff1_uncached_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
@@ -138,7 +145,7 @@ static ssize_t buff1_uncached_store(struct kobject *kobj, struct kobj_attribute 
 }
 static ssize_t buff2_uncached_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-  return sprintf(buf, "%dB\n", buff_uncached[2]);
+  return sprintf(buf, "%d\n", buff_uncached[2]);
 }
 static ssize_t buff2_uncached_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
@@ -147,7 +154,7 @@ static ssize_t buff2_uncached_store(struct kobject *kobj, struct kobj_attribute 
 }
 static ssize_t buff3_uncached_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-  return sprintf(buf, "%dB\n", buff_uncached[3]);
+  return sprintf(buf, "%d\n", buff_uncached[3]);
 }
 static ssize_t buff3_uncached_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
@@ -156,7 +163,7 @@ static ssize_t buff3_uncached_store(struct kobject *kobj, struct kobj_attribute 
 }
 static ssize_t buff4_uncached_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-  return sprintf(buf, "%dB\n", buff_uncached[4]);
+  return sprintf(buf, "%d\n", buff_uncached[4]);
 }
 static ssize_t buff4_uncached_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
@@ -166,44 +173,44 @@ static ssize_t buff4_uncached_store(struct kobject *kobj, struct kobj_attribute 
 static ssize_t buff0_phys_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
   unsigned int temp = (unsigned int) phys_buff[0];
-  return sprintf(buf, "%uB\n", temp);
+  return sprintf(buf, "%u\n", temp);
 }
 static ssize_t buff1_phys_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
   unsigned int temp = (unsigned int) phys_buff[1];
-  return sprintf(buf, "%uB\n", temp);
+  return sprintf(buf, "%u\n", temp);
 }
 static ssize_t buff2_phys_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
   unsigned int temp = (unsigned int) phys_buff[2];
-  return sprintf(buf, "%uB\n", temp);
+  return sprintf(buf, "%u\n", temp);
 }
 static ssize_t buff3_phys_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
   unsigned int temp = (unsigned int) phys_buff[3];
-  return sprintf(buf, "%uB\n", temp);
+  return sprintf(buf, "%u\n", temp);
 }
 static ssize_t buff4_phys_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
   unsigned int temp = (unsigned int) phys_buff[4];
-  return sprintf(buf, "%uB\n", temp);
+  return sprintf(buf, "%u\n", temp);
 }
 
 static struct kobj_attribute buff0_size_attribute = __ATTR(buff_size[0], 0660, buff0_size_show, buff0_size_store);
-static struct kobj_attribute buff1_size_attribute = __ATTR(buff_size[1], 0660, buff0_size_show, buff1_size_store);
-static struct kobj_attribute buff2_size_attribute = __ATTR(buff_size[2], 0660, buff0_size_show, buff2_size_store);
-static struct kobj_attribute buff3_size_attribute = __ATTR(buff_size[3], 0660, buff0_size_show, buff3_size_store);
-static struct kobj_attribute buff4_size_attribute = __ATTR(buff_size[4], 0660, buff0_size_show, buff4_size_store);
+static struct kobj_attribute buff1_size_attribute = __ATTR(buff_size[1], 0660, buff1_size_show, buff1_size_store);
+static struct kobj_attribute buff2_size_attribute = __ATTR(buff_size[2], 0660, buff2_size_show, buff2_size_store);
+static struct kobj_attribute buff3_size_attribute = __ATTR(buff_size[3], 0660, buff3_size_show, buff3_size_store);
+static struct kobj_attribute buff4_size_attribute = __ATTR(buff_size[4], 0660, buff4_size_show, buff4_size_store);
 static struct kobj_attribute buff0_uncached_attribute = __ATTR(buff_uncached[0], 0660, buff0_uncached_show, buff0_uncached_store);
-static struct kobj_attribute buff1_uncached_attribute = __ATTR(buff_uncached[1], 0660, buff0_uncached_show, buff1_uncached_store);
-static struct kobj_attribute buff2_uncached_attribute = __ATTR(buff_uncached[2], 0660, buff0_uncached_show, buff2_uncached_store);
-static struct kobj_attribute buff3_uncached_attribute = __ATTR(buff_uncached[3], 0660, buff0_uncached_show, buff3_uncached_store);
-static struct kobj_attribute buff4_uncached_attribute = __ATTR(buff_uncached[4], 0660, buff0_uncached_show, buff4_uncached_store);
+static struct kobj_attribute buff1_uncached_attribute = __ATTR(buff_uncached[1], 0660, buff1_uncached_show, buff1_uncached_store);
+static struct kobj_attribute buff2_uncached_attribute = __ATTR(buff_uncached[2], 0660, buff2_uncached_show, buff2_uncached_store);
+static struct kobj_attribute buff3_uncached_attribute = __ATTR(buff_uncached[3], 0660, buff3_uncached_show, buff3_uncached_store);
+static struct kobj_attribute buff4_uncached_attribute = __ATTR(buff_uncached[4], 0660, buff4_uncached_show, buff4_uncached_store);
 static struct kobj_attribute buff0_phys_attribute = __ATTR(phys_buff[0], 0660, buff0_phys_show, NULL);
-static struct kobj_attribute buff1_phys_attribute = __ATTR(phys_buff[1], 0660, buff0_phys_show, NULL);
-static struct kobj_attribute buff2_phys_attribute = __ATTR(phys_buff[2], 0660, buff0_phys_show, NULL);
-static struct kobj_attribute buff3_phys_attribute = __ATTR(phys_buff[3], 0660, buff0_phys_show, NULL);
-static struct kobj_attribute buff4_phys_attribute = __ATTR(phys_buff[4], 0660, buff0_phys_show, NULL);
+static struct kobj_attribute buff1_phys_attribute = __ATTR(phys_buff[1], 0660, buff1_phys_show, NULL);
+static struct kobj_attribute buff2_phys_attribute = __ATTR(phys_buff[2], 0660, buff2_phys_show, NULL);
+static struct kobj_attribute buff3_phys_attribute = __ATTR(phys_buff[3], 0660, buff3_phys_show, NULL);
+static struct kobj_attribute buff4_phys_attribute = __ATTR(phys_buff[4], 0660, buff4_phys_show, NULL);
 
 
 static struct attribute *alloc_buff_attributes[] = {
@@ -222,8 +229,6 @@ static struct attribute *alloc_buff_attributes[] = {
       &buff2_phys_attribute.attr,
       &buff3_phys_attribute.attr,
       &buff4_phys_attribute.attr,
-      &image_width_attribute.attr,
-      &image_writer_mode_attribute.attr,
       NULL,
 };
 
@@ -235,10 +240,15 @@ static struct attribute_group attribute_group = {
 static struct kobject *alloc_buff_kobj;
 
 //------INIT AND EXIT FUNCTIONS-----//
-static int __init alloc_buffer_init(void) {
+static int __init dmable_buff_init(void) {
     int i;
     int result;
-    char num_str[4];
+    char devname[40] = "";
+    void* SDRAMC_virtual_address;
+    ALT_STATUS_CODE status = ALT_E_SUCCESS;
+    const uint32_t ARUSER = 0b11111; //acpidmap:coherent cacheable reads
+    const uint32_t AWUSER = 0b11111; //acpidmap:coherent cacheable writes
+    int var = 0;
 
     printk(KERN_INFO DRIVER_NAME": Init\n");
 
@@ -257,8 +267,8 @@ static int __init alloc_buffer_init(void) {
     // Register the buffer entry
     for (i=0; i<NUM_BUFF; i++)
     {
-      sprintf(num_str, "%d\n", i);
-      buff[i] = device_create(class, NULL, MKDEV(majorNumber, i), NULL, strcat(DEV_NAME,num_str));
+      sprintf(devname, "%s%d\0", DEV_NAME, i);
+      buff[i] = device_create(class, NULL, MKDEV(majorNumber, i), NULL, devname);
       if (IS_ERR(buff[i])) {
           printk(KERN_ALERT DRIVER_NAME": Failed to create buffer entry %d\n", i);
           goto error_entry_creation;
@@ -276,7 +286,7 @@ static int __init alloc_buffer_init(void) {
     result = sysfs_create_group(alloc_buff_kobj, &attribute_group);
     if (result) {
         printk(KERN_INFO DRIVER_NAME": Failed to create sysfs group\n");
-        goto error_create_kobj;
+        goto error_entry_creation;
     }
 
     //Remove FPGA-to-SDRAMC ports from reset so FPGA can access SDRAM from them
@@ -284,7 +294,7 @@ static int __init alloc_buffer_init(void) {
     if (SDRAMC_virtual_address == NULL)
     {
       printk(KERN_INFO DRIVER_NAME": error doing SDRAMC ioremap\n");
-      goto error_create_kobj;
+      goto error_sdram;
     }
     *((unsigned int *)(SDRAMC_virtual_address + FPGAPORTRST)) = 0xFFFF;
 
@@ -329,6 +339,13 @@ static int __init alloc_buffer_init(void) {
       printk(KERN_INFO DRIVER_NAME": Error when enablin PMU access from user space .\n");
 
     return 0;
+
+error_sdram:
+    kobject_put(alloc_buff_kobj);
+    for(i=0; i<NUM_BUFF; i++)
+    {
+      device_destroy(class, MKDEV(majorNumber, i));
+    }
 error_entry_creation:
     class_unregister(class);
     class_destroy(class);
@@ -337,7 +354,7 @@ error_class_create:
     return -1;
 }
 
-static void __exit alloc_buffer_exit(void){
+static void __exit dmable_buff_exit(void){
    int i;
    //Undo what init did
    for(i=0; i<NUM_BUFF; i++)
@@ -351,7 +368,7 @@ static void __exit alloc_buffer_exit(void){
    printk(KERN_INFO "DMA LKM: Exiting module!!\n");
 }
 
-static int buff_open(struct inode *inodep, struct file *filep) {
+static int dmable_buff_open(struct inode *inodep, struct file *filep) {
   //Find buffer open with the minor number
   int i = iminor(filep->f_path.dentry->d_inode);
 
@@ -387,10 +404,11 @@ static int buff_open(struct inode *inodep, struct file *filep) {
          printk(KERN_INFO DRIVER_NAME": allocation of cached buffer %d successful\n", i);
       }
     }
+    isopen[i] = 1;
   }
 }
 
-static ssize_t buff_read(struct file *filep, char *buffer, size_t len, loff_t *offset) {
+static ssize_t dmable_buff_read(struct file *filep, char *buffer, size_t len, loff_t *offset) {
   int error_count = 0;
 
   //Find buffer open with the minor number
@@ -406,7 +424,7 @@ static ssize_t buff_read(struct file *filep, char *buffer, size_t len, loff_t *o
   }
 }
 
-static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
+static ssize_t dmable_buff_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
   int error_count = 0;
 
   //Find buffer open with the minor number
@@ -422,7 +440,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
   }
 }
 
-static int buff_release(struct inode *inodep, struct file *filep) {
+static int dmable_buff_release(struct inode *inodep, struct file *filep) {
   //Find buffer open with the minor number
   int i = iminor(filep->f_path.dentry->d_inode);
 
@@ -436,11 +454,13 @@ static int buff_release(struct inode *inodep, struct file *filep) {
     {
       dma_free_coherent(NULL, buff_size[i], virt_buff[i], phys_buff[i]);
     }
+    isopen[i] = 0;
+  }
 }
 
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
  *  identify the initialization function at insertion time (insmod) and the cleanup function
  * (rmmod).
  */
-module_init(alloc_buffer_init);
-module_exit(alloc_buffer_exit);
+module_init(dmable_buff_init);
+module_exit(dmable_buff_exit);
