@@ -27,7 +27,7 @@
 
 #include "fpga_dmac_api.h"
 
-#define DMA_TRANSFER_SIZE 	512
+#define DMA_TRANSFER_SIZE 	32
 
 /**************************SOME MACROS TO EASE PROGRAMMING*******************/
 //Constants to do mmap and get access to FPGA and HPS peripherals
@@ -207,7 +207,7 @@ int main() {
   printf("Initializing DMA Controller\n");
   fpga_dma_write_reg( FPGA_DMA_vaddr_void,
                       FPGA_DMA_CONTROL,
-                      FPGA_DMA_QUADWORD_TRANSFERS |
+                      FPGA_DMA_WORD_TRANSFERS |
                       FPGA_DMA_END_WHEN_LENGHT_ZERO
                     );
   fpga_dma_write_reg( FPGA_DMA_vaddr_void,   //set source address

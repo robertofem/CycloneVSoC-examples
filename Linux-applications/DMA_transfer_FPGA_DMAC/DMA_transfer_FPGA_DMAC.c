@@ -46,7 +46,7 @@
 #define HPS_OCR_ADDRESS 0xFFFF0000
 
 //DMAC transfer addresses (from processor they are virtual addresses)
-#define WRITE_OPERATION
+//#define WRITE_OPERATION
 #ifdef WRITE_OPERATION
   #define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) FPGA_OCR_ADDRESS_DMAC)
   #define DMA_TRANSFER_SRC_UP     ((uint8_t*) FPGA_OCR_vaddr)

@@ -3,15 +3,21 @@ DMA_transfer_FPGA_DMAC
 
 Introduction
 -------------
-This application does a simple transfer using a DMA Controller (DMAC) in the FPGA. This example was done to develop an API to control the DMAC. The DMAC used is the simple DMA Controller Core available in Qsys. Its documentation is available at [DMA Controller Core doc](https://www.altera.com/documentation/sfo1400787952932.html#iga1401397703359).
+This application does a simple transfer using a DMA Controller (DMAC) in the FPGA. This example was done to develop an API to control the DMAC. The DMAC used is the simple (non scatter-gather) DMA Controller Core available in Qsys. Its documentation is available at [DMA Controller Core doc](https://www.altera.com/documentation/sfo1400787952932.html#iga1401397703359).
 
-In this particular example a transfer is performed from an On-Chip RAM in the FPGA (FPGA-OCR) and the On-Chip RAM available in the HPS (HPS-OCR). Since the example does not use SDRAM memory it is not needed to develop a driver for its allocation, easing the debugging of the API.  
+In this particular example a transfer is performed from an On-Chip RAM in the FPGA (FPGA-OCR) and the On-Chip RAM available in the HPS (HPS-OCR) and viceversa.  Since the example does not use SDRAM memory it is not needed to develop a driver for its allocation, easing the debugging of the API.
 
 The program is intended to be used with the hardware project [FPGA_DMA](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_DMA) that contains:
 
-  * The DMA Controller Core. The control port is connected to HPS through HPS-to-FPGA bridge at address  0x10000. The read port, intended to read the source buffer during the DMA transfers, is connected to the FPGA-OCR at address 0. The write port, intended to write data during DMA transfers, is connected to the FPGA-HPS bridge so it can access HPS-OCR.
+  * The DMA Controller Core. The control port is connected to HPS through HPS-to-FPGA bridge at address  0x10000. The read port, intended to read the source buffer during the DMA transfers, is connected to the FPGA-HPS bridge so it can access HPS-OCR. The write port, intended to write data during DMA transfers, is connected to
+  the FPGA-OCR at address 0.
 
   * The FPGA-OCR: 1kB of double port memory. One port is connected to the HPS-to-FPGA bridge at address 0x0 so the processor has access to the buffer and initialize the content of the memory. The second port is connected to the DMA read port, as commented above.
+
+By default the applicaton moves data from HPS-OCR to FPGA-OCR. To change
+the direction uncomment the line //#define WRITE_OPERATION and switch
+the read and write ports of the DMA Controller in the hardware project
+using Qsys.
 
 Description of the code
 ------------------------
@@ -56,6 +62,6 @@ How to test
 
 * Copy the executable into the SD card and run the application:
  ```bash
-  $ chmod 777 Test_DMA_PL330_LKM
+  $ chmod 777 DMA_transfer_FPGA_DMAC
   $ ./DMA_transfer_FPGA_DMAC
 ```
