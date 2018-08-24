@@ -1,7 +1,7 @@
 #Name of the module
 obj-m := alloc_dmable_buffer.o
 #Files composing the module
-alloc_dmable_buffer-objs :=  FPGA_DMA_LKM.o alt_address_space.o
+alloc_dmable_buffer-objs :=  alloc_dmable_buffer_LKM.o alt_address_space.o
 
 #guest architecture
 ARCH := arm

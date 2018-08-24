@@ -37,8 +37,8 @@ MODULE_AUTHOR("Roberto Fernandez (robertofem@gmail.com)");
 MODULE_DESCRIPTION("Driver to allocate cached and uncached buffers in kernel space.");
 MODULE_VERSION("1.0");
 
-#define DRIVER_NAME "alloc_buffers"
-#define CLASS_NAME "alloc_buffers"
+#define DRIVER_NAME "alloc_dmable_buffers"
+#define CLASS_NAME "alloc_dmable_buffers"
 #define DEV_NAME "dmable_buff"
 #define NUM_BUFF 5 //Number of buffers
 
@@ -213,7 +213,7 @@ static struct kobj_attribute buff3_phys_attribute = __ATTR(phys_buff[3], 0660, b
 static struct kobj_attribute buff4_phys_attribute = __ATTR(phys_buff[4], 0660, buff4_phys_show, NULL);
 
 
-static struct attribute *alloc_buff_attributes[] = {
+static struct attribute *buff_attributes[] = {
       &buff0_size_attribute.attr,
       &buff1_size_attribute.attr,
       &buff2_size_attribute.attr,
@@ -234,7 +234,7 @@ static struct attribute *alloc_buff_attributes[] = {
 
 static struct attribute_group attribute_group = {
       .name  = "attributes",
-      .attrs = alloc_buff_attributes,    ///< The attributes array defined just above
+      .attrs = buff_attributes,    ///< The attributes array defined just above
 };
 
 static struct kobject *alloc_buff_kobj;
