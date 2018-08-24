@@ -1,5 +1,5 @@
-DMA_transfer_FPGA_DMAC
-=====================
+Test_DMA_PL330_LKM
+===============
 
 Introduction
 -------------
@@ -22,7 +22,7 @@ connected) until 0xFFFFFFFF (the end of the HPS-OCR). Using this mapping the ind
 
 Later both the FPGA-OCR and HPS-OCR are checked to ensure there is not an access problem like FPGA design not loaded or wrong addresses. Later they are reset to start the experiment with both memories at 0.
 
-Then FPGA-OCR and HPS-OCR are initialized with random values before the transfer
+Then FPGA-OCR and HPS-OCR  are initialized with random values before the transfer
 starts. To program the transfer the control register is first loaded indicating
 in this case Word (32-bit) Transfers (FPGA_DMA_WORD_TRANSFERS) that end when the lenght of the remaining transfer is 0 (FPGA_DMA_END_WHEN_LENGHT_ZERO). There are other methods to end the transfer like hardware signaling but this is the most common. Using the macros in dpga_dmac_api.h the user can test all the available options. For example if FPGA_DMA_WORD_TRANSFERS is changed by  FPGA_DMA_BYTE_TRANSFERS and FPGA_DMA_READ_CONSTANT_ADDR is added the DMAC will do byte transfers always reading the same first byte of the FPGA-memory and therefore the HPS-OCR will be filled with the same value.
 

@@ -5,14 +5,16 @@
 *
 * 09 March 2018
 *
-* This is a simple example showing how to use a DMA in the FPGA. The component
-* is the basic DMA Controller available in Qsys.
-* The files fpga_dmac_api.h and fpga_dmac_api.c are a bunch of macros and
-* functions to control the DMA controller. In this particular example the DMA
-* controller copies a buffer in a FPGA On-Chip RAM (FPGA-OCR) to the HPS
-* On-Chip RAM (HPS-OCR). Therefore the  FPGA-OCR is connected to the read port.
-* To access HPS-OCR from FPGA the write port of the DMA controller is connected
-* to the FPGA-to-HPS bridge.
+* This is a simple example showing how to use a DMA in the FPGA and the
+* alloc_dmable_buff driver to move data between and On-Chip RAM in the
+* FPGA and a buffer in application.
+* The DMAC component is the basic(non scatter-gather) DMA Controller
+* available in Qsys. The files fpga_dmac_api.h and fpga_dmac_api.c are a bunch
+* of macros and functions to control that DMA controller.
+* In this particular example the DMA controller copies a buffer in a FPGA
+* On-Chip RAM (FPGA-OCR) to a buffer in the program. Therefore the FPGA-OCR
+* is connected to the read port of the DMAC and the FPGA-to-HPS bridge is
+* connected to the write port of the DMAC.
 ******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +27,7 @@
 
 #include "fpga_dmac_api.h"
 
-#define DMA_TRANSFER_SIZE 	32
+#define DMA_TRANSFER_SIZE 	512
 
 /**************************SOME MACROS TO EASE PROGRAMMING*******************/
 //Constants to do mmap and get access to FPGA and HPS peripherals
@@ -42,22 +44,17 @@
 #define FPGA_OCR_ADDRESS_UP ((uint8_t*)0xC0000000+FPGA_OCR_QSYS_ADDRESS_UP)
 //Address of the On-Chip RAM in the FPGA, as seen by DMAC
 #define FPGA_OCR_ADDRESS_DMAC 0x0
-//Address of the HPS-OCR, as seen by both processor and FPGA-DMAC
-#define HPS_OCR_ADDRESS 0xFFFF0000
+//GPIO to change AXI AXI_SIGNALS
+#define GPIO_QSYS_ADDRESS 0x20000
+#define GPIO_ADDRESS_UP ((uint8_t*)0xC0000000 + GPIO_QSYS_ADDRESS)
 
 //DMAC transfer addresses (from processor they are virtual addresses)
-#define WRITE_OPERATION
-#ifdef WRITE_OPERATION
-  #define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) FPGA_OCR_ADDRESS_DMAC)
-  #define DMA_TRANSFER_SRC_UP     ((uint8_t*) FPGA_OCR_vaddr)
-  #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) HPS_OCR_ADDRESS)
-  #define DMA_TRANSFER_DST_UP     ((uint8_t*) HPS_OCR_vaddr)
-#else
-  #define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) HPS_OCR_ADDRESS)
-  #define DMA_TRANSFER_SRC_UP     ((uint8_t*) HPS_OCR_vaddr)
-  #define DMA_TRANSFER_DST_DMAC   ((uint8_t*) FPGA_OCR_ADDRESS_DMAC)
-  #define DMA_TRANSFER_DST_UP     ((uint8_t*) FPGA_OCR_vaddr)
-#endif
+
+#define DMA_TRANSFER_SRC_DMAC   ((uint8_t*) FPGA_OCR_ADDRESS_DMAC)
+#define DMA_TRANSFER_SRC_UP     ((uint8_t*) FPGA_OCR_vaddr)
+#define DMA_TRANSFER_DST_DMAC   ((uint8_t*) intermediate_buff_phys + 0x80000000) //through ACP
+#define DMA_TRANSFER_DST_UP     ((uint8_t*) buff)
+
 
 void printbuff(uint8_t* buff, int size)
 {
@@ -74,6 +71,7 @@ void printbuff(uint8_t* buff, int size)
 
 int main() {
   int i;
+  uint32_t AXI_SIGNALS;
 
   //-------GENERATE VIRTUAL ADRESSES TO ACCESS FPGA FROM PROCESSOR---------//
   void *virtual_base;
@@ -100,12 +98,12 @@ int main() {
   + ((unsigned long)(FPGA_OCR_QSYS_ADDRESS_UP) & (unsigned long)( HW_REGS_MASK ));
   uint8_t* FPGA_OCR_vaddr = (uint8_t *) FPGA_OCR_vaddr_void;
 
-  void *HPS_OCR_vaddr_void = virtual_base
-  + ((unsigned long)(HPS_OCR_ADDRESS-HPS_FPGA_BRIDGE_BASE) &
-  (unsigned long)( HW_REGS_MASK ));
-  uint8_t* HPS_OCR_vaddr = (uint8_t *) HPS_OCR_vaddr_void;
+  void *AXI_GPIO_vaddr_void = virtual_base
+  + ((unsigned long)(GPIO_QSYS_ADDRESS) & (unsigned long)( HW_REGS_MASK ));
+  uint32_t* AXI_GPIO_vaddr = (uint32_t *) AXI_GPIO_vaddr_void;
 
-  //-----CHECK IF THE FPGA OCR AND HPS OCR ARE ACCESSIBLE AND RESET THEM------//
+
+  //-----CHECK IF THE FPGA OCR IS ACCESSIBLE AND RESET IT------//
   //Check the on-chip RAM memory in the FPGA (Source of the DMA transfer)
   uint8_t* fpga_ocr_ptr = FPGA_OCR_vaddr;
   for (i=0; i<DMA_TRANSFER_SIZE; i++)
@@ -119,21 +117,6 @@ int main() {
     fpga_ocr_ptr++;
   }
   printf("Check FPGA On-Chip RAM OK\n");
-
-  //Check the on-chip RAM memory in the HPS (Destiny of DMA transfer)
-  uint8_t* hps_ocr_ptr = HPS_OCR_vaddr;
-  for (i=0; i<DMA_TRANSFER_SIZE; i++)
-  {
-    *hps_ocr_ptr = (uint8_t) i;
-    if (*hps_ocr_ptr != (uint8_t)i)
-    {
-      printf ("Error when checking HPS On-Chip RAM in Byte %d\n", i);
-      return 0;
-    }
-    hps_ocr_ptr++;
-  }
-  printf("Check HPS On-Chip RAM OK\n");
-
 
   //Reset FPGA-OCR
   fpga_ocr_ptr = FPGA_OCR_vaddr;
@@ -149,37 +132,82 @@ int main() {
   }
   printf("Reset FPGA On-Chip RAM OK\n");
 
-  //Reset HPS-OCR
-  hps_ocr_ptr = HPS_OCR_vaddr;
-  for (i=0; i<DMA_TRANSFER_SIZE; i++)
-  {
-    *hps_ocr_ptr = 0;
-    if (*hps_ocr_ptr != 0)
-    {
-      printf ("Error when resetting On-Chip RAM in Byte %d\n", i);
-      return 0;
+  //------DEFINE AXI SIGNALS THAT CAN AFFECT THE TRANSACTION-------//
+  //AXI_SIGNALS[3-0]  = AWCACHE = 0111 (Cacheable write-back, allocate reads only)
+  //AXI_SIGNALS[6-4]  = AWPROT = 000 (normal access, non-secure, data)
+  //AXI_SIGNALS[11-7] = AWUSER = 00001 (Coherent access)
+  //AXI_SIGNALS[19-16]  = ARCACHE = 0111
+  //AXI_SIGNALS[22-20]  = ARPROT = 000
+  //AXI_SIGNALS[27-23] = ARUSER = 00001
+  //AXI_SIGNALS = 0x00870087; //works for WR and RD and gives fastest accesses
+  AXI_SIGNALS = 0x00870087;
+  //Write data to the GPIO connected to AXI signals
+  *AXI_GPIO_vaddr = AXI_SIGNALS;
+
+  //----Allocate the Buffers to do the transfer-----//
+  //Allocate the final buffer in application
+  char buff[DMA_TRANSFER_SIZE];
+  for (i=0; i<DMA_TRANSFER_SIZE; i++) buff[i] = 0;
+  //Allocate an intermediate buffer to do the DMA transfer using the driver
+    //Set size
+    int f_sysfs;
+    char d[14];
+    printf("\nConfig. dmable_buff module using sysfs entries in /sys/alloc_dmable_buffers\n");
+    sprintf(d, "%u", (uint32_t) DMA_TRANSFER_SIZE);
+    f_sysfs = open("/sys/alloc_dmable_buffers/attributes/buff_size[0]", O_WRONLY);
+    if (f_sysfs < 0){
+      printf("Failed to open sysfs for buff_size.\n");
+      return errno;
     }
-    hps_ocr_ptr++;
-  }
-  printf("Reset On-Chip RAM OK\n");
+    write (f_sysfs, &d, 14);
+    close(f_sysfs);
+    //Set cacheable (goes through ACP)
+    sprintf(d, "%u", (uint32_t) 0);
+    f_sysfs = open("/sys/alloc_dmable_buffers/attributes/buff_uncached[0]", O_WRONLY);
+    if (f_sysfs < 0){
+      printf("Failed to open sysfs for buff_uncached.\n");
+      return errno;
+    }
+    write (f_sysfs, &d, 14);
+    close(f_sysfs);
+    //Open the entry to allocate the buffer
+    int f_intermediate_buff = open("/dev/dmable_buff0",O_RDWR);
+    if (f_intermediate_buff < 0){
+      perror("Failed to open /dev/dmable_buff0...");
+      return errno;
+    }
+    //get physical address
+    sprintf(d, "%u", (uint32_t) 0);
+    f_sysfs = open("/sys/alloc_dmable_buffers/attributes/phys_buff[0]", O_RDONLY);
+    if (f_sysfs < 0){
+      printf("Failed to open sysfs for phys_buff.\n");
+      return errno;
+    }
+    read(f_sysfs, d, 14);
+    //fgets(d, 14, )
+    unsigned int intermediate_buff_phys = 0;
+    printf("d=%s, phys=%x", d, intermediate_buff_phys);
+    intermediate_buff_phys = strtoul (d, NULL, 0);
+    printf("d=%s, phys=%x", d, intermediate_buff_phys);
+    close(f_sysfs);
 
   //-----------------DO DMA TRANSFER USING THE FPGA-DMAC-----------------//
   //Fill uP buffer and show uP and FPGA buffers
-  printf("\nWRITE: Copy %d Bytes from FPGA OCR (%x) to HPS OCR (%x)\n",
+  printf("\nWRITE: Copy %d Bytes from FPGA OCR (%x) to Intermediate Buff (%x)\n",
     (int) DMA_TRANSFER_SIZE, (unsigned int) DMA_TRANSFER_SRC_UP,
-    (unsigned int) DMA_TRANSFER_DST_UP);
+    (unsigned int) intermediate_buff_phys);
 
   for (i=0; i<DMA_TRANSFER_SIZE;i++) DMA_TRANSFER_SRC_UP[i] = (uint8_t)rand();
   printf("FPGA OCR before DMA transfer = ");
   printbuff(DMA_TRANSFER_SRC_UP, DMA_TRANSFER_SIZE);
-  printf("HPS OCR before DMA transfer = ");
+  printf("Buffer before DMA transfer = ");
   printbuff(DMA_TRANSFER_DST_UP, DMA_TRANSFER_SIZE);
 
   //Do the transfer using the DMA in the FPGA
   printf("Initializing DMA Controller\n");
   fpga_dma_write_reg( FPGA_DMA_vaddr_void,
                       FPGA_DMA_CONTROL,
-                      FPGA_DMA_WORD_TRANSFERS |
+                      FPGA_DMA_QUADWORD_TRANSFERS |
                       FPGA_DMA_END_WHEN_LENGHT_ZERO
                     );
   fpga_dma_write_reg( FPGA_DMA_vaddr_void,   //set source address
@@ -205,10 +233,13 @@ int main() {
     FPGA_DMA_DONE)==0) {}
   printf("DMA Transfer Finished\n");
 
+  //Copy intermediate buffer into buffer
+  read(f_intermediate_buff, buff, DMA_TRANSFER_SIZE);
+
     //print the result of the Write
   printf("FPGA OCR after DMA transfer = ");
   printbuff(DMA_TRANSFER_SRC_UP, DMA_TRANSFER_SIZE);
-  printf("HPS OCR after DMA transfer = ");
+  printf("Buffer after DMA transfer = ");
   printbuff(DMA_TRANSFER_DST_UP, DMA_TRANSFER_SIZE);
 	if(memcmp(DMA_TRANSFER_SRC_UP, DMA_TRANSFER_DST_UP,(size_t)DMA_TRANSFER_SIZE)==0)
     printf("Write Successful!\n");
@@ -216,6 +247,8 @@ int main() {
     printf("Write Error. Buffers are not equal\n");
 
 	// --------------clean up our memory mapping and exit -----------------//
+  close(f_intermediate_buff);
+
 	if( munmap( virtual_base, HW_REGS_SPAN ) != 0 ) {
 		printf( "ERROR: munmap() failed...\n" );
 		close( fd );
