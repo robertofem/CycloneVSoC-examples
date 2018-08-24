@@ -365,12 +365,13 @@ static void __exit dmable_buff_exit(void){
    class_destroy(class);
    unregister_chrdev(majorNumber, DRIVER_NAME);
    kobject_put(alloc_buff_kobj);
-   printk(KERN_INFO "DMA LKM: Exiting module!!\n");
+   printk(KERN_INFO DRIVER_NAME": Exiting module!!\n");
 }
 
 static int dmable_buff_open(struct inode *inodep, struct file *filep) {
   //Find buffer open with the minor number
-  int i = iminor(filep->f_path.dentry->d_inode);
+  int i;
+  i = iminor(filep->f_path.dentry->d_inode);
 
   if (isopen[i] == 0)
   {
@@ -380,7 +381,6 @@ static int dmable_buff_open(struct inode *inodep, struct file *filep) {
       virt_buff[i] = kmalloc(buff_size[i], (GFP_DMA | GFP_ATOMIC));
       if (virt_buff[i] == NULL) {
    	    printk(KERN_INFO DRIVER_NAME": allocation of cached buffer %d failed\n", i);
-   	    return -1;
       }else{
          printk(KERN_INFO DRIVER_NAME": allocation of cached buffer %d successful\n", i);
       }
@@ -406,13 +406,15 @@ static int dmable_buff_open(struct inode *inodep, struct file *filep) {
     }
     isopen[i] = 1;
   }
+  return 0;
 }
 
 static ssize_t dmable_buff_read(struct file *filep, char *buffer, size_t len, loff_t *offset) {
   int error_count = 0;
 
   //Find buffer open with the minor number
-  int i = iminor(filep->f_path.dentry->d_inode);
+  int i;
+  i = iminor(filep->f_path.dentry->d_inode);
 
   if (isopen[i] == 1)
   {
@@ -422,13 +424,15 @@ static ssize_t dmable_buff_read(struct file *filep, char *buffer, size_t len, lo
        return -EFAULT;  // Failed -- return a bad address message (i.e. -14)
     }
   }
+  return 0;
 }
 
 static ssize_t dmable_buff_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
   int error_count = 0;
 
   //Find buffer open with the minor number
-  int i = iminor(filep->f_path.dentry->d_inode);
+  int i;
+  i = iminor(filep->f_path.dentry->d_inode);
 
   if (isopen[i] == 1)
   {
@@ -438,11 +442,13 @@ static ssize_t dmable_buff_write(struct file *filep, const char *buffer, size_t 
        return -EFAULT;  // Failed -- return a bad address message (i.e. -14)
     }
   }
+  return 0;
 }
 
 static int dmable_buff_release(struct inode *inodep, struct file *filep) {
   //Find buffer open with the minor number
-  int i = iminor(filep->f_path.dentry->d_inode);
+  int i;
+  i = iminor(filep->f_path.dentry->d_inode);
 
   if (isopen[i] == 1)
   {
@@ -456,6 +462,7 @@ static int dmable_buff_release(struct inode *inodep, struct file *filep) {
     }
     isopen[i] = 0;
   }
+  return 0;
 }
 
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
