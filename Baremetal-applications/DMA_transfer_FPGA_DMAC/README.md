@@ -3,7 +3,7 @@ DMA_transfer_FPGA_DMAC
 
 Description
 -----------
-This is a simple example showing how to use a DMA in the FPGA. It is intended to be used with the hardware project [DMA_FPGA](https://github.com/robertofem/CycloneVSoC-examples/tree/soft_dma_baremetal/Baremetal-applications/DMA_transfer_FPGA_DMAC). The component for doing DMA is the basic (non scatter-gather) DMA Controller available in Qsys.
+This is a simple example showing how to use a DMA in the FPGA. It is intended to be used with the hardware project [DMA_FPGA](https://github.com/robertofem/CycloneVSoC-examples/tree/master/FPGA-hardware/DE1-SoC/FPGA_DMA). The component for doing DMA is the basic (non scatter-gather) DMA Controller available in Qsys.
 
 In this particular example the DMA controller reads a buffer in processor memory and copies to a FPGA On-Chip RAM (FPGA-OCR) using the FPGA-to-HPS port. Since the FPGA-to-HPS port access L3, FPGA has access to ACP and L3-SDRAMC port, so coherent access to cache and SDRAM access can be performed. In this example
 this can be controlled with a macro.

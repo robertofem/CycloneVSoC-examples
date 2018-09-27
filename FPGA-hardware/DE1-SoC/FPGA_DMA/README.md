@@ -3,12 +3,12 @@ FPGA_DMA
 
 Description
 ------------
-This project implements a double port On-Chip RAM (FPGA-OCR) and a DMA Controller Core (available in Qsys) controller in the FPGA. Its purpose is to test the DMA Controller in the FPGA and test writing/reading to HPS using the FPGA as master. The project comes with DMA Controller write port connected to FPGA-OCR and read port connected to HPS. Therefore data can be copied from HPS to the FPGA-OCR. If you want to move data in the oposite direction switch the connectiion of write and read port in DMA Controller. This project is a modification of the DE1-SoC Golden Hardware Reference Design (GHRD) available in the DE1-SoC CD-ROM documentation.
+This project implements a double port On-Chip RAM (FPGA-OCR) and a DMA Controller Core (available in Qsys) controller in the FPGA. Its purpose is to test the DMA Controller in the FPGA and test writing/reading to HPS using the FPGA as master. The project comes with DMA Controller write port connected to FPGA-OCR and read port connected to HPS. Therefore data can be copied from HPS to the FPGA-OCR. If you want to move data in the oposite direction switch the connectiion of write and read port in DMA Controller (in Qsys). This project is a modification of the DE1-SoC Golden Hardware Reference Design (GHRD) available in the DE1-SoC CD-ROM documentation.
 
 The OCR configured in the FPGA has the following characteristics:
 
 * Implemented using embedded 10kB memory blocks.
-* Size = 1kB..
+* Size = 1kB.
 *  Data_size is 128bits. The bigger the data size the faster the data rates achieved so 128 bits is selected cause it is the maximum of the bridge where it is connected.
 *  Double port. One port is connected to the HPS-to-FPGA bridge so the processor
 can access it. Its address relative to the HPS-to-FPGA bridge is 0x0 (0x00000000 in Qsys). The physical address to be used from processor is threfore the sum of the beginning of the HPS-to-FPGA bridge (0xC0000000) plus the Qsys address (0x0). The second port is connected to the write port of the DMA Controller core at address 0x0 too.
