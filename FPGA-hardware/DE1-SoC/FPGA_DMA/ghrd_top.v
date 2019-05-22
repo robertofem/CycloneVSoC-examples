@@ -332,8 +332,8 @@ module ghrd_top(
         .axi_signals_awprot                    (pio_controlled_axi_signals[AWPROT_BASE+: AWPROT_SIZE]),                    //                          .awprot
         .axi_signals_awuser                    (pio_controlled_axi_signals[AWUSER_BASE+: AWUSER_SIZE]),                    //                          .awuser
         .axi_signals_arcache                   (pio_controlled_axi_signals[ARCACHE_BASE+:ARCACHE_SIZE]),                   //                          .arcache
-        .axi_signals_aruser                    (pio_controlled_axi_signals[ARPROT_BASE+: ARPROT_SIZE]),                    //                          .aruser
-        .axi_signals_arprot                    (pio_controlled_axi_signals[ARUSER_BASE+: ARUSER_SIZE])
+        .axi_signals_aruser                    (pio_controlled_axi_signals[ARUSER_BASE+: ARUSER_SIZE]),                    //                          .aruser
+        .axi_signals_arprot                    (pio_controlled_axi_signals[ARPROT_BASE+: ARPROT_SIZE])
     );
   
 // Source/Probe megawizard instance
